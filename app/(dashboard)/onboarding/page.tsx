@@ -1,6 +1,7 @@
 'use client';
 
 import { OnboardingChecklistView } from '@/components/SubViews';
+import { PageLoading } from '@/components/PageLoading';
 import {
   useOnboarding,
   useToggleOnboardingTask,
@@ -8,9 +9,11 @@ import {
 } from '@/features/onboarding/hooks';
 
 export default function OnboardingPage() {
-  const { data: onboarding = [] } = useOnboarding();
+  const { data: onboarding = [], isLoading } = useOnboarding();
   const toggle = useToggleOnboardingTask();
   const promote = usePromoteFromOnboarding();
+
+  if (isLoading) return <PageLoading />;
 
   return (
     <OnboardingChecklistView

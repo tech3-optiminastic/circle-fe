@@ -1,12 +1,15 @@
 'use client';
 
 import { HiringFunnelChart } from '@/components/HiringFunnelChart';
+import { PageLoading } from '@/components/PageLoading';
 import { useCandidates } from '@/features/candidates/hooks';
 import { useInterviews } from '@/features/interviews/hooks';
 
 export default function ReportsPage() {
   const { data: candidates = [] } = useCandidates();
-  const { data: interviews = [] } = useInterviews();
+  const { data: interviews = [], isLoading } = useInterviews();
+
+  if (isLoading) return <PageLoading />;
 
   return (
     <div className="space-y-6">

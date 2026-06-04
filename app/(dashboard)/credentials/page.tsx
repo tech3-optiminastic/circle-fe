@@ -1,13 +1,16 @@
 'use client';
 
 import { CredentialsAssetsView } from '@/components/SubViews';
+import { PageLoading } from '@/components/PageLoading';
 import { useAssets, useEmployees, useEmployeeMutations, useUpdateAsset } from '@/features/employees/hooks';
 
 export default function CredentialsPage() {
   const { data: employees = [] } = useEmployees();
-  const { data: assets = [] } = useAssets();
+  const { data: assets = [], isLoading } = useAssets();
   const updateAsset = useUpdateAsset();
   const { updateCredential } = useEmployeeMutations();
+
+  if (isLoading) return <PageLoading />;
 
   return (
     <CredentialsAssetsView

@@ -1,6 +1,7 @@
 'use client';
 
 import { InterviewsView } from '@/components/SubViews';
+import { PageLoading } from '@/components/PageLoading';
 import { useUiStore } from '@/store/ui-store';
 import { useScheduler } from '@/store/schedule-store';
 import { useCandidates } from '@/features/candidates/hooks';
@@ -9,9 +10,11 @@ import { useInterviews, useInterviewMutations } from '@/features/interviews/hook
 export default function InterviewsPage() {
   const { setSelectedCandidateId } = useUiStore();
   const { openSchedule } = useScheduler();
-  const { data: interviews = [] } = useInterviews();
+  const { data: interviews = [], isLoading } = useInterviews();
   const { data: candidates = [] } = useCandidates();
   const { add, remove } = useInterviewMutations();
+
+  if (isLoading) return <PageLoading />;
 
   return (
     <InterviewsView

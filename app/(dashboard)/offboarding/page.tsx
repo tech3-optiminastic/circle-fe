@@ -1,6 +1,7 @@
 'use client';
 
 import { OffboardingChecklistView } from '@/components/SubViews';
+import { PageLoading } from '@/components/PageLoading';
 import {
   useOffboarding,
   useToggleExitTask,
@@ -9,10 +10,12 @@ import {
 } from '@/features/offboarding/hooks';
 
 export default function OffboardingPage() {
-  const { data: offboarding = [] } = useOffboarding();
+  const { data: offboarding = [], isLoading } = useOffboarding();
   const toggle = useToggleExitTask();
   const toggleDeliverable = useToggleDeliverable();
   const confirm = useConfirmClearance();
+
+  if (isLoading) return <PageLoading />;
 
   return (
     <OffboardingChecklistView
