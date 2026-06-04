@@ -54,7 +54,7 @@ export function EmployeeProfileModal({
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#EAEAEC] bg-[#FAFBFC] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-indigo-600 flex items-center justify-center text-white text-md font-bold">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-purple-600 flex items-center justify-center text-white text-md font-bold">
               {employee.fullName
                 .split(' ')
                 .map(n => n[0])
@@ -79,19 +79,19 @@ export function EmployeeProfileModal({
         <div className="border-b border-[#EAEAEC] px-6 bg-[#FFFFFF] shrink-0 flex gap-4 text-xs font-medium">
           <button
             onClick={() => setActiveTab('info')}
-            className={`py-3 border-b-2 font-semibold ${activeTab === 'info' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
+            className={`py-3 border-b-2 font-semibold ${activeTab === 'info' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
           >
             Personal & Job Info
           </button>
           <button
             onClick={() => setActiveTab('sec')}
-            className={`py-3 border-b-2 font-semibold ${activeTab === 'sec' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
+            className={`py-3 border-b-2 font-semibold ${activeTab === 'sec' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
           >
             IT Assets & Credentials ({employee.assets?.length || 0})
           </button>
           <button
             onClick={() => setActiveTab('perf')}
-            className={`py-3 border-b-2 font-semibold ${activeTab === 'perf' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
+            className={`py-3 border-b-2 font-semibold ${activeTab === 'perf' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
           >
             Performance scorecards
           </button>

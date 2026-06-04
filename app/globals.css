@@ -14,20 +14,20 @@
     var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     sans-serif;
 
-  /* Active palette — Primary brand accent: Cyan #0891B2.
+  /* Active palette — Primary brand accent: Indigo #4F46E5 (modern HR-SaaS look).
      Swap the values below to re-theme; component classes use accent-* tokens. */
-  --color-brand: #0891b2;
+  --color-brand: #4f46e5;
 
-  /* Custom "accent" palette — Cyan */
-  --color-accent-50: #ecfeff;
-  --color-accent-100: #cffafe;
-  --color-accent-200: #a5f0fa;
-  --color-accent-300: #67e3f4;
-  --color-accent-400: #22d3ee;
-  --color-accent-500: #06b6d4;
-  --color-accent-600: #0891b2;
-  --color-accent-700: #0e7490;
-  --color-accent-800: #155e75;
+  /* Custom "accent" palette — Indigo */
+  --color-accent-50: #eef2ff;
+  --color-accent-100: #e0e7ff;
+  --color-accent-200: #c7d2fe;
+  --color-accent-300: #a5b4fc;
+  --color-accent-400: #818cf8;
+  --color-accent-500: #6366f1;
+  --color-accent-600: #4f46e5;
+  --color-accent-700: #4338ca;
+  --color-accent-800: #3730a3;
 }
 
 body {

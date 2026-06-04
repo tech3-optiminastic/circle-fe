@@ -33,7 +33,7 @@ export function KanbanPipeline({ candidates, onMoveCandidate, onSelectCandidate 
     {
       key: 'Shortlisted',
       label: 'Shortlisted',
-      countColor: 'text-indigo-600 bg-indigo-50',
+      countColor: 'text-purple-600 bg-purple-50',
       bg: 'bg-[#F1F1F2]/50',
     },
     {

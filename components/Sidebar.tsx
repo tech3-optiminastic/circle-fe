@@ -207,7 +207,7 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
               <span className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
                 <ShieldCheck
                   size={12}
-                  className={userRole === 'Admin' ? 'text-indigo-600' : 'text-emerald-600'}
+                  className={userRole === 'Admin' ? 'text-purple-600' : 'text-emerald-600'}
                 />
                 {userRole === 'Admin' ? 'Admin / Leader' : 'HR Specialist'}
               </span>
@@ -224,7 +224,7 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
           <button
             id="btn-toggle-role-collapsed"
             onClick={() => setUserRole(userRole === 'HR' ? 'Admin' : 'HR')}
-            className={`w-8 h-8 mx-auto flex items-center justify-center rounded-full hover:bg-gray-200 transition ${userRole === 'Admin' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}`}
+            className={`w-8 h-8 mx-auto flex items-center justify-center rounded-full hover:bg-gray-200 transition ${userRole === 'Admin' ? 'bg-purple-50 text-purple-600' : 'bg-emerald-50 text-emerald-600'}`}
             title="Toggle system view role"
           >
             <ShieldCheck size={16} />

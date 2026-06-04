@@ -689,7 +689,7 @@ export function CandidateProfileModal({
                 {/* Submissions Section */}
                 <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-4 space-y-3">
                   <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider font-mono flex items-center gap-1">
-                    <BookOpen size={13} className="text-indigo-600" /> Trial Code Assignments
+                    <BookOpen size={13} className="text-purple-600" /> Trial Code Assignments
                   </h3>
                   {candidateAssignmentsSubmissions.length === 0 ? (
                     <div className="text-center py-6 text-gray-400 text-xs">
@@ -706,7 +706,7 @@ export function CandidateProfileModal({
                           <div className="space-y-1 text-gray-650">
                             <div className="flex justify-between font-semibold">
                               <span>Overall Quality Score:</span>
-                              <span className="text-indigo-600">{sub.grading.overallScore} / 100</span>
+                              <span className="text-purple-600">{sub.grading.overallScore} / 100</span>
                             </div>
                             <p className="text-[10px] bg-[#F1F1F2] p-1 rounded italic mt-1 font-sans">
                               "{sub.grading.evaluatorComments}"

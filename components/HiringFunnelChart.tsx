@@ -34,7 +34,7 @@ export function HiringFunnelChart({ candidates, interviews, onSelectCandidate }:
       label: 'Shortlisted for Assessment',
       count: stageCounts.shortlisted + stageCounts.hrCall,
       pct: Math.round(((stageCounts.shortlisted + stageCounts.hrCall) / (candidates.length || 1)) * 100),
-      color: 'bg-indigo-600',
+      color: 'bg-purple-600',
     },
     {
       label: 'HR Screening Calls',

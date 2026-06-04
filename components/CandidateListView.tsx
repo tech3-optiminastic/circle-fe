@@ -289,7 +289,7 @@ export function CandidateListView({
                     <span
                       className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold select-none ${
                         cand.status === 'Shortlisted'
-                          ? 'bg-indigo-50 text-indigo-600'
+                          ? 'bg-purple-50 text-purple-600'
                           : cand.status === 'Moved to HR Call'
                             ? 'bg-teal-50 text-teal-600'
                             : cand.status === 'Rejected'

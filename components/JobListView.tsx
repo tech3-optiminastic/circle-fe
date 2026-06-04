@@ -116,7 +116,7 @@ export function JobListView({
     { label: 'Total openings', value: jobs.length, dot: 'bg-accent-500' },
     { label: 'Live & open', value: openCount, dot: 'bg-emerald-500' },
     { label: 'Closed / hold', value: closedCount, dot: 'bg-gray-400' },
-    { label: 'Applicants', value: totalApplicants, dot: 'bg-indigo-500' },
+    { label: 'Applicants', value: totalApplicants, dot: 'bg-purple-500' },
   ];
 
   return (

@@ -571,7 +571,7 @@ export function IQTestAssignmentsView({
                   </p>
                 </div>
                 <span
-                  className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600`}
+                  className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-600`}
                 >
                   {asm.difficultyLevel} Difficulty
                 </span>
@@ -839,7 +839,7 @@ export function EmployeeDirectoryView({ employees, onSelectEmployee, onUpdateEmp
           >
             <div className="space-y-3">
               <div className="flex justify-between items-start">
-                <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs truncate">
+                <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs truncate">
                   {emp.fullName
                     .split(' ')
                     .map(n => n[0])

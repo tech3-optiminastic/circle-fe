@@ -235,7 +235,7 @@ export function Header({
                 <p className="font-semibold text-gray-900 truncate">
                   {user?.name || displayName(user?.email)}
                   {isAdmin && (
-                    <span className="ml-1.5 text-[9px] font-mono bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full align-middle">
+                    <span className="ml-1.5 text-[9px] font-mono bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full align-middle">
                       ADMIN
                     </span>
                   )}

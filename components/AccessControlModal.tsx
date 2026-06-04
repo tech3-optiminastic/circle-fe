@@ -49,7 +49,7 @@ export function AccessControlModal({ onClose }: { onClose: () => void }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#EAEAEC]">
           <div className="flex items-center gap-2.5">
-            <span className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <span className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
               <ShieldCheck size={17} />
             </span>
             <div>
@@ -92,7 +92,7 @@ export function AccessControlModal({ onClose }: { onClose: () => void }) {
                 <span
                   className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold shrink-0 ${
                     u.role === 'admin'
-                      ? 'bg-indigo-50 text-indigo-600'
+                      ? 'bg-purple-50 text-purple-600'
                       : 'bg-accent-50 text-accent-600'
                   }`}
                 >
