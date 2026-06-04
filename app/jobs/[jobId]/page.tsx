@@ -6,6 +6,7 @@ import { Logo } from '@/components/Logo';
 import { Candidate } from '@/types';
 import { useJob, useApplyToJob } from '@/features/jobs/hooks';
 import { uploadDocument } from '@/lib/api/documents';
+import { useToast } from '@/components/Toaster';
 import {
   MapPin,
   Briefcase,
@@ -51,6 +52,7 @@ export default function PublicJobPage() {
 
   const { data: job, isLoading, isError } = useJob(jobId);
   const apply = useApplyToJob();
+  const toast = useToast();
 
   const [form, setForm] = useState(EMPTY);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
@@ -79,7 +81,7 @@ export default function PublicJobPage() {
     e.preventDefault();
     if (!job) return;
     if (!form.fullName.trim() || !form.email.trim()) {
-      alert('Please provide your full name and email.');
+      toast.error('Please provide your full name and email.');
       return;
     }
     setError(null);

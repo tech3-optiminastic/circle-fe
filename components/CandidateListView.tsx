@@ -1,6 +1,7 @@
 'use client';
 import { Select } from './Select';
 import { ActionMenu } from './ActionMenu';
+import { useToast } from './Toaster';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -36,6 +37,7 @@ export function CandidateListView({
   onDeleteCandidate,
   onShortlistCandidate,
 }: CandidateListViewProps) {
+  const toast = useToast();
   const [search, setSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
@@ -92,7 +94,7 @@ export function CandidateListView({
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCand.fullName || !newCand.email) {
-      alert('Must input candidate full name and contact email.');
+      toast.error('Full name and contact email are required.');
       return;
     }
 
@@ -137,7 +139,7 @@ export function CandidateListView({
       sourceOfApplication: 'LinkedIn',
       hrRemarks: '',
     });
-    alert('Candidate profile added successfully to candidate matrix.');
+    toast.success(`${created.fullName} added to the candidate pipeline.`);
   };
 
   return (

@@ -47,6 +47,21 @@ h4 {
   letter-spacing: -0.02em;
 }
 
+/* Toast slide-in */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.toast-enter {
+  animation: toast-in 0.18s ease-out;
+}
+
 /* Scrollbar customizations */
 ::-webkit-scrollbar {
   width: 6px;

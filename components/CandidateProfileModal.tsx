@@ -1,6 +1,7 @@
 'use client';
 import { Select } from './Select';
 import { DocumentsPanel } from './DocumentsPanel';
+import { useToast } from './Toaster';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -61,6 +62,7 @@ export function CandidateProfileModal({
   onScheduleInterview,
   userRole,
 }: CandidateProfileModalProps) {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'profile' | 'evaluation' | 'bgv'>('profile');
 
   // Local forms state
@@ -123,7 +125,7 @@ export function CandidateProfileModal({
       },
     };
     onUpdateCandidate(updatedCandidate);
-    alert('HR Introductory Call summary recorded successfully. Candidate pipeline stage updated!');
+    toast.success('HR call summary recorded — pipeline stage updated.');
   };
 
   const handleUpdateDocStatus = (docType: string, targetStatus: string) => {
@@ -537,9 +539,7 @@ export function CandidateProfileModal({
                         scheduleForm.dateTime,
                         scheduleForm.mode,
                       );
-                      alert(
-                        'Interview scheduled automatically! Template invitation email recorded in Email history.',
-                      );
+                      toast.success('Interview scheduled — invite email recorded in history.');
                     }}
                     className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs px-2.5 py-1.5 rounded-md flex items-center gap-1 cursor-pointer transition font-semibold"
                   >
@@ -625,7 +625,7 @@ export function CandidateProfileModal({
                                       gradingForm.comments,
                                       gradingForm.overallScore,
                                     );
-                                    alert('Secure evaluation recorded instantly. Status updated!');
+                                    toast.success('Evaluation recorded — status updated.');
                                   }}
                                   className="bg-accent-600 hover:bg-accent-700 text-white font-medium rounded py-1 cursor-pointer text-[11px] transition"
                                 >

@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { ModalHost } from './ModalHost';
@@ -9,6 +10,8 @@ import { useUiStore } from '@/store/ui-store';
 import { useAuth } from '@/store/auth-store';
 import { useCandidates } from '@/features/candidates/hooks';
 import { useEmployees } from '@/features/employees/hooks';
+import { repositories } from '@/lib/api/repositories';
+import { qk } from '@/lib/query/keys';
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -19,6 +22,30 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (ready && !user) router.replace('/login');
   }, [ready, user, router]);
+
+  // Perceived performance: once signed in, warm the cache for every section in
+  // the background so navigating the sidebar renders instantly from cache
+  // (with React Query refreshing stale data silently).
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!ready || !user) return;
+    const targets: [readonly unknown[], () => Promise<unknown>][] = [
+      [qk.jobs.all, () => repositories.jobs.list()],
+      [qk.interviews.all, () => repositories.interviews.list()],
+      [qk.iqTests.all, () => repositories.iqTests.list()],
+      [qk.assignments.all, () => repositories.assignments.list()],
+      [qk.schedules.all, () => repositories.schedules.list()],
+      [qk.bgvs.all, () => repositories.bgvs.list()],
+      [qk.onboarding.all, () => repositories.onboarding.list()],
+      [qk.assets.all, () => repositories.assets.list()],
+      [qk.emailTemplates.all, () => repositories.emailTemplates.list()],
+      [qk.sentEmails.all, () => repositories.sentEmails.list()],
+      [qk.offboarding.all, () => repositories.offboarding.list()],
+    ];
+    for (const [queryKey, queryFn] of targets) {
+      qc.prefetchQuery({ queryKey, queryFn, staleTime: 30_000 });
+    }
+  }, [ready, user, qc]);
 
   // Bootstrap status comes from the primary queries — no manual loading flags.
   const candidates = useCandidates();

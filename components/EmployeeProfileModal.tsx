@@ -1,6 +1,7 @@
 'use client';
 import { Select } from './Select';
 import { DocumentsPanel } from './DocumentsPanel';
+import { useToast } from './Toaster';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -33,6 +34,7 @@ export function EmployeeProfileModal({
   onClose,
   onInitiateOffboarding,
 }: EmployeeProfileModalProps) {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'info' | 'sec' | 'perf'>('info');
   const [offboardReason, setOffboardReason] = useState('Resignation' as any);
   const [showOffboardForm, setShowOffboardForm] = useState(false);
@@ -42,7 +44,7 @@ export function EmployeeProfileModal({
     if (onInitiateOffboarding) {
       onInitiateOffboarding(employee.id, offboardReason);
       setShowOffboardForm(false);
-      alert(`Exit Notice initiated dynamically for ${employee.fullName}. Clearance check logs created.`);
+      toast.success(`Exit notice initiated for ${employee.fullName} — clearance checklist created.`);
     }
   };
 

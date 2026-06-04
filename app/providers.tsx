@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { createQueryClient } from '@/lib/query/query-client';
 import { UiStateProvider } from '@/store/ui-store';
 import { AuthProvider } from '@/store/auth-store';
+import { ToastProvider } from '@/components/Toaster';
 
 /** Composition of client-side providers: auth gate + server-state (Query) + UI state. */
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -20,7 +21,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <UiStateProvider>{mounted ? children : null}</UiStateProvider>
+        <UiStateProvider>
+          <ToastProvider>{mounted ? children : null}</ToastProvider>
+        </UiStateProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

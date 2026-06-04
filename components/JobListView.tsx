@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Select } from './Select';
+import { useToast } from './Toaster';
 import { Job, JobStatus } from '../types';
 import {
   Briefcase,
@@ -60,6 +61,7 @@ export function JobListView({
   onSetStatus,
   onDeleteJob,
 }: JobListViewProps) {
+  const toast = useToast();
   const [showAddForm, setShowAddForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export function JobListView({
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim()) {
-      alert('A job title is required to publish the posting.');
+      toast.error('A job title is required to publish the posting.');
       return;
     }
     const created: Job = {
@@ -103,6 +105,7 @@ export function JobListView({
     onCreateJob(created);
     setShowAddForm(false);
     setForm(EMPTY_FORM);
+    toast.success(`"${created.title}" published — copy its public link from the card.`);
   };
 
   const openCount = jobs.filter(j => j.status === 'Open').length;

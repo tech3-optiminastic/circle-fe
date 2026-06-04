@@ -2,6 +2,7 @@
 import { Select } from './Select';
 import { DocumentsPanel } from './DocumentsPanel';
 import { ActionMenu } from './ActionMenu';
+import { useToast } from './Toaster';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -197,6 +198,7 @@ export function InterviewsView({
   onShortlistCandidate,
   onDeleteInterview,
 }: InterviewsViewProps) {
+  const toast = useToast();
   const [showAddModal, setShowAddModal] = useState(false);
   const [form, setForm] = useState({
     candidateId: candidates[0]?.id || '',
@@ -228,7 +230,7 @@ export function InterviewsView({
     };
     onAddNewInterview(newInt);
     setShowAddModal(false);
-    alert('Interview slot successfully created and recorded!');
+    toast.success(`Interview scheduled for ${candidate.fullName}.`);
   };
 
   return (
@@ -634,6 +636,7 @@ export function OnboardingChecklistView({
   onToggleTask,
   onAddEmployeeTrigger,
 }: OnboardingViewProps) {
+  const toast = useToast();
   const [selectedCandidate, setSelectedCandidate] = useState('');
 
   const activeChecklist = onboarding.find(o => o.candidateName === selectedCandidate) ?? onboarding[0];
@@ -694,8 +697,8 @@ export function OnboardingChecklistView({
               <button
                 onClick={() => {
                   onAddEmployeeTrigger(activeChecklist);
-                  alert(
-                    `${activeChecklist.candidateName} successfully on-boarded into employee directories! Password-safe credentials generated securely.`,
+                  toast.success(
+                    `${activeChecklist.candidateName} onboarded into the employee directory.`,
                   );
                 }}
                 className="w-full bg-accent-600 hover:bg-accent-700 text-white font-medium rounded py-2 transition cursor-pointer text-center font-semibold"
@@ -883,6 +886,7 @@ export function CredentialsAssetsView({
   onUpdateAsset,
   onUpdateCredential,
 }: CredentialsAssetsViewProps) {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'creds' | 'assets'>('creds');
 
   // Local asset edit form
@@ -897,7 +901,7 @@ export function CredentialsAssetsView({
       status: value as any,
     };
     onUpdateAsset(updated);
-    alert(`Asset status updated to [${value}] securely.`);
+    toast.success(`Asset status updated to "${value}".`);
   };
 
   return (
@@ -1053,6 +1057,7 @@ interface AppraisalsViewProps {
 }
 
 export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps) {
+  const toast = useToast();
   const [selectedEmp, setSelectedEmp] = useState('');
   const [reviewForm, setReviewForm] = useState({
     reviewPeriod: 'Annual 2026',
@@ -1096,7 +1101,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
       status: 'HR Review Pending',
     };
     onSaveReview(newReview);
-    alert('Appraisal cycle review documented successfully!');
+    toast.success(`Appraisal review saved for ${targetEmp.fullName}.`);
   };
 
   return (
@@ -1258,6 +1263,7 @@ export function OffboardingChecklistView({
   onToggleDeliverable,
   onConfirmClearance,
 }: OffboardingViewProps) {
+  const toast = useToast();
   const [selectedCase, setSelectedCase] = useState('');
 
   // Data loads asynchronously, so fall back to the first case until one is picked.
@@ -1317,7 +1323,7 @@ export function OffboardingChecklistView({
             <button
               onClick={() => {
                 onConfirmClearance(activeCase.employeeId);
-                alert('All clearances approved! Secure record archived in exits timeline.');
+                toast.success(`Final settlement signed for ${activeCase.employeeName}.`);
               }}
               className="w-full bg-red-600 hover:bg-red-700 text-white font-medium rounded py-2 transition font-semibold"
             >
@@ -1435,6 +1441,7 @@ interface EmailCenterProps {
 }
 
 export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: EmailCenterProps) {
+  const toast = useToast();
   const [activeTemplateId, setActiveTemplateId] = useState('');
   const [recipientName, setRecipientName] = useState('Sophia Henderson');
   const [recipientEmail, setRecipientEmail] = useState('sophia.h@gmail.com');
@@ -1453,7 +1460,7 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
       '{{EXPIRE_DATE}}': 'June 18, 2026',
       '{{IQ_TEST_URL}}': 'https://opti-circle.io/tests/iq-sop',
     });
-    alert(`Email successfully compiled and sent dynamically to ${recipientName} (${recipientEmail})!`);
+    toast.success(`Email sent to ${recipientName} (${recipientEmail}).`);
   };
 
   return (
