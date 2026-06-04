@@ -1,0 +1,81 @@
+'use client';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { BGVRequirement, Candidate, CandidateStatus, OnboardingChecklist } from '@/types';
+import { repositories } from '@/lib/api/repositories';
+import { qk } from '@/lib/query/keys';
+import { listOps } from '@/lib/query/optimistic';
+import { optimisticOptions } from '@/lib/query/mutations';
+import { buildBgvForCandidate, buildOnboardingForCandidate } from '@/services/candidate.service';
+
+export function useCandidates() {
+  return useQuery({ queryKey: qk.candidates.all, queryFn: () => repositories.candidates.list() });
+}
+
+export function useBgvs() {
+  return useQuery({ queryKey: qk.bgvs.all, queryFn: () => repositories.bgvs.list() });
+}
+
+export function useCandidateMutations() {
+  const qc = useQueryClient();
+
+  const create = useMutation({
+    mutationFn: async (candidate: Candidate) => {
+      await repositories.candidates.create(candidate);
+      await repositories.bgvs.create(buildBgvForCandidate(candidate));
+      return candidate;
+    },
+    ...optimisticOptions<Candidate, Candidate>(
+      qc,
+      qk.candidates.all,
+      candidate => listOps.prepend(candidate),
+      [qk.candidates.all, qk.bgvs.all],
+    ),
+  });
+
+  const update = useMutation({
+    mutationFn: async (candidate: Candidate) => {
+      await repositories.candidates.update(candidate.id, candidate);
+      if (candidate.status === 'Shortlisted') {
+        const existing = qc.getQueryData<OnboardingChecklist[]>(qk.onboarding.all) ?? [];
+        if (!existing.some(o => o.candidateId === candidate.id)) {
+          await repositories.onboarding.create(buildOnboardingForCandidate(candidate));
+        }
+      }
+      return candidate;
+    },
+    ...optimisticOptions<Candidate, Candidate>(
+      qc,
+      qk.candidates.all,
+      candidate => listOps.replaceBy(c => c.id === candidate.id, candidate),
+      [qk.candidates.all, qk.onboarding.all],
+    ),
+  });
+
+  const move = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: CandidateStatus }) =>
+      repositories.candidates.patch(id, { status }),
+    ...optimisticOptions<{ id: string; status: CandidateStatus }, Candidate>(
+      qc,
+      qk.candidates.all,
+      ({ id, status }) => listOps.mergeBy<Candidate>(c => c.id === id, { status }),
+    ),
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => repositories.candidates.remove(id),
+    ...optimisticOptions<string, Candidate>(qc, qk.candidates.all, id => listOps.removeBy(c => c.id === id)),
+  });
+
+  return { create, update, move, remove };
+}
+
+export function useUpdateBgv() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (bgv: BGVRequirement) => repositories.bgvs.update(bgv.candidateId, bgv),
+    ...optimisticOptions<BGVRequirement, BGVRequirement>(qc, qk.bgvs.all, bgv =>
+      listOps.replaceBy(b => b.candidateId === bgv.candidateId, bgv),
+    ),
+  });
+}

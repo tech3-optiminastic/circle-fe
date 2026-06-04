@@ -1,0 +1,17 @@
+import { QueryClient } from '@tanstack/react-query';
+import { ApiError } from '@/lib/http/client';
+
+/** Factory so the server and client never share a QueryClient instance. */
+export function createQueryClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 30_000,
+        refetchOnWindowFocus: false,
+        // Don't retry client errors (4xx); retry transient ones up to twice.
+        retry: (failureCount, error) =>
+          !(error instanceof ApiError && error.status < 500) && failureCount < 2,
+      },
+    },
+  });
+}

@@ -1,0 +1,99 @@
+'use client';
+
+import React, { useRef } from 'react';
+import { Download, FileText, Loader2, Trash2, Upload } from 'lucide-react';
+import { openDocument, useDocumentMutations, useDocuments } from '@/features/documents/hooks';
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+interface DocumentsPanelProps {
+  entityType: string;
+  entityId: string;
+  category?: string;
+  title?: string;
+}
+
+export function DocumentsPanel({
+  entityType,
+  entityId,
+  category = 'document',
+  title = 'Documents',
+}: DocumentsPanelProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { data: docs = [], isLoading, isError } = useDocuments(entityType, entityId);
+  const { upload, remove } = useDocumentMutations(entityType, entityId);
+
+  const handlePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) upload.mutate({ file, category });
+    e.target.value = '';
+  };
+
+  return (
+    <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+          <FileText size={13} className="text-accent-600" /> {title}
+        </h4>
+        <button
+          onClick={() => inputRef.current?.click()}
+          disabled={upload.isPending}
+          className="text-[11px] flex items-center gap-1 bg-accent-600 hover:bg-accent-700 text-white px-2.5 py-1 rounded-md font-medium cursor-pointer transition disabled:opacity-60"
+        >
+          {upload.isPending ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+          Upload
+        </button>
+        <input ref={inputRef} type="file" hidden onChange={handlePick} />
+      </div>
+
+      {upload.isError && (
+        <p className="text-[10px] text-red-500">Upload failed — check the file size (max 15 MB) and try again.</p>
+      )}
+
+      {isError ? (
+        <p className="text-[11px] text-red-500 py-2">Could not load documents.</p>
+      ) : isLoading ? (
+        <p className="text-[11px] text-gray-400 py-2">Loading…</p>
+      ) : docs.length === 0 ? (
+        <p className="text-[11px] text-gray-400 py-2">No documents uploaded yet.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {docs.map(doc => (
+            <div
+              key={doc.id}
+              className="flex items-center gap-2 p-2 border border-[#EAEAEC] rounded-lg text-[11px] hover:bg-[#F1F1F2] transition"
+            >
+              <FileText size={14} className="text-gray-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-800 truncate">{doc.fileName}</p>
+                <span className="text-[9px] text-gray-400 font-mono">
+                  {doc.category} · {formatSize(doc.size)} · {new Date(doc.uploadedAt).toLocaleDateString()}
+                </span>
+              </div>
+              <button
+                onClick={() => openDocument(doc.id)}
+                title="Download"
+                className="p-1 text-gray-400 hover:text-accent-600 cursor-pointer"
+              >
+                <Download size={13} />
+              </button>
+              <button
+                onClick={() => remove.mutate(doc.id)}
+                title="Delete"
+                className="p-1 text-gray-400 hover:text-red-500 cursor-pointer"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default DocumentsPanel;

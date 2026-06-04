@@ -1,0 +1,89 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Typography — Inter is loaded via next/font and exposed as --font-inter.
+     display + mono repoint to Inter so existing utility classes keep their
+     sizing/tracking but lose the code-font personality. */
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    sans-serif;
+  --font-display:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    sans-serif;
+
+  /* Active palette — Primary brand accent: Cyan #0891B2.
+     Swap the values below to re-theme; component classes use accent-* tokens. */
+  --color-brand: #0891b2;
+
+  /* Custom "accent" palette — Cyan */
+  --color-accent-50: #ecfeff;
+  --color-accent-100: #cffafe;
+  --color-accent-200: #a5f0fa;
+  --color-accent-300: #67e3f4;
+  --color-accent-400: #22d3ee;
+  --color-accent-500: #06b6d4;
+  --color-accent-600: #0891b2;
+  --color-accent-700: #0e7490;
+  --color-accent-800: #155e75;
+}
+
+body {
+  background-color: #f6f6f7; /* light neutral page surface */
+  color: #1a1a1a; /* near-black text */
+  font-family: var(--font-sans);
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tighter, more confident headings to match the reference */
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: -0.02em;
+}
+
+/* Scrollbar customizations */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d6d6d8;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bfbfc2;
+}
+
+/* Enterprise styles */
+.gradient-border-button {
+  background: #ffffff;
+  border: 1px solid #eaeaec;
+  position: relative;
+}
+
+.gradient-border-button::before {
+  content: '';
+  position: absolute;
+  inset: 0px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.05));
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}

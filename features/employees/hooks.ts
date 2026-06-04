@@ -1,0 +1,81 @@
+'use client';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AppraisalRecord, AssetRecord, Employee } from '@/types';
+import { repositories } from '@/lib/api/repositories';
+import { qk } from '@/lib/query/keys';
+import { listOps } from '@/lib/query/optimistic';
+import { optimisticOptions } from '@/lib/query/mutations';
+import { setCredentialStatus } from '@/services/employee.service';
+
+export function useEmployees() {
+  return useQuery({ queryKey: qk.employees.all, queryFn: () => repositories.employees.list() });
+}
+
+export function useAssets() {
+  return useQuery({ queryKey: qk.assets.all, queryFn: () => repositories.assets.list() });
+}
+
+export function useEmployeeMutations() {
+  const qc = useQueryClient();
+
+  const update = useMutation({
+    mutationFn: (employee: Employee) => repositories.employees.update(employee.id, employee),
+    ...optimisticOptions<Employee, Employee>(qc, qk.employees.all, e =>
+      listOps.replaceBy(x => x.id === e.id, e),
+    ),
+  });
+
+  const updateCredential = useMutation({
+    mutationFn: async ({ empId, credId, status }: { empId: string; credId: string; status: string }) => {
+      const list = qc.getQueryData<Employee[]>(qk.employees.all) ?? [];
+      const emp = list.find(e => e.id === empId);
+      if (!emp) return;
+      await repositories.employees.update(empId, setCredentialStatus(emp, credId, status));
+    },
+    ...optimisticOptions<{ empId: string; credId: string; status: string }, Employee>(
+      qc,
+      qk.employees.all,
+      ({ empId, credId, status }) =>
+        prev =>
+          prev.map(e => (e.id === empId ? setCredentialStatus(e, credId, status) : e)),
+    ),
+  });
+
+  const saveAppraisal = useMutation({
+    mutationFn: async (review: AppraisalRecord) => {
+      const list = qc.getQueryData<Employee[]>(qk.employees.all) ?? [];
+      const emp = list.find(e => e.id === review.employeeId);
+      if (!emp) return;
+      await repositories.employees.update(emp.id, {
+        ...emp,
+        appraisalHistory: [review, ...(emp.appraisalHistory || [])],
+      });
+    },
+    ...optimisticOptions<AppraisalRecord, Employee>(
+      qc,
+      qk.employees.all,
+      review => prev =>
+        prev.map(e =>
+          e.id === review.employeeId
+            ? { ...e, appraisalHistory: [review, ...(e.appraisalHistory || [])] }
+            : e,
+        ),
+    ),
+  });
+
+  return { update, updateCredential, saveAppraisal };
+}
+
+export function useUpdateAsset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (asset: AssetRecord) => repositories.assets.update(asset.id, asset),
+    ...optimisticOptions<AssetRecord, AssetRecord>(
+      qc,
+      qk.assets.all,
+      a => listOps.replaceBy(x => x.id === a.id, a),
+      [qk.assets.all, qk.employees.all],
+    ),
+  });
+}
