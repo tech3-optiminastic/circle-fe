@@ -2,6 +2,8 @@
 import { Select } from './Select';
 import { DocumentsPanel } from './DocumentsPanel';
 import { useToast } from './Toaster';
+import { useOnboarding, useToggleOnboardingTask } from '@/features/onboarding/hooks';
+import { useAssets, useEmployeeMutations, useUpdateAsset } from '@/features/employees/hooks';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -20,8 +22,13 @@ import {
   ArrowRight,
   Award,
   LogOut,
+  ListTodo,
+  CheckCircle2,
+  Circle,
+  Plus,
+  Undo2,
 } from 'lucide-react';
-import { Employee } from '../types';
+import { CredentialRecord, Employee } from '../types';
 
 interface EmployeeProfileModalProps {
   employee: Employee;
@@ -35,9 +42,91 @@ export function EmployeeProfileModal({
   onInitiateOffboarding,
 }: EmployeeProfileModalProps) {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'info' | 'sec' | 'perf'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'onboarding' | 'sec' | 'perf'>('info');
   const [offboardReason, setOffboardReason] = useState('Resignation' as any);
   const [showOffboardForm, setShowOffboardForm] = useState(false);
+
+  // The employee file aggregates everything from the Employees section:
+  // onboarding checklist, system credentials and hardware assets — all
+  // manageable from here (no separate pages needed).
+  const { data: onboardingAll = [] } = useOnboarding();
+  const toggleTask = useToggleOnboardingTask();
+  const { data: allAssets = [] } = useAssets();
+  const { update: updateEmployee, updateCredential } = useEmployeeMutations();
+  const updateAsset = useUpdateAsset();
+
+  const [grantForm, setGrantForm] = useState({ systemName: '', accessLevel: 'Standard' });
+  const [assignAssetId, setAssignAssetId] = useState('');
+
+  const onboarding = onboardingAll.find(
+    o => o.candidateId === employee.id || o.candidateName === employee.fullName,
+  );
+
+  // Hardware from the global inventory assigned to this employee, merged with
+  // any records embedded on the employee document (deduped by id).
+  const assignedAssets = (() => {
+    const merged = allAssets.filter(
+      a => a.assignedToEmployeeId === employee.id || a.assignedToEmployeeName === employee.fullName,
+    );
+    for (const a of employee.assets ?? []) {
+      if (!merged.some(m => m.id === a.id)) merged.push(a);
+    }
+    return merged;
+  })();
+
+  const credentials = employee.credentials ?? [];
+  const availableAssets = allAssets.filter(a => a.status === 'Available');
+
+  const grantCredential = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!grantForm.systemName.trim()) {
+      toast.error('Enter the system name to grant access.');
+      return;
+    }
+    const cred: CredentialRecord = {
+      id: `CRD-${Math.floor(1000 + Math.random() * 9000)}`,
+      systemName: grantForm.systemName.trim(),
+      assignedEmail: employee.email,
+      accessLevel: grantForm.accessLevel as CredentialRecord['accessLevel'],
+      dateGranted: new Date().toISOString().split('T')[0],
+      grantedBy: 'HR Team',
+      status: 'Active',
+    };
+    updateEmployee.mutate({ ...employee, credentials: [cred, ...credentials] });
+    setGrantForm({ systemName: '', accessLevel: 'Standard' });
+    toast.success(`${cred.systemName} access granted to ${employee.fullName}.`);
+  };
+
+  const assignAsset = () => {
+    const asset = availableAssets.find(a => a.id === assignAssetId);
+    if (!asset) {
+      toast.error('Pick an available asset to assign.');
+      return;
+    }
+    updateAsset.mutate({
+      ...asset,
+      status: 'Assigned',
+      assignedToEmployeeId: employee.id,
+      assignedToEmployeeName: employee.fullName,
+      assignmentDate: new Date().toISOString().split('T')[0],
+      assignedBy: 'HR Team',
+    });
+    setAssignAssetId('');
+    toast.success(`${asset.assetName} assigned to ${employee.fullName}.`);
+  };
+
+  const returnAsset = (assetId: string) => {
+    const asset = allAssets.find(a => a.id === assetId);
+    if (!asset) return;
+    updateAsset.mutate({
+      ...asset,
+      status: 'Returned',
+      returnDate: new Date().toISOString().split('T')[0],
+      assignedToEmployeeId: undefined,
+      assignedToEmployeeName: undefined,
+    });
+    toast.success(`${asset.assetName} marked as returned.`);
+  };
 
   const handleOffboardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,24 +165,35 @@ export function EmployeeProfileModal({
         </div>
 
         {/* Tab Selection */}
-        <div className="border-b border-[#EAEAEC] px-6 bg-[#FFFFFF] shrink-0 flex gap-4 text-xs font-medium">
+        <div className="border-b border-[#EAEAEC] px-6 bg-[#FFFFFF] shrink-0 flex gap-4 text-xs font-medium overflow-x-auto">
           <button
             onClick={() => setActiveTab('info')}
-            className={`py-3 border-b-2 font-semibold ${activeTab === 'info' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
+            className={`py-3 border-b-2 font-semibold whitespace-nowrap ${activeTab === 'info' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
           >
             Personal & Job Info
           </button>
           <button
-            onClick={() => setActiveTab('sec')}
-            className={`py-3 border-b-2 font-semibold ${activeTab === 'sec' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
+            onClick={() => setActiveTab('onboarding')}
+            className={`py-3 border-b-2 font-semibold whitespace-nowrap ${activeTab === 'onboarding' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
           >
-            IT Assets & Credentials ({employee.assets?.length || 0})
+            Onboarding{' '}
+            {onboarding && (
+              <span className="text-[9px] bg-accent-50 text-accent-600 px-1.5 py-0.5 rounded-full font-mono font-bold">
+                {onboarding.progressPercentage}%
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('sec')}
+            className={`py-3 border-b-2 font-semibold whitespace-nowrap ${activeTab === 'sec' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
+          >
+            Credentials & Assets ({credentials.length + assignedAssets.length})
           </button>
           <button
             onClick={() => setActiveTab('perf')}
-            className={`py-3 border-b-2 font-semibold ${activeTab === 'perf' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
+            className={`py-3 border-b-2 font-semibold whitespace-nowrap ${activeTab === 'perf' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
           >
-            Performance scorecards
+            Performance
           </button>
         </div>
 
@@ -224,64 +324,219 @@ export function EmployeeProfileModal({
             </div>
           )}
 
+          {activeTab === 'onboarding' && (
+            <div className="space-y-5 text-xs">
+              {onboarding ? (
+                <>
+                  {/* Progress header */}
+                  <div className="bg-[#FFFFFF] border border-[#EAEAEC] p-4 rounded-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold font-mono text-[10px] uppercase tracking-wider text-gray-400">
+                        Onboarding Checklist
+                      </h3>
+                      <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-accent-50 text-accent-600">
+                        {onboarding.onboardingStatus}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-2 bg-[#F1F1F2] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-accent-600 rounded-full transition-all"
+                          style={{ width: `${onboarding.progressPercentage}%` }}
+                        />
+                      </div>
+                      <span className="font-bold text-gray-900 tabular-nums">
+                        {onboarding.progressPercentage}%
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Tasks grouped by category */}
+                  {(
+                    [
+                      'Documentation',
+                      'IT Setup',
+                      'Admin & Assets',
+                      'HR & Induction',
+                      'Manager & Team',
+                    ] as const
+                  )
+                    .map(cat => ({
+                      cat,
+                      tasks: onboarding.tasks.filter(t => t.category === cat),
+                    }))
+                    .filter(g => g.tasks.length > 0)
+                    .map(g => (
+                      <div
+                        key={g.cat}
+                        className="bg-[#FFFFFF] border border-[#EAEAEC] p-4 rounded-xl space-y-2"
+                      >
+                        <h4 className="font-bold font-mono text-[10px] uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                          <ListTodo size={12} className="text-accent-600" /> {g.cat}
+                        </h4>
+                        {g.tasks.map(t => (
+                          <button
+                            key={t.id}
+                            onClick={() =>
+                              toggleTask.mutate({
+                                candidateName: onboarding.candidateName,
+                                taskId: t.id,
+                              })
+                            }
+                            className="w-full flex items-center gap-2.5 text-left px-2.5 py-2 rounded-lg hover:bg-[#FAFBFC] transition cursor-pointer"
+                          >
+                            {t.isChecked ? (
+                              <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
+                            ) : (
+                              <Circle size={15} className="text-gray-300 shrink-0" />
+                            )}
+                            <span
+                              className={
+                                t.isChecked ? 'text-gray-400 line-through' : 'text-gray-700'
+                              }
+                            >
+                              {t.title}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                </>
+              ) : (
+                <div className="bg-[#FFFFFF] p-8 border border-[#EAEAEC] rounded-xl text-center text-gray-400">
+                  <CheckCircle2 size={22} className="mx-auto text-emerald-400 mb-2" />
+                  <p className="font-semibold text-gray-600">No active onboarding checklist.</p>
+                  <p className="text-[11px] mt-1">
+                    {employee.fullName}&apos;s onboarding is complete (or was never tracked in the
+                    system).
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === 'sec' && (
             <div className="space-y-5 text-xs">
-              {/* Credentials listed */}
+              {/* Credentials — view, grant, and control access */}
               <div className="bg-[#FFFFFF] border border-[#EAEAEC] p-4 rounded-xl space-y-3">
                 <h3 className="font-bold text-gray-900 font-mono text-[10px] uppercase tracking-wider text-gray-400">
-                  Active System Logins
+                  System Credentials
                 </h3>
                 <div className="space-y-2">
-                  {employee.credentials && employee.credentials.length > 0 ? (
-                    employee.credentials.map(cr => (
+                  {credentials.length > 0 ? (
+                    credentials.map(cr => (
                       <div
                         key={cr.id}
-                        className="flex justify-between items-center bg-[#FAFBFC] p-2.5 rounded border border-gray-100"
+                        className="flex flex-wrap justify-between items-center gap-2 bg-[#FAFBFC] p-2.5 rounded border border-gray-100"
                       >
-                        <div className="flex items-center gap-2">
-                          <KeyRound size={12} className="text-gray-400" />
-                          <div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <KeyRound size={12} className="text-gray-400 shrink-0" />
+                          <div className="min-w-0">
                             <span className="font-bold text-gray-900">{cr.systemName}</span>
-                            <span className="text-[10px] text-gray-400 block font-mono">
-                              Level: {cr.accessLevel}
+                            <span className="text-[10px] text-gray-400 block font-mono truncate">
+                              {cr.accessLevel} · granted {cr.dateGranted}
                             </span>
                           </div>
                         </div>
-                        <span className="text-[9px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-mono">
-                          {cr.status}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono ${
+                              cr.status === 'Active'
+                                ? 'bg-green-50 text-green-600'
+                                : cr.status === 'Revoked' || cr.status === 'Suspended'
+                                  ? 'bg-red-50 text-red-600'
+                                  : 'bg-yellow-50 text-yellow-600'
+                            }`}
+                          >
+                            {cr.status}
+                          </span>
+                          <Select
+                            value={cr.status}
+                            onChange={e => updateCredential.mutate({
+                              empId: employee.id,
+                              credId: cr.id,
+                              status: e.target.value,
+                            })}
+                            className="px-2 py-1 bg-[#FFFFFF] border border-[#EAEAEC] rounded text-[10px]"
+                          >
+                            <option value="Active">Active</option>
+                            <option value="Restricted">Restricted</option>
+                            <option value="Suspended">Suspended</option>
+                            <option value="Revoked">Revoked</option>
+                          </Select>
+                        </div>
                       </div>
                     ))
                   ) : (
-                    <p className="text-xs text-gray-400 italic">No access tokens generated historically.</p>
+                    <p className="text-xs text-gray-400 italic">No system access granted yet.</p>
                   )}
                 </div>
+
+                {/* Grant new access */}
+                <form
+                  onSubmit={grantCredential}
+                  className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-[#F1F1F2]"
+                >
+                  <input
+                    type="text"
+                    placeholder="System name (Slack, GitHub, AWS…)"
+                    value={grantForm.systemName}
+                    onChange={e => setGrantForm({ ...grantForm, systemName: e.target.value })}
+                    className="flex-1 px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] focus:bg-[#FFFFFF] focus:outline-none"
+                  />
+                  <Select
+                    value={grantForm.accessLevel}
+                    onChange={e => setGrantForm({ ...grantForm, accessLevel: e.target.value })}
+                    className="px-2 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] sm:w-32"
+                  >
+                    <option value="Admin">Admin</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Restricted">Restricted</option>
+                    <option value="Read-Only">Read-Only</option>
+                  </Select>
+                  <button
+                    type="submit"
+                    className="bg-accent-600 hover:bg-accent-700 text-white px-3 py-1.5 rounded text-[11px] font-semibold cursor-pointer transition flex items-center justify-center gap-1"
+                  >
+                    <Plus size={12} /> Grant Access
+                  </button>
+                </form>
               </div>
 
-              {/* Assets allocated list */}
+              {/* Hardware — assigned inventory + assignment control */}
               <div className="bg-[#FFFFFF] border border-[#EAEAEC] p-4 rounded-xl space-y-3">
                 <h3 className="font-bold text-gray-900 font-mono text-[10px] uppercase tracking-wider text-gray-400">
-                  IT hardware Inventory records
+                  Hardware Assets
                 </h3>
                 <div className="space-y-2">
-                  {employee.assets && employee.assets.length > 0 ? (
-                    employee.assets.map(as => (
+                  {assignedAssets.length > 0 ? (
+                    assignedAssets.map(as => (
                       <div
                         key={as.id}
-                        className="flex justify-between items-center bg-[#FAFBFC] p-2.5 rounded border border-gray-100"
+                        className="flex flex-wrap justify-between items-center gap-2 bg-[#FAFBFC] p-2.5 rounded border border-gray-100"
                       >
-                        <div className="flex items-center gap-2">
-                          <Laptop size={12} className="text-gray-400" />
-                          <div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Laptop size={12} className="text-gray-400 shrink-0" />
+                          <div className="min-w-0">
                             <span className="font-bold text-gray-900">{as.assetName}</span>
-                            <span className="text-[10px] text-gray-400 block font-mono">
+                            <span className="text-[10px] text-gray-400 block font-mono truncate">
                               Serial: {as.serialNumber}
+                              {as.assignmentDate && ` · since ${as.assignmentDate}`}
                             </span>
                           </div>
                         </div>
-                        <span className="text-[9px] font-bold text-accent-600 bg-accent-50 px-2 py-0.5 rounded font-mono">
-                          {as.status}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-bold text-accent-600 bg-accent-50 px-2 py-0.5 rounded font-mono">
+                            {as.status}
+                          </span>
+                          <button
+                            onClick={() => returnAsset(as.id)}
+                            className="text-[10px] bg-[#FFFFFF] border border-[#EAEAEC] text-gray-600 hover:text-red-600 hover:border-red-200 px-2 py-1 rounded-md font-semibold font-mono flex items-center gap-1 cursor-pointer transition"
+                            title="Mark this asset as returned"
+                          >
+                            <Undo2 size={11} /> Return
+                          </button>
+                        </div>
                       </div>
                     ))
                   ) : (
@@ -289,6 +544,39 @@ export function EmployeeProfileModal({
                       No active assets allocated to employee file.
                     </p>
                   )}
+                </div>
+
+                {/* Assign from available pool */}
+                <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-[#F1F1F2]">
+                  <Select
+                    value={assignAssetId}
+                    onChange={e => setAssignAssetId(e.target.value)}
+                    placeholder={
+                      availableAssets.length > 0
+                        ? 'Pick available hardware…'
+                        : 'No hardware available in inventory'
+                    }
+                    disabled={availableAssets.length === 0}
+                    className="flex-1 px-2 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2]"
+                  >
+                    <option value="">
+                      {availableAssets.length > 0
+                        ? 'Pick available hardware…'
+                        : 'No hardware available'}
+                    </option>
+                    {availableAssets.map(a => (
+                      <option key={a.id} value={a.id}>
+                        {a.assetName} · {a.serialNumber}
+                      </option>
+                    ))}
+                  </Select>
+                  <button
+                    onClick={assignAsset}
+                    disabled={!assignAssetId}
+                    className="bg-accent-600 hover:bg-accent-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded text-[11px] font-semibold cursor-pointer transition flex items-center justify-center gap-1"
+                  >
+                    <Plus size={12} /> Assign Hardware
+                  </button>
                 </div>
               </div>
             </div>

@@ -2,6 +2,9 @@
 import { Select } from './Select';
 import { DocumentsPanel } from './DocumentsPanel';
 import { useToast } from './Toaster';
+import { TestReportModal, fmtTestDate } from './TestReportModal';
+import { useTestInvites } from '@/features/test-invites/hooks';
+import { useSchedules } from '@/features/schedule/hooks';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -27,8 +30,20 @@ import {
   BookOpen,
   Send,
   Plus,
+  BrainCircuit,
+  ClipboardList,
+  ShieldAlert,
+  Eye,
+  CalendarClock,
 } from 'lucide-react';
-import { Candidate, Interview, IQTest, Assignment, BGVRequirement } from '../types';
+import {
+  Candidate,
+  Interview,
+  IQTest,
+  Assignment,
+  BGVRequirement,
+  TestInvite,
+} from '../types';
 
 interface CandidateProfileModalProps {
   candidate: Candidate;
@@ -36,9 +51,11 @@ interface CandidateProfileModalProps {
   interviews: Interview[];
   iqTests: IQTest[];
   assignments: Assignment[];
-  bgv: BGVRequirement | undefined;
+  bgv: BGVRequirement | undefined | null;
+  initialTab?: 'profile' | 'evaluation' | 'bgv';
   onUpdateCandidate: (updated: Candidate) => void;
   onUpdateBGV: (updated: BGVRequirement) => void;
+  onStartBGV?: () => void;
   onGradingSubmitted: (
     interviewId: string,
     recommendation: string,
@@ -56,14 +73,16 @@ export function CandidateProfileModal({
   iqTests,
   assignments,
   bgv,
+  initialTab = 'profile',
   onUpdateCandidate,
   onUpdateBGV,
+  onStartBGV,
   onGradingSubmitted,
   onScheduleInterview,
   userRole,
 }: CandidateProfileModalProps) {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'profile' | 'evaluation' | 'bgv'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'evaluation' | 'bgv'>(initialTab);
 
   // Local forms state
   const [hrCallForm, setHrCallForm] = useState({
@@ -100,6 +119,11 @@ export function CandidateProfileModal({
   });
 
   const [bgvDocComment, setBgvDocComment] = useState('');
+  const [testReport, setTestReport] = useState<TestInvite | null>(null);
+
+  // Live pipeline data: online test invites/results + scheduled events.
+  const { data: allTestInvites = [] } = useTestInvites();
+  const { data: allSchedules = [] } = useSchedules();
 
   const handleSaveHrCall = (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,7 +179,28 @@ export function CandidateProfileModal({
 
   // Associated Candidate Interviews
   const candidateInterviews = interviews.filter(i => i.candidateId === candidate.id);
+  // BGV gate: verification may only be triggered by HR once an interview has
+  // been graded successfully (Hire / Strong Hire).
+  const interviewCleared = candidateInterviews.some(
+    i => i.grading && ['Strong Hire', 'Hire'].includes(i.grading.recommendation),
+  );
   const candidateIq = iqTests.find(iq => iq.candidateId === candidate.id);
+  const candidateTests = allTestInvites
+    .filter(t => t.candidateId === candidate.id)
+    .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+  const candidateEvents = allSchedules
+    .filter(s => s.candidateId === candidate.id && s.status !== 'Cancelled')
+    .sort((a, b) => (a.dateTime ?? '').localeCompare(b.dateTime ?? ''));
+
+  const copyTestLink = async (id: string) => {
+    const url = `${window.location.origin}/test/${id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Test link copied.');
+    } catch {
+      window.prompt('Copy the test link:', url);
+    }
+  };
   const candidateAssignmentsSubmissions = assignments.flatMap(a =>
     a.submissions
       .filter(s => s.candidateId === candidate.id)
@@ -520,6 +565,133 @@ export function CandidateProfileModal({
 
           {activeTab === 'evaluation' && (
             <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+              {/* Recruitment pipeline — scheduled events + online test results */}
+              <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 space-y-4">
+                <div className="border-b border-[#EAEAEC]/65 pb-2">
+                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider font-mono">
+                    Recruitment Pipeline — Tests &amp; Schedule
+                  </h3>
+                  <p className="text-[11px] text-gray-400">
+                    Scheduled rounds, IQ test and assessment results with detailed analysis.
+                  </p>
+                </div>
+
+                {/* Scheduled events strip */}
+                {candidateEvents.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {candidateEvents.map(ev => (
+                      <span
+                        key={ev.id}
+                        className="flex items-center gap-1.5 text-[10px] font-mono font-semibold bg-[#FAFBFC] border border-[#EAEAEC] text-gray-700 px-2.5 py-1.5 rounded-lg"
+                      >
+                        <CalendarClock size={11} className="text-accent-600" />
+                        {ev.type} ·{' '}
+                        {new Date(ev.dateTime).toLocaleString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                        <span
+                          className={`px-1.5 py-0.5 rounded-full text-[8px] ${
+                            ev.status === 'Completed'
+                              ? 'bg-emerald-50 text-emerald-600'
+                              : 'bg-accent-50 text-accent-600'
+                          }`}
+                        >
+                          {ev.status}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Test invites / results */}
+                {candidateTests.length === 0 ? (
+                  <div className="text-center py-5 text-gray-400 text-xs">
+                    No online tests have been sent to this candidate yet — shortlist them with
+                    &quot;IQ Test&quot; to trigger one.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {candidateTests.map(t => {
+                      const finished =
+                        t.status === 'Completed' || t.status === 'Auto-Submitted';
+                      return (
+                        <div
+                          key={t.id}
+                          className="flex flex-wrap items-center gap-x-4 gap-y-2 border border-[#EAEAEC] bg-[#FAFBFC] rounded-lg px-3.5 py-2.5"
+                        >
+                          <span className="flex items-center gap-1.5 text-[11px] font-bold text-gray-800 min-w-[90px]">
+                            {t.kind === 'iq' ? (
+                              <BrainCircuit size={13} className="text-accent-600" />
+                            ) : (
+                              <ClipboardList size={13} className="text-accent-600" />
+                            )}
+                            {t.kind === 'iq' ? 'IQ Test' : 'Assessment'}
+                          </span>
+                          <span
+                            className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${
+                              t.status === 'Completed'
+                                ? 'bg-emerald-50 text-emerald-600'
+                                : t.status === 'Auto-Submitted'
+                                  ? 'bg-orange-50 text-orange-600'
+                                  : t.status === 'In Progress'
+                                    ? 'bg-sky-50 text-sky-600'
+                                    : 'bg-gray-100 text-gray-500'
+                            }`}
+                          >
+                            {t.status}
+                          </span>
+                          {finished && (
+                            <>
+                              <span className="text-[12px] font-bold text-gray-900 tabular-nums">
+                                {t.score}
+                                {t.kind === 'assessment' && '%'}
+                              </span>
+                              <span
+                                className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${
+                                  t.passed
+                                    ? 'bg-emerald-50 text-emerald-600'
+                                    : 'bg-red-50 text-red-500'
+                                }`}
+                              >
+                                {t.passed ? 'QUALIFIED' : 'NOT QUALIFIED'}
+                              </span>
+                              {(t.violations ?? 0) > 0 && (
+                                <span className="flex items-center gap-1 text-orange-500 font-semibold text-[10px]">
+                                  <ShieldAlert size={11} /> {t.violations} violation
+                                  {(t.violations ?? 0) === 1 ? '' : 's'}
+                                </span>
+                              )}
+                            </>
+                          )}
+                          <span className="text-[10px] text-gray-400 font-mono ml-auto">
+                            {fmtTestDate(t.completedAt ?? t.createdAt)}
+                          </span>
+                          {finished ? (
+                            <button
+                              onClick={() => setTestReport(t)}
+                              className="text-[10px] bg-white border border-[#EAEAEC] text-gray-700 hover:text-accent-600 hover:border-accent-300 px-2 py-1 rounded-md font-semibold font-mono flex items-center gap-1 cursor-pointer transition shadow-2xs"
+                            >
+                              <Eye size={11} /> Detailed report
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => copyTestLink(t.id)}
+                              className="text-[10px] bg-white border border-[#EAEAEC] text-gray-700 hover:text-accent-600 hover:border-accent-300 px-2 py-1 rounded-md font-semibold font-mono flex items-center gap-1 cursor-pointer transition shadow-2xs"
+                              title="Copy the candidate's test link"
+                            >
+                              <Link2 size={11} /> Copy link
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {/* Scheduled / Historic Interviews panel */}
               <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 space-y-4">
                 <div className="flex items-center justify-between border-b border-[#EAEAEC]/65 pb-2">
@@ -829,18 +1001,51 @@ export function CandidateProfileModal({
                     </div>
                   </div>
                 </div>
+              ) : interviewCleared ? (
+                <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 text-center text-gray-400 text-xs py-10">
+                  <CheckCircle className="mx-auto text-emerald-500 mb-2" size={24} />
+                  <p className="font-semibold text-gray-700">
+                    Interview cleared — {candidate.fullName} is eligible for background
+                    verification.
+                  </p>
+                  <p className="text-[11px] mt-1 text-gray-400">
+                    Starting BGV generates the required document checklist.
+                  </p>
+                  {onStartBGV && (
+                    <button
+                      onClick={() => {
+                        onStartBGV();
+                        toast.success(`BGV initiated for ${candidate.fullName} — checklist created.`);
+                      }}
+                      className="mt-4 bg-accent-600 hover:bg-accent-700 text-white px-4 py-2 rounded-lg font-semibold text-xs cursor-pointer transition inline-flex items-center gap-1.5"
+                    >
+                      <CheckCircle size={13} /> Start BGV Verification
+                    </button>
+                  )}
+                </div>
               ) : (
                 <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 text-center text-gray-400 text-xs py-10">
                   <AlertTriangle className="mx-auto text-amber-500 mb-2" size={24} />
-                  No ongoing background verification check is active.
-                  <p className="text-[11px] mt-1 text-gray-400">
-                    Trigger BGV once the candidate moves to 'Shortlisted' or 'Selected' stages in panel.
+                  <p className="font-semibold text-gray-600">
+                    BGV is locked until the candidate clears the interview.
+                  </p>
+                  <p className="text-[11px] mt-1 text-gray-400 max-w-sm mx-auto">
+                    Background verification can be started by HR only after an interview for{' '}
+                    {candidate.fullName} has been graded{' '}
+                    <span className="font-semibold">Hire</span> or{' '}
+                    <span className="font-semibold">Strong Hire</span> in the Assessments &amp;
+                    Grading tab.
                   </p>
                 </div>
               )}
             </div>
           )}
         </div>
+
+        {/* Detailed per-question test analysis */}
+        {testReport && (
+          <TestReportModal invite={testReport} onClose={() => setTestReport(null)} />
+        )}
       </div>
     </div>
   );

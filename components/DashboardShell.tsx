@@ -33,6 +33,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       [qk.jobs.all, () => repositories.jobs.list()],
       [qk.interviews.all, () => repositories.interviews.list()],
       [qk.iqTests.all, () => repositories.iqTests.list()],
+      [qk.testInvites.all, () => repositories.testInvites.list()],
       [qk.assignments.all, () => repositories.assignments.list()],
       [qk.schedules.all, () => repositories.schedules.list()],
       [qk.bgvs.all, () => repositories.bgvs.list()],

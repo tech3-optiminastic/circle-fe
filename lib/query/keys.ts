@@ -3,6 +3,10 @@ export const qk = {
   jobs: { all: ['jobs'] as const, detail: (id: string) => ['jobs', id] as const },
   schedules: { all: ['schedules'] as const },
   candidates: { all: ['candidates'] as const, detail: (id: string) => ['candidates', id] as const },
+  testInvites: {
+    all: ['test-invites'] as const,
+    detail: (id: string) => ['test-invites', id] as const,
+  },
   interviews: { all: ['interviews'] as const },
   iqTests: { all: ['iq-tests'] as const },
   assignments: { all: ['assignments'] as const },

@@ -9,6 +9,8 @@ import React, { createContext, useContext, useMemo, useState } from 'react';
 
 export type UserRole = 'HR' | 'Admin';
 
+export type CandidateTab = 'profile' | 'evaluation' | 'bgv';
+
 interface UiState {
   userRole: UserRole;
   setUserRole: (role: UserRole) => void;
@@ -16,6 +18,9 @@ interface UiState {
   setSearchQuery: (query: string) => void;
   selectedCandidateId: string | null;
   setSelectedCandidateId: (id: string | null) => void;
+  selectedCandidateTab: CandidateTab;
+  /** Open a candidate's file directly on a specific tab (e.g. BGV) from anywhere. */
+  openCandidate: (id: string, tab?: CandidateTab) => void;
   selectedEmployeeId: string | null;
   setSelectedEmployeeId: (id: string | null) => void;
 }
@@ -25,8 +30,19 @@ const UiStateContext = createContext<UiState | null>(null);
 export function UiStateProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<UserRole>('HR');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
+  const [selectedCandidateId, _setSelectedCandidateId] = useState<string | null>(null);
+  const [selectedCandidateTab, setSelectedCandidateTab] = useState<CandidateTab>('profile');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+
+  const setSelectedCandidateId = (id: string | null) => {
+    setSelectedCandidateTab('profile');
+    _setSelectedCandidateId(id);
+  };
+
+  const openCandidate = (id: string, tab: CandidateTab = 'profile') => {
+    setSelectedCandidateTab(tab);
+    _setSelectedCandidateId(id);
+  };
 
   const value = useMemo<UiState>(
     () => ({
@@ -36,10 +52,13 @@ export function UiStateProvider({ children }: { children: React.ReactNode }) {
       setSearchQuery,
       selectedCandidateId,
       setSelectedCandidateId,
+      selectedCandidateTab,
+      openCandidate,
       selectedEmployeeId,
       setSelectedEmployeeId,
     }),
-    [userRole, searchQuery, selectedCandidateId, selectedEmployeeId],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userRole, searchQuery, selectedCandidateId, selectedCandidateTab, selectedEmployeeId],
   );
 
   return <UiStateContext.Provider value={value}>{children}</UiStateContext.Provider>;

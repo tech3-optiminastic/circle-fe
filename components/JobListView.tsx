@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Select } from './Select';
 import { useToast } from './Toaster';
 import { Job, JobStatus } from '../types';
@@ -62,9 +63,12 @@ export function JobListView({
   onDeleteJob,
 }: JobListViewProps) {
   const toast = useToast();
+  const router = useRouter();
   const [showAddForm, setShowAddForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const openApplicants = (id: string) => router.push(`/jobs/${id}/applicants`);
 
   const publicUrl = (id: string) =>
     typeof window !== 'undefined' ? `${window.location.origin}/jobs/${id}` : `/jobs/${id}`;
@@ -186,7 +190,9 @@ export function JobListView({
             return (
               <div
                 key={job.id}
-                className="bg-white border border-[#EAEAEC] rounded-2xl p-4 shadow-2xs flex flex-col gap-3 hover:border-accent-300 hover:shadow-sm transition"
+                onClick={() => openApplicants(job.id)}
+                className="bg-white border border-[#EAEAEC] rounded-2xl p-4 shadow-2xs flex flex-col gap-3 hover:border-accent-300 hover:shadow-sm transition cursor-pointer"
+                title="View applicants for this role"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -220,13 +226,23 @@ export function JobListView({
                 <p className="text-[11px] text-gray-500 line-clamp-2">{job.description}</p>
 
                 <div className="flex items-center justify-between border-t border-[#F1F1F2] pt-2.5 mt-auto">
-                  <span className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-700">
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      openApplicants(job.id);
+                    }}
+                    className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-700 hover:text-accent-700 cursor-pointer transition"
+                    title="View applicants for this role"
+                  >
                     <Users size={12} className="text-accent-600" />
                     {count} applicant{count === 1 ? '' : 's'}
-                  </span>
+                  </button>
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => copyLink(job.id)}
+                      onClick={e => {
+                        e.stopPropagation();
+                        copyLink(job.id);
+                      }}
                       className="text-[10px] bg-[#FFFFFF] border border-[#EAEAEC] text-gray-700 hover:text-accent-600 hover:border-accent-300 px-2 py-1 rounded-md font-semibold font-mono flex items-center gap-1 cursor-pointer transition shadow-2xs"
                       title="Copy public application link"
                     >
@@ -244,22 +260,25 @@ export function JobListView({
                       href={publicUrl(job.id)}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
                       className="text-[10px] bg-[#FFFFFF] border border-[#EAEAEC] text-gray-700 hover:text-accent-600 hover:border-accent-300 px-2 py-1 rounded-md font-semibold font-mono flex items-center gap-1 cursor-pointer transition shadow-2xs"
                       title="Open public posting"
                     >
                       <ExternalLink size={11} /> View
                     </a>
                     <button
-                      onClick={() =>
-                        onSetStatus(job.id, job.status === 'Open' ? 'Closed' : 'Open')
-                      }
+                      onClick={e => {
+                        e.stopPropagation();
+                        onSetStatus(job.id, job.status === 'Open' ? 'Closed' : 'Open');
+                      }}
                       className="text-[10px] text-gray-500 hover:text-gray-800 p-1 rounded hover:bg-gray-100 cursor-pointer"
                       title={job.status === 'Open' ? 'Close this posting' : 'Reopen this posting'}
                     >
                       {job.status === 'Open' ? <Lock size={12} /> : <Unlock size={12} />}
                     </button>
                     <button
-                      onClick={() => {
+                      onClick={e => {
+                        e.stopPropagation();
                         if (confirm(`Delete the "${job.title}" posting? This cannot be undone.`)) {
                           onDeleteJob(job.id);
                         }

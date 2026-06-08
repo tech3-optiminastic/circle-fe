@@ -4,15 +4,27 @@ import React from 'react';
 import { CandidateProfileModal } from './CandidateProfileModal';
 import { EmployeeProfileModal } from './EmployeeProfileModal';
 import { useUiStore } from '@/store/ui-store';
-import { useCandidates, useBgvs, useCandidateMutations, useUpdateBgv } from '@/features/candidates/hooks';
+import {
+  useCandidates,
+  useBgvs,
+  useCandidateMutations,
+  useUpdateBgv,
+  useStartBgv,
+} from '@/features/candidates/hooks';
 import { useEmployees } from '@/features/employees/hooks';
 import { useInterviews, useInterviewMutations } from '@/features/interviews/hooks';
 import { useIqTests, useAssignments } from '@/features/assessments/hooks';
 import { useInitiateOffboarding } from '@/features/offboarding/hooks';
 
 export function ModalHost() {
-  const { userRole, selectedCandidateId, selectedEmployeeId, setSelectedCandidateId, setSelectedEmployeeId } =
-    useUiStore();
+  const {
+    userRole,
+    selectedCandidateId,
+    selectedCandidateTab,
+    selectedEmployeeId,
+    setSelectedCandidateId,
+    setSelectedEmployeeId,
+  } = useUiStore();
 
   const { data: candidates = [] } = useCandidates();
   const { data: employees = [] } = useEmployees();
@@ -23,6 +35,7 @@ export function ModalHost() {
 
   const { update: updateCandidate } = useCandidateMutations();
   const updateBgv = useUpdateBgv();
+  const startBgv = useStartBgv();
   const { grade, schedule } = useInterviewMutations();
   const initiateOffboarding = useInitiateOffboarding();
 
@@ -34,7 +47,9 @@ export function ModalHost() {
     <>
       {selectedCandidateId && candidate && (
         <CandidateProfileModal
+          key={`${selectedCandidateId}-${selectedCandidateTab}`}
           candidate={candidate}
+          initialTab={selectedCandidateTab}
           onClose={() => setSelectedCandidateId(null)}
           interviews={interviews}
           iqTests={iqTests}
@@ -42,6 +57,7 @@ export function ModalHost() {
           bgv={candidateBgv}
           onUpdateCandidate={updated => updateCandidate.mutate(updated)}
           onUpdateBGV={updated => updateBgv.mutate(updated)}
+          onStartBGV={() => startBgv.mutate(candidate)}
           onGradingSubmitted={(interviewId, recommendation, comments) =>
             grade.mutate({ interviewId, recommendation, comments })
           }

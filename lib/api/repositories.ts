@@ -13,6 +13,7 @@ import {
   OnboardingChecklist,
   ScheduleEvent,
   SentEmailLog,
+  TestInvite,
 } from '@/types';
 import { RESOURCES } from './resources';
 import { ResourceRepository } from './resource-repository';
@@ -23,6 +24,7 @@ export const repositories = {
   schedules: new ResourceRepository<ScheduleEvent>(RESOURCES.schedules.slug),
   jobs: new ResourceRepository<Job>(RESOURCES.jobs.slug),
   candidates: new ResourceRepository<Candidate>(RESOURCES.candidates.slug),
+  testInvites: new ResourceRepository<TestInvite>(RESOURCES.testInvites.slug),
   interviews: new ResourceRepository<Interview>(RESOURCES.interviews.slug),
   iqTests: new ResourceRepository<IQTest>(RESOURCES.iqTests.slug),
   assignments: new ResourceRepository<Assignment>(RESOURCES.assignments.slug),
