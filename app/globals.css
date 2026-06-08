@@ -14,24 +14,24 @@
     var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     sans-serif;
 
-  /* Active palette — Primary brand accent: Midnight Indigo #212842.
+  /* Active palette — Primary brand accent: Cyan #0891B2.
      Swap the values below to re-theme; component classes use accent-* tokens. */
-  --color-brand: #212842;
+  --color-brand: #0891b2;
 
-  /* Custom "accent" palette — Midnight Indigo */
-  --color-accent-50: #eef0f6;
-  --color-accent-100: #d5dbe9;
-  --color-accent-200: #aab4d0;
-  --color-accent-300: #7e8cb4;
-  --color-accent-400: #54648f;
-  --color-accent-500: #38476e;
-  --color-accent-600: #212842;
-  --color-accent-700: #181d33;
-  --color-accent-800: #11152a;
+  /* Custom "accent" palette — Cyan */
+  --color-accent-50: #ecfeff;
+  --color-accent-100: #cffafe;
+  --color-accent-200: #a5f0fa;
+  --color-accent-300: #67e3f4;
+  --color-accent-400: #22d3ee;
+  --color-accent-500: #06b6d4;
+  --color-accent-600: #0891b2;
+  --color-accent-700: #0e7490;
+  --color-accent-800: #155e75;
 }
 
 body {
-  background-color: #f0e7d5; /* cream page surface */
+  background-color: #f6f6f7; /* light neutral page surface */
   color: #1a1a1a; /* near-black text */
   font-family: var(--font-sans);
   letter-spacing: -0.011em;
@@ -73,12 +73,12 @@ h4 {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cdbe9c;
+  background: #d6d6d8;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #B8A586;
+  background: #bfbfc2;
 }
 
 /* Enterprise styles */
