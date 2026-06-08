@@ -59,7 +59,7 @@ export function TestReportModal({ invite, onClose }: { invite: TestInvite; onClo
   const stats = [
     { label: 'Correct', value: correct, icon: <CheckCircle2 size={14} />, cls: 'text-emerald-600' },
     { label: 'Incorrect', value: incorrect, icon: <XCircle size={14} />, cls: 'text-red-500' },
-    { label: 'Skipped', value: unanswered, icon: <MinusCircle size={14} />, cls: 'text-gray-400' },
+    { label: 'Skipped', value: unanswered, icon: <MinusCircle size={14} />, cls: 'text-gray-500' },
     { label: 'Accuracy', value: `${accuracy}%`, icon: <Target size={14} />, cls: 'text-accent-600' },
     {
       label: 'Time taken',
@@ -71,21 +71,21 @@ export function TestReportModal({ invite, onClose }: { invite: TestInvite; onClo
       label: 'Violations',
       value: invite.violations ?? 0,
       icon: <ShieldAlert size={14} />,
-      cls: (invite.violations ?? 0) > 0 ? 'text-orange-500' : 'text-gray-400',
+      cls: (invite.violations ?? 0) > 0 ? 'text-orange-500' : 'text-gray-500',
     },
   ];
 
   return (
     <div
       className="fixed inset-0 bg-gray-900/45 backdrop-blur-xs flex items-center justify-center z-[150] p-4"
-      onClick={onClose}
+      aria-label="Close" onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl border border-[#EAEAEC] shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col"
+        className="bg-[#F7F4EE] rounded-2xl border border-[#DAD4C8] shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 px-6 py-4 border-b border-[#F1F1F2]">
+        <div className="flex items-start justify-between gap-3 px-6 py-4 border-b border-[#E6E1D8]">
           <div className="flex items-center gap-3 min-w-0">
             <span className="w-10 h-10 rounded-xl bg-accent-50 text-accent-600 flex items-center justify-center shrink-0">
               {isIq ? <BrainCircuit size={18} /> : <ClipboardList size={18} />}
@@ -93,19 +93,19 @@ export function TestReportModal({ invite, onClose }: { invite: TestInvite; onClo
             <div className="min-w-0">
               <h3 className="font-bold text-gray-900 text-sm truncate">
                 {invite.candidateName}
-                <span className="ml-2 text-[10px] font-mono font-bold text-gray-400">
+                <span className="ml-2 text-[10px] font-mono font-bold text-gray-500">
                   {invite.candidateId}
                 </span>
               </h3>
-              <p className="text-[11px] text-gray-400 font-mono">
+              <p className="text-[11px] text-gray-500 font-mono">
                 {isIq ? 'IQ Test' : `${invite.position} Assessment`} · {invite.department} ·{' '}
                 {fmtTestDate(invite.completedAt)}
               </p>
             </div>
           </div>
           <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer shrink-0"
+            aria-label="Close" onClick={onClose}
+            className="text-gray-500 hover:text-gray-600 p-1 cursor-pointer shrink-0"
           >
             <X size={16} />
           </button>
@@ -119,7 +119,7 @@ export function TestReportModal({ invite, onClose }: { invite: TestInvite; onClo
             }`}
           >
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-wider text-gray-400">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-gray-500">
                 Final score
               </p>
               <p
@@ -130,7 +130,7 @@ export function TestReportModal({ invite, onClose }: { invite: TestInvite; onClo
                 {invite.score ?? '—'}
                 {!isIq && invite.score !== undefined && <span className="text-xl">%</span>}
               </p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Qualifying: {passBar}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Qualifying: {passBar}</p>
             </div>
             <div className="sm:ml-auto flex items-center gap-2">
               <span
@@ -153,13 +153,13 @@ export function TestReportModal({ invite, onClose }: { invite: TestInvite; onClo
             {stats.map(s => (
               <div
                 key={s.label}
-                className="bg-[#FAFBFC] border border-[#EAEAEC] rounded-xl px-3 py-2.5 text-center"
+                className="bg-[#F2EEE7] border border-[#DAD4C8] rounded-xl px-3 py-2.5 text-center"
               >
                 <span className={`inline-flex ${s.cls}`}>{s.icon}</span>
                 <p className="text-base font-bold text-gray-900 tabular-nums leading-tight mt-0.5">
                   {s.value}
                 </p>
-                <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wide">
+                <p className="text-[9px] text-gray-500 font-mono uppercase tracking-wide">
                   {s.label}
                 </p>
               </div>
@@ -181,7 +181,7 @@ export function TestReportModal({ invite, onClose }: { invite: TestInvite; onClo
                     key={q.id}
                     className={`rounded-xl border px-4 py-3 ${
                       !hasAnswer
-                        ? 'border-[#EAEAEC] bg-white'
+                        ? 'border-[#DAD4C8] bg-[#F7F4EE]'
                         : right
                           ? 'border-emerald-200 bg-emerald-50/40'
                           : 'border-red-200 bg-red-50/40'
@@ -189,7 +189,7 @@ export function TestReportModal({ invite, onClose }: { invite: TestInvite; onClo
                   >
                     <div className="flex items-start justify-between gap-3">
                       <p className="text-[12px] font-semibold text-gray-800 leading-relaxed">
-                        <span className="text-gray-400 font-mono mr-1.5">{i + 1}.</span>
+                        <span className="text-gray-500 font-mono mr-1.5">{i + 1}.</span>
                         {q.q}
                       </p>
                       <span className="shrink-0 mt-0.5">
@@ -204,18 +204,18 @@ export function TestReportModal({ invite, onClose }: { invite: TestInvite; onClo
                     </div>
                     <div className="flex flex-wrap gap-x-5 gap-y-1 mt-1.5 text-[11px]">
                       <span className={right ? 'text-emerald-700' : 'text-gray-600'}>
-                        <span className="text-gray-400 font-mono">Their answer: </span>
+                        <span className="text-gray-500 font-mono">Their answer: </span>
                         {hasAnswer ? (
                           <strong>
                             {String.fromCharCode(65 + picked)}. {q.options[picked]}
                           </strong>
                         ) : (
-                          <em className="text-gray-400">Not answered</em>
+                          <em className="text-gray-500">Not answered</em>
                         )}
                       </span>
                       {!right && (
                         <span className="text-gray-600">
-                          <span className="text-gray-400 font-mono">Correct: </span>
+                          <span className="text-gray-500 font-mono">Correct: </span>
                           <strong className="text-emerald-700">
                             {String.fromCharCode(65 + q.answer)}. {q.options[q.answer]}
                           </strong>

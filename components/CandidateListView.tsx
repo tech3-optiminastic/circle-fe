@@ -20,9 +20,23 @@ import {
   Eye,
   Trash2,
   UserCheck,
+  UserSearch,
   ShieldCheck,
   X,
 } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface CandidateListViewProps {
   candidates: Candidate[];
@@ -148,12 +162,12 @@ export function CandidateListView({
   return (
     <div className="space-y-4 text-xs select-none">
       {/* View Header with CTA triggers */}
-      <div className="flex justify-between items-center bg-[#FAFBFC] border-b border-[#EAEAEC] pb-3">
+      <div className="flex justify-between items-center bg-[#F2EEE7] border-b border-[#DAD4C8] pb-3">
         <div>
           <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
             Candidate Evaluation & ATS Panel
           </h2>
-          <p className="text-gray-400 text-[11px]">
+          <p className="text-gray-500 text-[11px]">
             Secure enterprise dashboard to review profiles, salaries limits, resumes, and actions.
           </p>
         </div>
@@ -167,7 +181,7 @@ export function CandidateListView({
       </div>
 
       {/* Advanced Filter Bars */}
-      <div className="bg-[#FFFFFF] border border-[#EAEAEC] p-4 rounded-xl shadow-2xs space-y-3">
+      <div className="bg-[#F7F4EE] border border-[#DAD4C8] p-4 rounded-xl shadow-2xs space-y-3">
         <div className="flex items-center gap-2 text-gray-700 font-semibold mb-1">
           <SlidersHorizontal size={13} className="text-accent-600" />
           <span>Evaluation Filters</span>
@@ -176,9 +190,9 @@ export function CandidateListView({
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3.5 text-xs">
           {/* Text filters */}
           <div className="space-y-1 col-span-1 sm:col-span-2">
-            <span className="text-[10px] font-bold text-gray-400 uppercase font-mono">Candidate search</span>
+            <span className="text-[10px] font-bold text-gray-500 uppercase font-mono">Candidate search</span>
             <div className="relative">
-              <span className="absolute left-2.5 top-2.5 text-gray-400">
+              <span className="absolute left-2.5 top-2.5 text-gray-500">
                 <Search size={12} />
               </span>
               <input
@@ -186,17 +200,17 @@ export function CandidateListView({
                 placeholder="Search name, applied role..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full pl-7 pr-3 py-1.5 bg-[#F1F1F2] border border-[#EAEAEC] rounded text-xs focus:bg-[#FFFFFF]"
+                className="w-full pl-7 pr-3 py-1.5 bg-[#E6E1D8] border border-[#DAD4C8] rounded text-xs focus:bg-[#F7F4EE]"
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-gray-400 uppercase font-mono">Department</span>
+            <span className="text-[10px] font-bold text-gray-500 uppercase font-mono">Department</span>
             <Select
               value={selectedDept}
               onChange={e => setSelectedDept(e.target.value)}
-              className="w-full px-2 py-1.5 bg-[#F1F1F2] border border-[#EAEAEC] rounded"
+              className="w-full px-2 py-1.5 bg-[#E6E1D8] border border-[#DAD4C8] rounded"
             >
               {departments.map(d => (
                 <option key={d} value={d}>
@@ -207,11 +221,11 @@ export function CandidateListView({
           </div>
 
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-gray-400 uppercase font-mono">Notice period</span>
+            <span className="text-[10px] font-bold text-gray-500 uppercase font-mono">Notice period</span>
             <Select
               value={maxNoticePeriod}
               onChange={e => setMaxNoticePeriod(Number(e.target.value))}
-              className="w-full px-2 py-1.5 bg-[#F1F1F2] border border-[#EAEAEC] rounded font-mono"
+              className="w-full px-2 py-1.5 bg-[#E6E1D8] border border-[#DAD4C8] rounded font-mono"
             >
               <option value={90}>Any Notice</option>
               <option value={30}>≤ 30 Days</option>
@@ -221,11 +235,11 @@ export function CandidateListView({
           </div>
 
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-gray-400 uppercase font-mono">Hiring status</span>
+            <span className="text-[10px] font-bold text-gray-500 uppercase font-mono">Hiring status</span>
             <Select
               value={selectedStatus}
               onChange={e => setSelectedStatus(e.target.value)}
-              className="w-full px-2 py-1.5 bg-[#F1F1F2] border border-[#EAEAEC] rounded"
+              className="w-full px-2 py-1.5 bg-[#E6E1D8] border border-[#DAD4C8] rounded"
             >
               {statuses.map(s => (
                 <option key={s} value={s}>
@@ -236,11 +250,11 @@ export function CandidateListView({
           </div>
 
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-gray-400 uppercase font-mono">Medium Source</span>
+            <span className="text-[10px] font-bold text-gray-500 uppercase font-mono">Medium Source</span>
             <Select
               value={selectedSource}
               onChange={e => setSelectedSource(e.target.value)}
-              className="w-full px-2 py-1.5 bg-[#F1F1F2] border border-[#EAEAEC] rounded"
+              className="w-full px-2 py-1.5 bg-[#E6E1D8] border border-[#DAD4C8] rounded"
             >
               {sources.map(sc => (
                 <option key={sc} value={sc}>
@@ -253,10 +267,10 @@ export function CandidateListView({
       </div>
 
       {/* Main Tabular candidate container */}
-      <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl overflow-hidden shadow-2xs">
+      <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden shadow-2xs">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-[#FAFBFC] border-b border-[#EAEAEC] text-gray-400 font-mono text-[9px] uppercase font-bold">
+            <tr className="bg-[#F2EEE7] border-b border-[#DAD4C8] text-gray-500 font-mono text-[9px] uppercase font-bold">
               <th className="p-3">Candidate name</th>
               <th className="p-3">Applied position</th>
               <th className="p-3">Department</th>
@@ -269,16 +283,25 @@ export function CandidateListView({
               <th className="p-3 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#EAEAEC]">
+          <tbody className="divide-y divide-[#DAD4C8]">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={10} className="text-center py-10 text-gray-400 bg-[#FFFFFF]">
-                  No candidate records matching the specified filters. Try adjusting your parameters.
+                <td colSpan={10} className="bg-[#F7F4EE] p-3">
+                  <EmptyState
+                    icon={UserSearch}
+                    title={candidates.length === 0 ? 'No candidates yet' : 'No matches'}
+                    description={
+                      candidates.length === 0
+                        ? 'Candidates will appear here as they apply or are added.'
+                        : 'No candidate records match the current filters.'
+                    }
+                    className="border-0 bg-transparent py-10"
+                  />
                 </td>
               </tr>
             ) : (
               filtered.map(cand => (
-                <tr key={cand.id} className="hover:bg-[#FAFBFC] group transition duration-150">
+                <tr key={cand.id} className="hover:bg-[#F2EEE7] group transition duration-150">
                   <td className="p-3 font-semibold text-gray-900">{cand.fullName}</td>
                   <td className="p-3 font-medium text-gray-855 truncate max-w-[150px]">{cand.appliedRole}</td>
                   <td className="p-3 text-gray-600">{cand.department}</td>
@@ -354,178 +377,212 @@ export function CandidateListView({
       </div>
 
       {/* Slide overlay Adding Form Model */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-gray-900/45 backdrop-blur-xs flex items-center justify-center z-[110] transition-opacity duration-300">
-          <form
-            onSubmit={handleCreate}
-            className="bg-[#FFFFFF] p-5 rounded-xl border border-[#EAEAEC] shadow-2xl w-full max-w-lg space-y-3.5 max-h-[90vh] overflow-y-auto"
-          >
-            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
-              <h3 className="font-bold text-gray-900 text-xs font-mono uppercase tracking-wider">
-                Aesthetic Candidate Admission Profile
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowAddForm(false)}
-                className="text-gray-400 hover:text-gray-600 cursor-pointer p-1"
-              >
-                <X size={14} />
-              </button>
+      <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+        <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="shrink-0 border-b border-border px-6 py-4 text-left">
+            <DialogTitle className="font-mono text-xs font-bold uppercase tracking-wider text-gray-900">
+              Candidate Admission Profile
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleCreate} className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 space-y-8 overflow-y-auto px-6 py-6">
+              {/* Candidate */}
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div>
+                  <h2 className="font-semibold text-foreground">Candidate</h2>
+                  <p className="mt-1 text-xs leading-6 text-muted-foreground">
+                    Contact details and current location.
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="cand-name" className="text-sm font-medium">
+                        Full name
+                      </Label>
+                      <Input
+                        id="cand-name"
+                        placeholder="Enter name…"
+                        value={newCand.fullName}
+                        onChange={e => setNewCand({ ...newCand, fullName: e.target.value })}
+                        className="mt-2"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cand-email" className="text-sm font-medium">
+                        Email address
+                      </Label>
+                      <Input
+                        id="cand-email"
+                        type="email"
+                        placeholder="name@gmail.com"
+                        value={newCand.email}
+                        onChange={e => setNewCand({ ...newCand, email: e.target.value })}
+                        className="mt-2"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cand-phone" className="text-sm font-medium">
+                        Phone
+                      </Label>
+                      <Input
+                        id="cand-phone"
+                        placeholder="+1 (555) 234-5678"
+                        value={newCand.phone}
+                        onChange={e => setNewCand({ ...newCand, phone: e.target.value })}
+                        className="mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cand-location" className="text-sm font-medium">
+                        Present location
+                      </Label>
+                      <Input
+                        id="cand-location"
+                        placeholder="San Francisco, CA"
+                        value={newCand.location}
+                        onChange={e => setNewCand({ ...newCand, location: e.target.value })}
+                        className="mt-2"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Role & pipeline */}
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div>
+                  <h2 className="font-semibold text-foreground">Role &amp; pipeline</h2>
+                  <p className="mt-1 text-xs leading-6 text-muted-foreground">
+                    Where they applied and how they reached us.
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label className="text-sm font-medium">Applied role</Label>
+                      <Select
+                        value={newCand.appliedRole}
+                        onChange={e => setNewCand({ ...newCand, appliedRole: e.target.value })}
+                        className="mt-2 h-9 w-full rounded-md border border-input bg-secondary/50 px-3 text-sm shadow-xs"
+                      >
+                        <option value="Senior React Engineer">Senior React Engineer</option>
+                        <option value="Senior Product Manager">Senior Product Manager</option>
+                        <option value="Principal UX Architect">Principal UX Architect</option>
+                        <option value="VP of Platform Engineering">VP of Platform Engineering</option>
+                        <option value="HR Director">HR Director</option>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Department</Label>
+                      <Select
+                        value={newCand.department}
+                        onChange={e => setNewCand({ ...newCand, department: e.target.value })}
+                        className="mt-2 h-9 w-full rounded-md border border-input bg-secondary/50 px-3 text-sm shadow-xs"
+                      >
+                        <option value="Engineering">Engineering</option>
+                        <option value="Product">Product</option>
+                        <option value="Design">Design</option>
+                        <option value="Human Resources">HR</option>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Source</Label>
+                      <Select
+                        value={newCand.sourceOfApplication}
+                        onChange={e => setNewCand({ ...newCand, sourceOfApplication: e.target.value })}
+                        className="mt-2 h-9 w-full rounded-md border border-input bg-secondary/50 px-3 text-sm shadow-xs"
+                      >
+                        <option value="LinkedIn">LinkedIn</option>
+                        <option value="Referral">Referral</option>
+                        <option value="Direct Application">Direct App</option>
+                        <option value="Headhunted">Headhunted</option>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="cand-exp" className="text-sm font-medium">
+                        Total experience
+                      </Label>
+                      <Input
+                        id="cand-exp"
+                        type="number"
+                        value={newCand.totalExperienceYears}
+                        onChange={e =>
+                          setNewCand({ ...newCand, totalExperienceYears: Number(e.target.value) })
+                        }
+                        className="mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cand-notice" className="text-sm font-medium">
+                        Notice days
+                      </Label>
+                      <Input
+                        id="cand-notice"
+                        type="number"
+                        value={newCand.noticePeriodDays}
+                        onChange={e =>
+                          setNewCand({ ...newCand, noticePeriodDays: Number(e.target.value) })
+                        }
+                        className="mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cand-ctc" className="text-sm font-medium">
+                        Expected CTC
+                      </Label>
+                      <Input
+                        id="cand-ctc"
+                        placeholder="$140,000"
+                        value={newCand.expectedCtc}
+                        onChange={e => setNewCand({ ...newCand, expectedCtc: e.target.value })}
+                        className="mt-2"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Screening */}
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div>
+                  <h2 className="font-semibold text-foreground">Screening</h2>
+                  <p className="mt-1 text-xs leading-6 text-muted-foreground">
+                    Mandatory internal remarks.
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="cand-remarks" className="text-sm font-medium">
+                    Internal screening remarks
+                  </Label>
+                  <Textarea
+                    id="cand-remarks"
+                    placeholder="Candidate background high-level screening summary…"
+                    value={newCand.hrRemarks}
+                    onChange={e => setNewCand({ ...newCand, hrRemarks: e.target.value })}
+                    rows={4}
+                    className="mt-2"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3.5">
-              <div className="space-y-1">
-                <label className="font-semibold text-gray-700">Full Name</label>
-                <input
-                  type="text"
-                  placeholder="Enter name..."
-                  value={newCand.fullName}
-                  onChange={e => setNewCand({ ...newCand, fullName: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] focus:bg-[#FFFFFF] focus:outline-none"
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="font-semibold text-gray-700">Email Address</label>
-                <input
-                  type="email"
-                  placeholder="name@gmail.com"
-                  value={newCand.email}
-                  onChange={e => setNewCand({ ...newCand, email: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] focus:bg-[#FFFFFF] focus:outline-none"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3.5">
-              <div className="space-y-1">
-                <label className="font-semibold text-gray-700">Phone Code</label>
-                <input
-                  type="text"
-                  placeholder="+1 (555) 234-5678"
-                  value={newCand.phone}
-                  onChange={e => setNewCand({ ...newCand, phone: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2]"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="font-semibold text-gray-700">Present Location</label>
-                <input
-                  type="text"
-                  value={newCand.location}
-                  onChange={e => setNewCand({ ...newCand, location: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2]"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2.5">
-              <div className="space-y-1">
-                <label className="font-semibold text-gray-700">Applied Role</label>
-                <Select
-                  value={newCand.appliedRole}
-                  onChange={e => setNewCand({ ...newCand, appliedRole: e.target.value })}
-                  className="w-full px-2 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] font-semibold"
-                >
-                  <option value="Senior React Engineer">Senior React Engineer</option>
-                  <option value="Senior Product Manager">Senior Product Manager</option>
-                  <option value="Principal UX Architect">Principal UX Architect</option>
-                  <option value="VP of Platform Engineering">VP of Platform Engineering</option>
-                  <option value="HR Director">HR Director</option>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-semibold text-gray-700">Dept</label>
-                <Select
-                  value={newCand.department}
-                  onChange={e => setNewCand({ ...newCand, department: e.target.value })}
-                  className="w-full px-2 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2]"
-                >
-                  <option value="Engineering">Engineering</option>
-                  <option value="Product">Product</option>
-                  <option value="Design">Design</option>
-                  <option value="Human Resources">HR</option>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-semibold text-gray-700">Source</label>
-                <Select
-                  value={newCand.sourceOfApplication}
-                  onChange={e => setNewCand({ ...newCand, sourceOfApplication: e.target.value })}
-                  className="w-full px-2 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2]"
-                >
-                  <option value="LinkedIn">LinkedIn</option>
-                  <option value="Referral">Referral</option>
-                  <option value="Direct Application">Direct App</option>
-                  <option value="Headhunted">Headhunted</option>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2.5">
-              <div className="space-y-1">
-                <label className="font-semibold text-gray-700">Total Experience</label>
-                <input
-                  type="number"
-                  value={newCand.totalExperienceYears}
-                  onChange={e => setNewCand({ ...newCand, totalExperienceYears: Number(e.target.value) })}
-                  className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2]"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-semibold text-gray-700">Notice Days</label>
-                <input
-                  type="number"
-                  value={newCand.noticePeriodDays}
-                  onChange={e => setNewCand({ ...newCand, noticePeriodDays: Number(e.target.value) })}
-                  className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] font-mono"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-semibold text-gray-700">Expected CTC</label>
-                <input
-                  type="text"
-                  value={newCand.expectedCtc}
-                  onChange={e => setNewCand({ ...newCand, expectedCtc: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2]"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="font-semibold text-gray-700">Internal Screening remarks (Mandatory)</label>
-              <textarea
-                placeholder="Candidate background high-level screening summary..."
-                value={newCand.hrRemarks}
-                onChange={e => setNewCand({ ...newCand, hrRemarks: e.target.value })}
-                rows={2}
-                className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] focus:bg-[#FFFFFF] focus:outline-none"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowAddForm(false)}
-                className="px-4 py-1.5 border border-[#EAEAEC] hover:bg-gray-100 rounded text-gray-650 cursor-pointer font-semibold"
-              >
+            <DialogFooter className="shrink-0 border-t border-border px-6 py-4">
+              <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
                 Back
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-1.5 bg-accent-600 hover:bg-accent-700 text-white rounded cursor-pointer font-semibold"
-              >
-                Register Candidate Profile
-              </button>
-            </div>
+              </Button>
+              <Button type="submit">Register Candidate Profile</Button>
+            </DialogFooter>
           </form>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

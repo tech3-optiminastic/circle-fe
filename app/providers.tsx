@@ -6,6 +6,7 @@ import { createQueryClient } from '@/lib/query/query-client';
 import { UiStateProvider } from '@/store/ui-store';
 import { AuthProvider } from '@/store/auth-store';
 import { ToastProvider } from '@/components/Toaster';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 /** Composition of client-side providers: auth gate + server-state (Query) + UI state. */
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -22,7 +23,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <UiStateProvider>
-          <ToastProvider>{mounted ? children : null}</ToastProvider>
+          <ToastProvider>
+            <TooltipProvider>{mounted ? children : null}</TooltipProvider>
+          </ToastProvider>
         </UiStateProvider>
       </AuthProvider>
     </QueryClientProvider>

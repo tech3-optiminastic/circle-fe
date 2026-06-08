@@ -3,6 +3,7 @@
 import React, { useRef } from 'react';
 import { Download, FileText, Loader2, Trash2, Upload } from 'lucide-react';
 import { openDocument, useDocumentMutations, useDocuments } from '@/features/documents/hooks';
+import { Tip } from '@/components/ui/tooltip';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -34,7 +35,7 @@ export function DocumentsPanel({
   };
 
   return (
-    <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-4 space-y-3">
+    <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
           <FileText size={13} className="text-accent-600" /> {title}
@@ -57,37 +58,41 @@ export function DocumentsPanel({
       {isError ? (
         <p className="text-[11px] text-red-500 py-2">Could not load documents.</p>
       ) : isLoading ? (
-        <p className="text-[11px] text-gray-400 py-2">Loading…</p>
+        <p className="text-[11px] text-gray-500 py-2">Loading…</p>
       ) : docs.length === 0 ? (
-        <p className="text-[11px] text-gray-400 py-2">No documents uploaded yet.</p>
+        <p className="text-[11px] text-gray-500 py-2">No documents uploaded yet.</p>
       ) : (
         <div className="space-y-1.5">
           {docs.map(doc => (
             <div
               key={doc.id}
-              className="flex items-center gap-2 p-2 border border-[#EAEAEC] rounded-lg text-[11px] hover:bg-[#F1F1F2] transition"
+              className="flex items-center gap-2 p-2 border border-[#DAD4C8] rounded-lg text-[11px] hover:bg-[#E6E1D8] transition"
             >
-              <FileText size={14} className="text-gray-400 shrink-0" />
+              <FileText size={14} className="text-gray-500 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-800 truncate">{doc.fileName}</p>
-                <span className="text-[9px] text-gray-400 font-mono">
+                <span className="text-[9px] text-gray-500 font-mono">
                   {doc.category} · {formatSize(doc.size)} · {new Date(doc.uploadedAt).toLocaleDateString()}
                 </span>
               </div>
-              <button
-                onClick={() => openDocument(doc.id)}
-                title="Download"
-                className="p-1 text-gray-400 hover:text-accent-600 cursor-pointer"
-              >
-                <Download size={13} />
-              </button>
-              <button
-                onClick={() => remove.mutate(doc.id)}
-                title="Delete"
-                className="p-1 text-gray-400 hover:text-red-500 cursor-pointer"
-              >
-                <Trash2 size={13} />
-              </button>
+              <Tip label="Download">
+                <button
+                  onClick={() => openDocument(doc.id)}
+                  aria-label="Download"
+                  className="p-1 text-gray-500 hover:text-accent-600 cursor-pointer"
+                >
+                  <Download size={13} />
+                </button>
+              </Tip>
+              <Tip label="Delete">
+                <button
+                  onClick={() => remove.mutate(doc.id)}
+                  aria-label="Delete"
+                  className="p-1 text-gray-500 hover:text-red-500 cursor-pointer"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </Tip>
             </div>
           ))}
         </div>

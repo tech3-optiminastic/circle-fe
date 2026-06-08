@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Candidate, Interview } from '@/types';
 import { repositories } from '@/lib/api/repositories';
+import { pushCalendarEvent } from '@/lib/api/calendar';
 import { qk } from '@/lib/query/keys';
 import { listOps } from '@/lib/query/optimistic';
 import { optimisticOptions } from '@/lib/query/mutations';
@@ -56,6 +57,20 @@ export function useInterviewMutations() {
       const interview = buildScheduledInterview(candidate, input);
       await repositories.interviews.create(interview);
       await repositories.sentEmails.create(buildInterviewInviteEmail(candidate, input.round));
+
+      // Best-effort push to the shared Google Calendar — non-critical.
+      pushCalendarEvent({
+        appEventId: interview.id,
+        type: 'Interview',
+        title: `${interview.interviewRound} · ${interview.candidateName}`,
+        dateTimeIso: interview.dateTime,
+        durationMin: interview.durationMinutes,
+        notes: interview.interviewerName ? `Interviewer: ${interview.interviewerName}` : undefined,
+        attendeeEmail: candidate.email || undefined,
+      }).catch(() => {
+        /* calendar sync is non-critical */
+      });
+
       return interview;
     },
     onSettled: () => {

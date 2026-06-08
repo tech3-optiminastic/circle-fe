@@ -13,6 +13,7 @@ import {
   CalendarDays,
 } from 'lucide-react';
 import { Interview, IQTest, Candidate, ScheduleEvent } from '../types';
+import { Tip } from '@/components/ui/tooltip';
 
 interface CalendarViewProps {
   interviews: Interview[];
@@ -312,20 +313,20 @@ export function CalendarView({
             <CalendarIcon size={18} className="text-accent-600" />
             Recruitment Calendar
           </h2>
-          <p className="text-gray-400 text-xs">
+          <p className="text-gray-500 text-xs">
             HR calls, IQ tests and panel interviews across the recruitment pipeline.
           </p>
         </div>
-        <span className="text-[11px] font-mono text-gray-500 bg-[#F1F1F2] px-2.5 py-1 rounded-md flex items-center gap-1.5 w-fit">
+        <span className="text-[11px] font-mono text-gray-500 bg-[#E6E1D8] px-2.5 py-1 rounded-md flex items-center gap-1.5 w-fit">
           <CalendarDays size={12} className="text-accent-600" />
           {periodCount} this {view}
         </span>
       </div>
 
       {/* Calendar card */}
-      <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl overflow-hidden">
+      <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden">
         {/* Toolbar */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#EAEAEC]">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[#DAD4C8]">
           <div className="flex items-center gap-3">
             <h3 className="text-sm font-bold text-gray-900 font-display">{headerLabel}</h3>
             <button
@@ -336,32 +337,36 @@ export function CalendarView({
             </button>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center bg-[#F1F1F2] rounded-md p-0.5">
+            <div className="flex items-center bg-[#E6E1D8] rounded-md p-0.5">
               {(['week', 'month'] as ViewMode[]).map(m => (
                 <button
                   key={m}
                   onClick={() => setView(m)}
-                  className={`text-[10px] font-semibold font-mono uppercase tracking-wider px-2.5 py-1 rounded cursor-pointer transition ${view === m ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+                  className={`text-[10px] font-semibold font-mono uppercase tracking-wider px-2.5 py-1 rounded cursor-pointer transition ${view === m ? 'bg-[#F7F4EE] text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
                 >
                   {m}
                 </button>
               ))}
             </div>
             <div className="flex items-center gap-1">
-              <button
-                onClick={goPrev}
-                className="p-1.5 rounded-md hover:bg-[#F1F1F2] text-gray-500 hover:text-gray-900 cursor-pointer transition"
-                title="Previous"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                onClick={goNext}
-                className="p-1.5 rounded-md hover:bg-[#F1F1F2] text-gray-500 hover:text-gray-900 cursor-pointer transition"
-                title="Next"
-              >
-                <ChevronRight size={16} />
-              </button>
+              <Tip label="Previous">
+                <button
+                  onClick={goPrev}
+                  className="p-1.5 rounded-md hover:bg-[#E6E1D8] text-gray-500 hover:text-gray-900 cursor-pointer transition"
+                  aria-label="Previous"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+              </Tip>
+              <Tip label="Next">
+                <button
+                  onClick={goNext}
+                  className="p-1.5 rounded-md hover:bg-[#E6E1D8] text-gray-500 hover:text-gray-900 cursor-pointer transition"
+                  aria-label="Next"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </Tip>
             </div>
           </div>
         </div>
@@ -387,7 +392,7 @@ export function CalendarView({
 
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-4 text-[11px] text-gray-500">
-        <span className="font-semibold font-mono uppercase tracking-wider text-gray-400">Legend</span>
+        <span className="font-semibold font-mono uppercase tracking-wider text-gray-500">Legend</span>
         <span className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-amber-500"></span> HR Call
         </span>
@@ -424,16 +429,16 @@ function WeekGrid({
   return (
     <div>
       {/* Day headers */}
-      <div className="flex border-b border-[#EAEAEC] bg-white">
-        <div className="w-14 shrink-0 border-r border-[#EAEAEC]" />
+      <div className="flex border-b border-[#DAD4C8] bg-[#F7F4EE]">
+        <div className="w-14 shrink-0 border-r border-[#DAD4C8]" />
         {weekDays.map(d => {
           const isToday = sameDay(d, today);
           return (
             <div
               key={d.toISOString()}
-              className="flex-1 text-center py-2 border-r border-[#EAEAEC] last:border-r-0"
+              className="flex-1 text-center py-2 border-r border-[#DAD4C8] last:border-r-0"
             >
-              <div className="text-[10px] font-semibold font-mono uppercase tracking-wider text-gray-400">
+              <div className="text-[10px] font-semibold font-mono uppercase tracking-wider text-gray-500">
                 {WEEKDAYS[d.getDay()]}
               </div>
               <div
@@ -448,16 +453,16 @@ function WeekGrid({
 
       {/* All-day row (HR calls & IQ tests — date only) */}
       {hasAllDay && (
-        <div className="flex border-b border-[#EAEAEC] bg-[#FAFBFC]">
-          <div className="w-14 shrink-0 border-r border-[#EAEAEC] flex items-start justify-end pr-2 pt-2">
-            <span className="text-[8px] font-mono uppercase tracking-wider text-gray-400">All day</span>
+        <div className="flex border-b border-[#DAD4C8] bg-[#F2EEE7]">
+          <div className="w-14 shrink-0 border-r border-[#DAD4C8] flex items-start justify-end pr-2 pt-2">
+            <span className="text-[8px] font-mono uppercase tracking-wider text-gray-500">All day</span>
           </div>
           {weekDays.map(d => {
             const allDay = (eventsByDay[dayKey(d)] || []).filter(e => !e.hasTime);
             return (
               <div
                 key={d.toISOString()}
-                className="flex-1 border-r border-[#EAEAEC] last:border-r-0 p-1 space-y-1 min-h-[36px]"
+                className="flex-1 border-r border-[#DAD4C8] last:border-r-0 p-1 space-y-1 min-h-[36px]"
               >
                 {allDay.map(ev => (
                   <EventPill key={ev.id} ev={ev} onSelectCandidate={onSelectCandidate} compact />
@@ -470,16 +475,16 @@ function WeekGrid({
 
       {/* Working-hours time grid (9 AM – 4 PM) for interviews */}
       <div className="flex" style={{ height: TOTAL_HEIGHT }}>
-        <div className="w-14 shrink-0 border-r border-[#EAEAEC] relative">
+        <div className="w-14 shrink-0 border-r border-[#DAD4C8] relative">
           {RANGE_HOURS.map(h => (
             <div key={h} style={{ height: HOUR_HEIGHT }} className="relative">
-              <span className="absolute -top-1.5 right-2 text-[9px] font-mono text-gray-400">
+              <span className="absolute -top-1.5 right-2 text-[9px] font-mono text-gray-500">
                 {hourLabel(h)}
               </span>
             </div>
           ))}
           <div style={{ height: BOTTOM_BUFFER }} className="relative">
-            <span className="absolute -top-1.5 right-2 text-[9px] font-mono text-gray-400">
+            <span className="absolute -top-1.5 right-2 text-[9px] font-mono text-gray-500">
               {hourLabel(END_HOUR)}
             </span>
           </div>
@@ -490,12 +495,12 @@ function WeekGrid({
           return (
             <div
               key={d.toISOString()}
-              className="flex-1 relative border-r border-[#EAEAEC] last:border-r-0 overflow-hidden"
+              className="flex-1 relative border-r border-[#DAD4C8] last:border-r-0 overflow-hidden"
             >
               {RANGE_HOURS.map(h => (
-                <div key={h} style={{ height: HOUR_HEIGHT }} className="border-b border-[#F1F1F2]" />
+                <div key={h} style={{ height: HOUR_HEIGHT }} className="border-b border-[#E6E1D8]" />
               ))}
-              <div style={{ height: BOTTOM_BUFFER }} className="bg-[#FAFBFC]" />
+              <div style={{ height: BOTTOM_BUFFER }} className="bg-[#F2EEE7]" />
               {layoutTimed(timed).map(({ ev, top, height, col, cols }) => {
                 const s = typeStyle(ev.type);
                 const widthPct = 100 / cols;
@@ -564,11 +569,11 @@ function MonthGrid({
 
   return (
     <>
-      <div className="grid grid-cols-7 border-b border-[#EAEAEC]">
+      <div className="grid grid-cols-7 border-b border-[#DAD4C8]">
         {WEEKDAYS.map(w => (
           <div
             key={w}
-            className="px-2 py-2 text-[10px] font-semibold font-mono uppercase tracking-wider text-gray-400 text-center"
+            className="px-2 py-2 text-[10px] font-semibold font-mono uppercase tracking-wider text-gray-500 text-center"
           >
             {w}
           </div>
@@ -582,7 +587,7 @@ function MonthGrid({
           return (
             <div
               key={day ? `${year}-${month}-${day}` : `blank-${idx}`}
-              className={`min-h-[112px] border-b border-r border-[#EAEAEC] p-1.5 ${idx % 7 === 0 ? 'border-l' : ''} ${day ? '' : 'bg-[#FAFBFC]'}`}
+              className={`min-h-[112px] border-b border-r border-[#DAD4C8] p-1.5 ${idx % 7 === 0 ? 'border-l' : ''} ${day ? '' : 'bg-[#F2EEE7]'}`}
             >
               {day && (
                 <>
@@ -598,7 +603,7 @@ function MonthGrid({
                       <EventPill key={ev.id} ev={ev} onSelectCandidate={onSelectCandidate} />
                     ))}
                     {extra > 0 && (
-                      <div className="text-[9px] font-mono font-semibold text-gray-400 px-1">
+                      <div className="text-[9px] font-mono font-semibold text-gray-500 px-1">
                         +{extra} more
                       </div>
                     )}

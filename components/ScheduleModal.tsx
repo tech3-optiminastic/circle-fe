@@ -1,10 +1,8 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Select } from './Select';
 import { ScheduleType } from '../types';
 import {
-  X,
   CalendarClock,
   Phone,
   BrainCircuit,
@@ -13,6 +11,18 @@ import {
   AlertTriangle,
   Check,
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 export interface BusySlot {
   start: number; // ms
@@ -79,118 +89,103 @@ export function ScheduleModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/45 backdrop-blur-xs flex items-center justify-center z-[130] px-4">
-      <form
-        onSubmit={submit}
-        className="bg-white rounded-2xl border border-[#EAEAEC] shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#EAEAEC]">
-          <div className="flex items-center gap-2.5">
-            <span className="w-9 h-9 rounded-xl bg-accent-50 text-accent-600 flex items-center justify-center">
+    <Dialog open onOpenChange={open => !open && onClose()}>
+      <DialogContent className="max-w-md gap-0 overflow-hidden p-0">
+        <form onSubmit={submit}>
+          <DialogHeader className="flex-row items-center gap-2.5 space-y-0 border-b border-border px-5 py-4 text-left">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-50 text-accent-600">
               <CalendarClock size={17} />
             </span>
             <div>
-              <h3 className="text-sm font-bold text-gray-900">Schedule next step</h3>
-              <p className="text-[11px] text-gray-400">
+              <DialogTitle className="text-sm font-bold text-gray-900">Schedule next step</DialogTitle>
+              <DialogDescription className="text-[11px]">
                 Shortlisting <span className="font-semibold text-gray-600">{candidateName}</span>
-              </p>
+              </DialogDescription>
             </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
-          >
-            <X size={16} />
-          </button>
-        </div>
+          </DialogHeader>
 
-        <div className="px-5 py-4 space-y-4">
-          {/* Type */}
-          <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-gray-600">What are you scheduling?</span>
-            <div className="grid grid-cols-2 gap-2">
-              {(['HR Call', 'IQ Test', 'Assessment', 'Interview'] as ScheduleType[]).map(t => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setType(t)}
-                  className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-[11px] font-semibold transition cursor-pointer ${
-                    type === t
-                      ? 'border-accent-400 bg-accent-50 text-accent-700'
-                      : 'border-[#EAEAEC] text-gray-600 hover:bg-[#F6F6F7]'
-                  }`}
-                >
-                  {TYPE_META[t].icon}
-                  {t}
-                </button>
-              ))}
-            </div>
-            <p className="text-[10px] text-gray-400">{TYPE_META[type].hint}</p>
-          </div>
-
-          {/* Date & time */}
-          <label className="block space-y-1">
-            <span className="text-[11px] font-semibold text-gray-600">Date & time ({DURATION_MIN} min)</span>
-            <input
-              type="datetime-local"
-              value={dt}
-              onChange={e => setDt(e.target.value)}
-              className="w-full px-3 py-2 border border-[#EAEAEC] rounded-lg text-sm bg-[#F6F6F7] focus:bg-white focus:outline-none focus:border-accent-400 transition"
-              required
-            />
-          </label>
-
-          {/* Conflict guard */}
-          {conflict ? (
-            <div className="flex items-start gap-2 text-xs bg-red-50 border border-red-100 text-red-600 rounded-lg px-3 py-2">
-              <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-              <span>
-                That slot overlaps <span className="font-semibold">{conflict.label}</span>. Pick a
-                different time — schedules can't overlap.
-              </span>
-            </div>
-          ) : (
-            validDate && (
-              <div className="flex items-center gap-1.5 text-[11px] text-emerald-600">
-                <Check size={13} /> Slot is free.
+          <div className="space-y-4 px-5 py-4">
+            {/* Type */}
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-semibold text-gray-600">
+                What are you scheduling?
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                {(['HR Call', 'IQ Test', 'Assessment', 'Interview'] as ScheduleType[]).map(t => (
+                  <Button
+                    key={t}
+                    type="button"
+                    variant={type === t ? 'default' : 'outline'}
+                    onClick={() => setType(t)}
+                    className={`h-auto flex-col gap-1 py-2.5 text-[11px] font-semibold ${
+                      type === t ? '' : 'text-gray-600'
+                    }`}
+                  >
+                    {TYPE_META[t].icon}
+                    {t}
+                  </Button>
+                ))}
               </div>
-            )
-          )}
+              <p className="text-[10px] text-gray-500">{TYPE_META[type].hint}</p>
+            </div>
 
-          {/* Notes */}
-          <label className="block space-y-1">
-            <span className="text-[11px] font-semibold text-gray-600">Notes (optional)</span>
-            <textarea
-              rows={2}
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              placeholder="Agenda, panel, link…"
-              className="w-full px-3 py-2 border border-[#EAEAEC] rounded-lg text-sm bg-[#F6F6F7] focus:bg-white focus:outline-none focus:border-accent-400 transition"
-            />
-          </label>
-        </div>
+            {/* Date & time */}
+            <div className="space-y-1">
+              <Label htmlFor="schedule-dt" className="text-[11px] font-semibold text-gray-600">
+                Date &amp; time ({DURATION_MIN} min)
+              </Label>
+              <Input
+                id="schedule-dt"
+                type="datetime-local"
+                value={dt}
+                onChange={e => setDt(e.target.value)}
+                required
+              />
+            </div>
 
-        {/* Footer */}
-        <div className="flex justify-end gap-2 px-5 py-4 border-t border-[#EAEAEC]">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 border border-[#EAEAEC] hover:bg-gray-100 rounded-lg text-gray-600 cursor-pointer font-semibold text-sm"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={blocked}
-            className="px-4 py-2 bg-accent-600 hover:bg-accent-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg cursor-pointer font-semibold text-sm"
-          >
-            Shortlist & schedule
-          </button>
-        </div>
-      </form>
-    </div>
+            {/* Conflict guard */}
+            {conflict ? (
+              <div className="flex items-start gap-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-600">
+                <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                <span>
+                  That slot overlaps <span className="font-semibold">{conflict.label}</span>. Pick a
+                  different time — schedules can&apos;t overlap.
+                </span>
+              </div>
+            ) : (
+              validDate && (
+                <div className="flex items-center gap-1.5 text-[11px] text-emerald-600">
+                  <Check size={13} /> Slot is free.
+                </div>
+              )
+            )}
+
+            {/* Notes */}
+            <div className="space-y-1">
+              <Label htmlFor="schedule-notes" className="text-[11px] font-semibold text-gray-600">
+                Notes (optional)
+              </Label>
+              <Textarea
+                id="schedule-notes"
+                rows={2}
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="Agenda, panel, link…"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="border-t border-border px-5 py-4">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={blocked}>
+              Shortlist &amp; schedule
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

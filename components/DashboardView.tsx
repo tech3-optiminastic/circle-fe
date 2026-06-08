@@ -52,7 +52,7 @@ export function DashboardView({
           <h2 className="text-xl font-bold text-gray-900 tracking-tight font-display">
             Executive HR Workspace
           </h2>
-          <p className="text-gray-400 text-xs">
+          <p className="text-gray-500 text-xs">
             Lifecycle monitoring of evaluations, credential security key dispatches, and clearances.
           </p>
         </div>
@@ -70,7 +70,7 @@ export function DashboardView({
       />
 
       {/* 2nd row: Candidate Pipeline Board (Kanban Segment) */}
-      <div className="p-4 bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl space-y-4">
+      <div className="p-4 bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl space-y-4">
         <KanbanPipeline
           candidates={candidates}
           onMoveCandidate={onMoveCandidate}
@@ -88,9 +88,9 @@ export function DashboardView({
       {/* 4th row: Upcoming sessions & Recent recruits arrivals list */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Interviews scheduled timeline */}
-        <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 space-y-4">
-          <div className="flex justify-between items-center border-b border-[#F1F1F2] pb-2">
-            <h4 className="text-xs font-bold font-mono text-gray-400 uppercase tracking-wider">
+        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-4">
+          <div className="flex justify-between items-center border-b border-[#E6E1D8] pb-2">
+            <h4 className="text-xs font-bold font-mono text-gray-500 uppercase tracking-wider">
               Upcoming Panel Interviews ({upcomingInterviews.length})
             </h4>
             <span className="text-[10px] text-accent-600 font-semibold font-mono">See Calendar</span>
@@ -98,19 +98,19 @@ export function DashboardView({
 
           <div className="space-y-3">
             {upcomingInterviews.length === 0 ? (
-              <p className="text-xs text-gray-400 py-6 text-center">No interviews scheduled today.</p>
+              <p className="text-xs text-gray-500 py-6 text-center">No interviews scheduled today.</p>
             ) : (
               upcomingInterviews.map(i => (
                 <div
                   key={i.id}
-                  className="p-3 border border-[#EAEAEC] rounded-lg bg-[#F1F1F2]/50 flex justify-between items-center hover:border-accent-300 transition duration-150"
+                  className="p-3 border border-[#DAD4C8] rounded-lg bg-[#E6E1D8]/50 flex justify-between items-center hover:border-accent-300 transition duration-150"
                 >
                   <div className="space-y-1">
                     <span className="font-bold text-gray-900 text-xs">{i.candidateName}</span>
                     <p className="text-[11px] text-gray-500">
                       {i.appliedRole} • {i.interviewRound}
                     </p>
-                    <p className="text-[10px] text-gray-400 font-mono flex items-center gap-1">
+                    <p className="text-[10px] text-gray-500 font-mono flex items-center gap-1">
                       <Calendar size={10} />
                       {new Date(i.dateTime).toLocaleDateString()}{' '}
                       {new Date(i.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -118,7 +118,7 @@ export function DashboardView({
                   </div>
                   <button
                     onClick={() => onSelectCandidate(i.candidateId)}
-                    className="text-[10px] bg-[#FFFFFF] border border-[#EAEAEC] hover:border-accent-400 hover:text-accent-600 text-gray-600 px-2.5 py-1 rounded-md font-semibold font-mono transition shrink-0 cursor-pointer"
+                    className="text-[10px] bg-[#F7F4EE] border border-[#DAD4C8] hover:border-accent-400 hover:text-accent-600 text-gray-600 px-2.5 py-1 rounded-md font-semibold font-mono transition shrink-0 cursor-pointer"
                   >
                     Assess
                   </button>
@@ -129,9 +129,9 @@ export function DashboardView({
         </div>
 
         {/* Onboarding pipeline alerts */}
-        <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 space-y-4">
-          <div className="flex justify-between items-center border-b border-[#F1F1F2] pb-2">
-            <h4 className="text-xs font-bold font-mono text-gray-400 uppercase tracking-wider">
+        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-4">
+          <div className="flex justify-between items-center border-b border-[#E6E1D8] pb-2">
+            <h4 className="text-xs font-bold font-mono text-gray-500 uppercase tracking-wider">
               Arrivals Expected This Month ({onboardingArrivals.length})
             </h4>
             <span className="text-[10px] text-accent-600 font-semibold font-mono">View All</span>
@@ -139,14 +139,14 @@ export function DashboardView({
 
           <div className="space-y-3">
             {onboardingArrivals.length === 0 ? (
-              <p className="text-xs text-gray-400 py-6 text-center">
+              <p className="text-xs text-gray-500 py-6 text-center">
                 No expected candidates matching joining criteria during this window.
               </p>
             ) : (
               onboardingArrivals.map(oa => (
                 <div
                   key={oa.id}
-                  className="p-3 border border-[#EAEAEC] rounded-lg bg-[#F1F1F2]/50 flex justify-between items-center hover:border-accent-300 transition duration-150"
+                  className="p-3 border border-[#DAD4C8] rounded-lg bg-[#E6E1D8]/50 flex justify-between items-center hover:border-accent-300 transition duration-150"
                 >
                   <div className="space-y-1">
                     <span className="font-bold text-gray-900 text-xs">{oa.fullName}</span>
@@ -165,7 +165,7 @@ export function DashboardView({
 
                   <button
                     onClick={() => onSelectCandidate(oa.id)}
-                    className="text-[10px] bg-[#FFFFFF] border border-[#EAEAEC] text-gray-600 px-2.5 py-1.5 rounded-lg flex items-center gap-1 hover:border-accent-400 transition font-semibold cursor-pointer"
+                    className="text-[10px] bg-[#F7F4EE] border border-[#DAD4C8] text-gray-600 px-2.5 py-1.5 rounded-lg flex items-center gap-1 hover:border-accent-400 transition font-semibold cursor-pointer"
                   >
                     Check list <ArrowRight size={10} />
                   </button>

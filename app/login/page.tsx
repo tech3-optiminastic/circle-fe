@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/store/auth-store';
 import { Mail, Lock, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,7 +39,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F6F7] flex flex-col">
+    <div className="min-h-screen bg-[#ECE8E0] flex flex-col">
       {/* Brand strip */}
       <div className="h-1.5 bg-gradient-to-r from-accent-500 via-accent-600 to-accent-800" />
 
@@ -47,91 +51,96 @@ export default function LoginPage() {
             <h1 className="text-xl font-bold text-gray-900 tracking-tight font-display mt-3">
               Curcle
             </h1>
-            <p className="text-[11px] text-gray-400 uppercase font-mono font-semibold tracking-wider">
+            <p className="text-[11px] text-gray-500 uppercase font-mono font-semibold tracking-wider">
               HR Operating System
             </p>
           </div>
 
           {/* Card */}
-          <div className="bg-white border border-[#EAEAEC] rounded-2xl shadow-2xs p-6 sm:p-7">
-            <h2 className="text-base font-bold text-gray-900">Sign in</h2>
-            <p className="text-xs text-gray-400 mt-0.5 mb-5">
-              Authorized HR team members only.
-            </p>
-
-            <form onSubmit={handleSubmit} className="space-y-3.5">
-              <label className="block space-y-1">
-                <span className="text-[11px] font-semibold text-gray-600">Work email</span>
-                <div className="relative">
-                  <Mail
-                    size={15}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  />
-                  <input
-                    type="email"
-                    autoFocus
-                    autoComplete="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="you@optiminastic.com"
-                    className="w-full pl-9 pr-3 py-2.5 border border-[#EAEAEC] rounded-lg text-sm bg-[#F6F6F7] focus:bg-white focus:outline-none focus:border-accent-400 transition"
-                    required
-                  />
+          <Card className="border-[#DAD4C8] bg-[#F7F4EE]">
+            <CardHeader>
+              <CardTitle className="text-base font-bold text-gray-900">Sign in</CardTitle>
+              <p className="text-xs text-gray-500">Authorized HR team members only.</p>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-3.5">
+                <div className="space-y-1">
+                  <Label htmlFor="login-email" className="text-[11px] font-semibold text-gray-600">
+                    Work email
+                  </Label>
+                  <div className="relative">
+                    <Mail
+                      size={15}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                    />
+                    <Input
+                      id="login-email"
+                      type="email"
+                      autoFocus
+                      autoComplete="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="you@optiminastic.com"
+                      className="pl-9"
+                      required
+                    />
+                  </div>
                 </div>
-              </label>
 
-              <label className="block space-y-1">
-                <span className="text-[11px] font-semibold text-gray-600">Password</span>
-                <div className="relative">
-                  <Lock
-                    size={15}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  />
-                  <input
-                    type={showPw ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-9 pr-10 py-2.5 border border-[#EAEAEC] rounded-lg text-sm bg-[#F6F6F7] focus:bg-white focus:outline-none focus:border-accent-400 transition"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPw(s => !s)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
-                    tabIndex={-1}
-                    title={showPw ? 'Hide password' : 'Show password'}
-                  >
-                    {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
+                <div className="space-y-1">
+                  <Label htmlFor="login-password" className="text-[11px] font-semibold text-gray-600">
+                    Password
+                  </Label>
+                  <div className="relative">
+                    <Lock
+                      size={15}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                    />
+                    <Input
+                      id="login-password"
+                      type={showPw ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="pl-9 pr-10"
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setShowPw(s => !s)}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      tabIndex={-1}
+                      aria-label={showPw ? 'Hide password' : 'Show password'}
+                    >
+                      {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </Button>
+                  </div>
                 </div>
-              </label>
 
-              {error && (
-                <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-accent-600 hover:bg-accent-700 disabled:opacity-60 text-white px-4 py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer transition"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 size={15} className="animate-spin" /> Signing in…
-                  </>
-                ) : (
-                  'Sign in'
+                {error && (
+                  <div className="flex items-start gap-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-600">
+                    <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                    <span>{error}</span>
+                  </div>
                 )}
-              </button>
-            </form>
-          </div>
 
-          <p className="text-center text-[11px] text-gray-400 mt-5">
+                <Button type="submit" disabled={submitting} className="w-full">
+                  {submitting ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin" /> Signing in…
+                    </>
+                  ) : (
+                    'Sign in'
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <p className="text-center text-[11px] text-gray-500 mt-5">
             Trouble signing in? Contact your Curcle administrator.
           </p>
         </div>

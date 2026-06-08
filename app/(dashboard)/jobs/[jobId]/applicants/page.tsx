@@ -27,9 +27,9 @@ export default function JobApplicantsPage() {
 
   if (!job) {
     return (
-      <div className="bg-white border border-dashed border-[#D6D6D8] rounded-2xl py-16 flex flex-col items-center gap-3 text-center px-6 text-xs">
+      <div className="bg-[#F7F4EE] border border-dashed border-[#CFC8BA] rounded-2xl py-16 flex flex-col items-center gap-3 text-center px-6 text-xs">
         <p className="font-bold text-gray-700 text-sm">Job posting not found</p>
-        <p className="text-[11px] text-gray-400">It may have been deleted.</p>
+        <p className="text-[11px] text-gray-500">It may have been deleted.</p>
         <Link
           href="/jobs"
           className="mt-1 bg-accent-600 hover:bg-accent-700 text-white px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition font-medium"
@@ -45,14 +45,14 @@ export default function JobApplicantsPage() {
   return (
     <div className="space-y-4">
       {/* Job context banner */}
-      <div className="bg-white border border-[#EAEAEC] rounded-2xl px-4 py-3.5 shadow-2xs flex flex-col sm:flex-row sm:items-center gap-3 text-xs select-none">
+      <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-2xl px-4 py-3.5 shadow-2xs flex flex-col sm:flex-row sm:items-center gap-3 text-xs select-none">
         <Link
           href="/jobs"
           className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 hover:text-accent-700 transition shrink-0"
         >
           <ArrowLeft size={14} /> Job Postings
         </Link>
-        <span className="hidden sm:block w-px h-8 bg-[#F1F1F2]" />
+        <span className="hidden sm:block w-px h-8 bg-[#E6E1D8]" />
         <div className="flex items-center gap-3 min-w-0">
           <span className="w-9 h-9 rounded-xl bg-accent-50 text-accent-600 flex items-center justify-center shrink-0">
             <Briefcase size={16} />
@@ -64,7 +64,7 @@ export default function JobApplicantsPage() {
                 {applicants.length} applicant{applicants.length === 1 ? '' : 's'}
               </span>
             </h2>
-            <p className="text-[10px] text-gray-400 font-mono flex items-center gap-2 flex-wrap">
+            <p className="text-[10px] text-gray-500 font-mono flex items-center gap-2 flex-wrap">
               <span>
                 {job.id} · {job.department}
               </span>

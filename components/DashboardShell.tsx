@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { ModalHost } from './ModalHost';
+import { CommandPalette } from './CommandPalette';
 import { useUiStore } from '@/store/ui-store';
 import { useAuth } from '@/store/auth-store';
 import { useCandidates } from '@/features/candidates/hooks';
@@ -57,7 +58,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   // Hold rendering until we know the auth state (avoids a flash of the dashboard).
   if (!ready || !user) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#F6F6F7]">
+      <div className="h-screen flex items-center justify-center bg-[#ECE8E0]">
         <div className="w-6 h-6 border-2 border-accent-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -76,7 +77,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       id="master-viewport"
-      className="flex h-screen overflow-hidden bg-[#F6F6F7] font-sans antialiased text-gray-950"
+      className="flex h-screen overflow-hidden bg-[#ECE8E0] font-sans antialiased text-gray-950"
     >
       <Sidebar userRole={userRole} setUserRole={setUserRole} />
 
@@ -89,22 +90,22 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           onQuickSelectCandidate={onQuickSelectCandidate}
         />
 
-        <main className="flex-1 overflow-y-auto px-6 py-6 min-h-0 bg-[#F6F6F7]">
+        <main className="flex-1 overflow-y-auto px-6 py-6 min-h-0 bg-[#ECE8E0]">
           {error ? (
             <div className="max-w-md mx-auto mt-20 text-center">
-              <div className="bg-white border border-red-200 rounded-xl p-6">
+              <div className="bg-[#F7F4EE] border border-red-200 rounded-xl p-6">
                 <p className="text-sm font-semibold text-red-600">Backend unavailable</p>
                 <p className="text-xs text-gray-500 mt-2">
                   Could not reach {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}
                 </p>
-                <p className="text-[11px] text-gray-400 mt-3 font-mono">
+                <p className="text-[11px] text-gray-500 mt-3 font-mono">
                   Start it: <span className="text-gray-600">uvicorn app.main:app --port 8000</span>
                 </p>
               </div>
             </div>
           ) : loading ? (
             <div className="flex items-center justify-center h-full">
-              <div className="flex flex-col items-center gap-3 text-gray-400">
+              <div className="flex flex-col items-center gap-3 text-gray-500">
                 <div className="w-6 h-6 border-2 border-accent-600 border-t-transparent rounded-full animate-spin" />
                 <span className="text-xs font-mono">Loading from backend…</span>
               </div>
@@ -116,6 +117,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <ModalHost />
+      <CommandPalette />
     </div>
   );
 }

@@ -47,13 +47,13 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
         href={href}
         className={`w-full flex items-center gap-3 px-3 py-1.5 text-xs rounded-lg transition-all duration-150 group font-medium ${
           isActive
-            ? 'bg-white text-gray-900 font-semibold shadow-sm'
+            ? 'bg-[#F7F4EE] text-gray-900 font-semibold shadow-sm'
             : 'text-gray-600 hover:bg-[#D2D2D6] hover:text-gray-900'
         }`}
         title={label}
       >
         <span
-          className={`w-4 h-4 shrink-0 ${isActive ? 'text-accent-700' : 'text-gray-400 group-hover:text-gray-700'}`}
+          className={`w-4 h-4 shrink-0 ${isActive ? 'text-accent-700' : 'text-gray-500 group-hover:text-gray-700'}`}
         >
           {icon}
         </span>
@@ -65,18 +65,18 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
   return (
     <aside
       id="app-sidebar"
-      className={`bg-[#E2E2E5] border-r border-[#D6D6D8] h-screen select-none flex flex-col shrink-0 transition-all duration-200 sticky top-0 ${
+      className={`bg-[#E2DDD2] border-r border-[#CFC8BA] h-screen select-none flex flex-col shrink-0 transition-all duration-200 sticky top-0 ${
         isCollapsed ? 'w-16' : 'w-64'
       }`}
     >
       {/* Brand Header */}
-      <div className="p-4 border-b border-[#D6D6D8] flex items-center justify-between">
+      <div className="p-4 border-b border-[#CFC8BA] flex items-center justify-between">
         {!isCollapsed ? (
           <div className="flex items-center gap-2">
             <Logo size={28} className="shrink-0" />
             <div>
               <h1 className="text-sm font-bold text-gray-900 tracking-tight font-display">Curcle</h1>
-              <p className="text-[10px] text-gray-400 uppercase font-mono font-semibold tracking-wider">
+              <p className="text-[10px] text-gray-500 uppercase font-mono font-semibold tracking-wider">
                 HR Operating System
               </p>
             </div>
@@ -87,8 +87,9 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
 
         <button
           id="btn-sidebar-collapse"
+        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 shrink-0"
+          className="p-1 hover:bg-[#E6E1D8] rounded text-gray-500 hover:text-gray-600 shrink-0"
         >
           {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
@@ -108,7 +109,7 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
           {!isCollapsed && (
             <div
               onClick={() => toggleSection('recruitment')}
-              className="px-3 py-1 flex items-center justify-between text-[10px] font-semibold text-gray-400 uppercase font-mono tracking-wider cursor-pointer hover:text-gray-600"
+              className="px-3 py-1 flex items-center justify-between text-[10px] font-semibold text-gray-500 uppercase font-mono tracking-wider cursor-pointer hover:text-gray-600"
             >
               <span>Recruitment</span>
               <span className="text-[8px]">{expandedSections.recruitment ? '▼' : '▶'}</span>
@@ -129,7 +130,7 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
           {!isCollapsed && (
             <div
               onClick={() => toggleSection('employees')}
-              className="px-3 py-1 flex items-center justify-between text-[10px] font-semibold text-gray-400 uppercase font-mono tracking-wider cursor-pointer hover:text-gray-600"
+              className="px-3 py-1 flex items-center justify-between text-[10px] font-semibold text-gray-500 uppercase font-mono tracking-wider cursor-pointer hover:text-gray-600"
             >
               <span>Employees</span>
               <span className="text-[8px]">{expandedSections.employees ? '▼' : '▶'}</span>
@@ -148,7 +149,7 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
           {!isCollapsed && (
             <div
               onClick={() => toggleSection('offboarding')}
-              className="px-3 py-1 flex items-center justify-between text-[10px] font-semibold text-gray-400 uppercase font-mono tracking-wider cursor-pointer hover:text-gray-600"
+              className="px-3 py-1 flex items-center justify-between text-[10px] font-semibold text-gray-500 uppercase font-mono tracking-wider cursor-pointer hover:text-gray-600"
             >
               <span>Offboarding</span>
               <span className="text-[8px]">{expandedSections.offboarding ? '▼' : '▶'}</span>
@@ -160,17 +161,17 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
         </div>
 
         {/* ANALYTICS & SETTINGS */}
-        <div className="pt-2 border-t border-[#D6D6D8] space-y-0.5">
+        <div className="pt-2 border-t border-[#CFC8BA] space-y-0.5">
           {navItem('/reports', 'Enterprise Reports', <BarChart3 size={14} />)}
           {navItem('/settings', 'Global Settings', <Settings size={14} />)}
         </div>
       </div>
 
       {/* Role Manager Switcher */}
-      <div className="p-3 border-t border-[#D6D6D8] bg-[#E2E2E5] flex flex-col gap-2">
+      <div className="p-3 border-t border-[#CFC8BA] bg-[#E2DDD2] flex flex-col gap-2">
         {!isCollapsed ? (
           <div className="flex flex-col gap-1">
-            <span className="text-[9px] text-gray-400 font-mono font-semibold uppercase tracking-wider">
+            <span className="text-[9px] text-gray-500 font-mono font-semibold uppercase tracking-wider">
               Access Scope
             </span>
             <div className="flex items-center justify-between">
@@ -184,7 +185,7 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
               <button
                 id="btn-toggle-role"
                 onClick={() => setUserRole(userRole === 'HR' ? 'Admin' : 'HR')}
-                className="text-[9px] bg-[#FFFFFF] border border-[#EAEAEC] hover:bg-gray-100 text-gray-900 px-1.5 py-0.5 rounded font-mono font-bold uppercase cursor-pointer"
+                className="text-[9px] bg-[#F7F4EE] border border-[#DAD4C8] hover:bg-[#E6E1D8] text-gray-900 px-1.5 py-0.5 rounded font-mono font-bold uppercase cursor-pointer"
               >
                 SWAP
               </button>
@@ -194,7 +195,7 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
           <button
             id="btn-toggle-role-collapsed"
             onClick={() => setUserRole(userRole === 'HR' ? 'Admin' : 'HR')}
-            className={`w-8 h-8 mx-auto flex items-center justify-center rounded-full hover:bg-gray-200 transition ${userRole === 'Admin' ? 'bg-purple-50 text-purple-600' : 'bg-emerald-50 text-emerald-600'}`}
+            className={`w-8 h-8 mx-auto flex items-center justify-center rounded-full hover:bg-[#E2DDD2] transition ${userRole === 'Admin' ? 'bg-purple-50 text-purple-600' : 'bg-emerald-50 text-emerald-600'}`}
             title="Toggle system view role"
           >
             <ShieldCheck size={16} />

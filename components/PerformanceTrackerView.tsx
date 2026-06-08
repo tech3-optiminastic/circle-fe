@@ -70,19 +70,19 @@ export function PerformanceTrackerView({ employees }: { employees: Employee[] })
             <Gauge size={18} className="text-accent-600" />
             Task Performance
           </h2>
-          <p className="text-gray-400 text-xs">
+          <p className="text-gray-500 text-xs">
             Daily, weekly and monthly task completion per employee — the basis for performance grade and salary review.
           </p>
         </div>
 
         {/* Period toggle */}
-        <div className="flex items-center bg-[#F1F1F2] rounded-md p-0.5 w-fit">
+        <div className="flex items-center bg-[#E6E1D8] rounded-md p-0.5 w-fit">
           {PERIODS.map(p => (
             <button
               key={p.key}
               onClick={() => setPeriod(p.key)}
               className={`text-[11px] font-semibold font-mono uppercase tracking-wider px-3 py-1 rounded cursor-pointer transition ${
-                period === p.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+                period === p.key ? 'bg-[#F7F4EE] text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
               }`}
             >
               {p.label}
@@ -93,27 +93,27 @@ export function PerformanceTrackerView({ employees }: { employees: Employee[] })
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-4">
-          <p className="text-[10px] font-mono uppercase tracking-wider text-gray-400">Team completion ({period})</p>
+        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-4">
+          <p className="text-[10px] font-mono uppercase tracking-wider text-gray-500">Team completion ({period})</p>
           <p className="text-2xl font-bold text-gray-900 mt-1 font-display">{avg}%</p>
         </div>
-        <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-4">
-          <p className="text-[10px] font-mono uppercase tracking-wider text-gray-400">Increment eligible</p>
+        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-4">
+          <p className="text-[10px] font-mono uppercase tracking-wider text-gray-500">Increment eligible</p>
           <p className="text-2xl font-bold text-green-600 mt-1 font-display flex items-center gap-1.5">
             <TrendingUp size={18} /> {eligible}
           </p>
         </div>
-        <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-4">
-          <p className="text-[10px] font-mono uppercase tracking-wider text-gray-400">Employees tracked</p>
+        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-4">
+          <p className="text-[10px] font-mono uppercase tracking-wider text-gray-500">Employees tracked</p>
           <p className="text-2xl font-bold text-gray-900 mt-1 font-display">{rows.length}</p>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl overflow-hidden">
+      <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-[#EAEAEC] text-[10px] font-mono uppercase tracking-wider text-gray-400">
+            <tr className="border-b border-[#DAD4C8] text-[10px] font-mono uppercase tracking-wider text-gray-500">
               <th className="text-left font-semibold px-4 py-2.5">Employee</th>
               <th className="text-left font-semibold px-4 py-2.5">Tasks done</th>
               <th className="text-left font-semibold px-4 py-2.5 w-48">Completion</th>
@@ -124,20 +124,20 @@ export function PerformanceTrackerView({ employees }: { employees: Employee[] })
           </thead>
           <tbody>
             {rows.map(r => (
-              <tr key={r.e.id} className="border-b border-[#F1F1F2] last:border-0 hover:bg-[#F1F1F2]/50 transition">
+              <tr key={r.e.id} className="border-b border-[#E6E1D8] last:border-0 hover:bg-[#E6E1D8]/50 transition">
                 <td className="px-4 py-3">
                   <p className="font-semibold text-gray-900">{r.e.fullName}</p>
-                  <p className="text-[10px] text-gray-400">{r.e.role} · {r.e.department}</p>
+                  <p className="text-[10px] text-gray-500">{r.e.role} · {r.e.department}</p>
                 </td>
                 <td className="px-4 py-3 font-mono text-gray-700">
                   <span className="inline-flex items-center gap-1">
-                    <CheckCircle2 size={12} className="text-gray-400" />
+                    <CheckCircle2 size={12} className="text-gray-500" />
                     {r.completed}/{r.assigned}
                   </span>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-gray-100 h-2 rounded-full overflow-hidden">
+                    <div className="flex-1 bg-[#E6E1D8] h-2 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full ${r.g.bar}`} style={{ width: `${r.completionPct}%` }} />
                     </div>
                     <span className="font-mono text-[11px] text-gray-600 w-9 text-right">{r.completionPct}%</span>
@@ -154,7 +154,7 @@ export function PerformanceTrackerView({ employees }: { employees: Employee[] })
         </table>
       </div>
 
-      <p className="text-[10px] text-gray-400 font-mono">
+      <p className="text-[10px] text-gray-500 font-mono">
         Task data shown is derived for demonstration — wire a real task/PMS feed to drive these numbers live.
       </p>
     </div>

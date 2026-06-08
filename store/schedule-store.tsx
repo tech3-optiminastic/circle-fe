@@ -8,6 +8,7 @@ import { useCandidates, useCandidateMutations } from '@/features/candidates/hook
 import { ScheduleModal, BusySlot } from '@/components/ScheduleModal';
 import { useToast } from '@/components/Toaster';
 import { sendScheduleEmail, sendTestEmail } from '@/lib/api/notifications';
+import { pushCalendarEvent } from '@/lib/api/calendar';
 import { repositories } from '@/lib/api/repositories';
 import { IQ_DURATION_MIN, ASSESSMENT_DURATION_MIN } from '@/data/test-banks';
 import { randomId, randomToken, nowISO } from '@/lib/utils';
@@ -67,6 +68,7 @@ export function ScheduleProvider({ children }: { children: React.ReactNode }) {
   const confirm = async ({
     type,
     dateTime,
+    durationMin,
     notes,
   }: {
     type: ScheduleType;
@@ -101,6 +103,21 @@ export function ScheduleProvider({ children }: { children: React.ReactNode }) {
       }
     }
     const email = candidate?.email ?? '';
+
+    // Best-effort push to the shared Google Calendar — never blocks/undoes the
+    // schedule (mirrors the email sends). No-ops if Google isn't configured.
+    pushCalendarEvent({
+      appEventId: event.id,
+      type,
+      title: event.title,
+      dateTimeIso: dateTime,
+      durationMin,
+      notes: notes || undefined,
+      attendeeEmail: email || undefined,
+    }).catch(() => {
+      /* calendar sync is non-critical */
+    });
+
     if (!email) {
       toast.info('Scheduled, but no email on file — candidate not notified.');
       return;

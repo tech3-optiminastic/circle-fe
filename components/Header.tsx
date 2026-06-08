@@ -6,6 +6,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import {
   Search,
   Bell,
@@ -18,9 +19,29 @@ import {
   LogOut,
   ShieldCheck,
 } from 'lucide-react';
-import { Candidate } from '../types';
+import { DropdownMenu, Popover } from 'radix-ui';
+import { Candidate, SentEmailLog } from '../types';
 import { useAuth, displayName, initials } from '@/store/auth-store';
+import { repositories } from '@/lib/api/repositories';
+import { qk } from '@/lib/query/keys';
+import { cn } from '@/lib/utils';
+import { ui } from '@/components/ui/styles';
+import { workspace } from '@/lib/config';
 import { AccessControlModal } from './AccessControlModal';
+
+/** "5 Jun 2026" -> "2h ago" style relative label (falls back to the raw date). */
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return iso;
+  const diff = Date.now() - then;
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
 
 interface HeaderProps {
   onSearch: (query: string) => void;
@@ -40,7 +61,6 @@ export function Header({
   const router = useRouter();
   const { user, isAdmin, logout } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
   const [showAccess, setShowAccess] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -50,16 +70,21 @@ export function Header({
     router.replace('/login');
   };
 
-  const notifications = [
-    {
-      id: 1,
-      text: 'Sophia Henderson completed Candidate IQ Test (Passed 85%)',
-      time: '2h ago',
-      unread: true,
-    },
-    { id: 2, text: 'BGV Request triggered for David Hassel', time: '1d ago', unread: false },
-    { id: 3, text: 'Interview Feedback pending for Candidate Arjun Mehta', time: '3d ago', unread: false },
-  ];
+  // Real activity feed: the most recent emails the system has sent. Empty until
+  // there's activity (no seeded/placeholder notifications).
+  const { data: sentEmails = [] } = useQuery({
+    queryKey: qk.sentEmails.all,
+    queryFn: () => repositories.sentEmails.list(),
+  });
+  const notifications = [...sentEmails]
+    .sort((a: SentEmailLog, b: SentEmailLog) => (a.dateSent < b.dateSent ? 1 : -1))
+    .slice(0, 6)
+    .map((e: SentEmailLog) => ({
+      id: e.id,
+      text: `${e.subject}${e.recipientName ? ` — ${e.recipientName}` : ''}`,
+      time: relativeTime(e.dateSent),
+      unread: e.status === 'Sent' || e.status === 'Delivered',
+    }));
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -81,11 +106,11 @@ export function Header({
   return (
     <header
       id="app-header"
-      className="bg-[#FFFFFF] border-b border-[#EAEAEC] h-14 px-6 flex items-center justify-between sticky top-0 z-50 select-none"
+      className="bg-[#F7F4EE] border-b border-[#DAD4C8] h-14 px-6 flex items-center justify-between sticky top-0 z-50 select-none"
     >
       {/* Global Search Bar */}
       <div className="relative w-80">
-        <span className="absolute left-3 top-2.5 text-gray-400">
+        <span className="absolute left-3 top-2.5 text-gray-500">
           <Search size={14} />
         </span>
         <input
@@ -98,13 +123,13 @@ export function Header({
           onFocus={() => {
             if (searchQuery.length > 1) setShowSearchResults(true);
           }}
-          className="w-full pl-9 pr-4 py-1.5 text-xs bg-[#F1F1F2] border border-[#EAEAEC] rounded-md focus:bg-[#FFFFFF] focus:outline-none focus:ring-1 focus:ring-accent-600 focus:border-accent-600 transition"
+          className="w-full pl-9 pr-4 py-1.5 text-xs bg-[#E6E1D8] border border-[#DAD4C8] rounded-md focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus:ring-1 focus:ring-accent-600 focus:border-accent-600 transition"
         />
 
         {/* Global Quick Search Results overlay */}
         {showSearchResults && filteredCandidates.length > 0 && (
-          <div className="absolute top-11 left-0 w-96 bg-[#FFFFFF] border border-[#EAEAEC] rounded-md shadow-lg py-2 z-50 text-xs">
-            <div className="px-3 py-1 font-semibold text-[10px] text-gray-400 font-mono uppercase tracking-wider border-b border-[#EAEAEC] mb-1">
+          <div className={cn(ui.surface, 'absolute top-11 left-0 z-50 w-96 py-2 text-xs')}>
+            <div className="mb-1 border-b border-border px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-gray-500">
               Matching Candidates ({filteredCandidates.length})
             </div>
             {filteredCandidates.map(c => (
@@ -115,7 +140,7 @@ export function Header({
                   setSearchQuery('');
                   setShowSearchResults(false);
                 }}
-                className="w-full text-left px-3 py-2 hover:bg-[#F1F1F2] flex items-center justify-between group"
+                className="group flex w-full items-center justify-between px-3 py-2 text-left hover:bg-accent"
               >
                 <div>
                   <div className="font-semibold text-gray-900 group-hover:text-accent-600 transition truncate">
@@ -131,7 +156,7 @@ export function Header({
                     </span>
                   </div>
                 </div>
-                <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-mono font-medium shrink-0">
+                <span className="text-[10px] bg-[#E6E1D8] text-gray-600 px-1.5 py-0.5 rounded font-mono font-medium shrink-0">
                   {c.status}
                 </span>
               </button>
@@ -142,10 +167,10 @@ export function Header({
 
       {/* Right Actions & Profile */}
       <div className="flex items-center gap-4">
-        {/* Quick Help Status label */}
-        <span className="text-[11px] font-medium text-gray-500 bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+        {/* Workspace status label */}
+        <span className="text-[11px] font-medium text-gray-600 bg-[#E6E1D8] px-2 py-0.5 rounded-full flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-          Opti Corp Setup
+          {workspace.name || 'Workspace'}
         </span>
 
         {/* Quick Action additions button */}
@@ -160,108 +185,128 @@ export function Header({
           </button>
         )}
 
-        {/* Notification bell triggers */}
-        <div className="relative">
-          <button
+        {/* Notification bell */}
+        <Popover.Root open={showNotifications} onOpenChange={setShowNotifications}>
+          <Popover.Trigger
             id="btn-notifications"
-            onClick={() => setShowNotifications(!showNotifications)}
-            className="p-1.5 hover:bg-[#F1F1F2] border border-[#EAEAEC] rounded-md text-gray-500 hover:text-gray-700 cursor-pointer relative transition"
+            className={cn(
+              'relative rounded-md border border-[#DAD4C8] p-1.5 text-gray-500 transition hover:bg-accent hover:text-gray-700',
+              ui.focusRing,
+            )}
+            aria-label="Notifications"
           >
             <Bell size={14} />
             {notifications.some(n => n.unread) && (
-              <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+              <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-red-500"></span>
             )}
-          </button>
-
-          {showNotifications && (
-            <div className="absolute right-0 top-10 w-80 bg-[#FFFFFF] border border-[#EAEAEC] rounded-md shadow-lg py-2 z-50 text-xs">
-              <div className="px-4 py-2 font-semibold text-gray-900 border-b border-[#EAEAEC] flex justify-between items-center">
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content
+              align="end"
+              sideOffset={8}
+              className={cn(ui.surface, ui.motion, 'z-50 w-80 p-0 text-xs')}
+            >
+              <div className="flex items-center justify-between border-b border-border px-4 py-2 font-semibold text-gray-900">
                 <span>System Notifications</span>
-                <span className="text-[10px] text-accent-600 font-normal">Mark all read</span>
+                <span className="text-[10px] font-normal text-accent-600">Mark all read</span>
               </div>
               <div className="max-h-64 overflow-y-auto">
-                {notifications.map(n => (
-                  <div
-                    key={n.id}
-                    className={`p-3 border-b border-[#EAEAEC] hover:bg-[#F1F1F2] last:border-none transition ${n.unread ? 'bg-accent-50/30' : ''}`}
-                  >
-                    <div className="flex justify-between items-start gap-2">
-                      <span
-                        className={`font-medium ${n.unread ? 'text-gray-900 font-semibold' : 'text-gray-600'}`}
-                      >
-                        {n.text}
-                      </span>
-                      {n.unread && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-accent-600 shrink-0 mt-1"></span>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-gray-400 mt-1 block font-mono">{n.time}</span>
+                {notifications.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-gray-500">
+                    <Bell size={20} className="mx-auto mb-2 text-gray-400" />
+                    <p className="text-[11px]">You&apos;re all caught up.</p>
                   </div>
-                ))}
+                ) : (
+                  notifications.map(n => (
+                    <div
+                      key={n.id}
+                      className={`border-b border-border p-3 transition last:border-none hover:bg-accent ${n.unread ? 'bg-accent-50/30' : ''}`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span
+                          className={`font-medium ${n.unread ? 'font-semibold text-gray-900' : 'text-gray-600'}`}
+                        >
+                          {n.text}
+                        </span>
+                        {n.unread && (
+                          <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-600"></span>
+                        )}
+                      </div>
+                      <span className="mt-1 block font-mono text-[10px] text-gray-500">{n.time}</span>
+                    </div>
+                  ))
+                )}
               </div>
-            </div>
-          )}
-        </div>
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
 
         {/* Help icon */}
-        <button className="p-1.5 hover:bg-[#F1F1F2] border border-[#EAEAEC] rounded-md text-gray-500 cursor-pointer transition">
+        <button className="p-1.5 hover:bg-[#E6E1D8] border border-[#DAD4C8] rounded-md text-gray-500 cursor-pointer transition">
           <HelpCircle size={14} />
         </button>
 
         {/* Active Profile */}
-        <div className="relative border-l border-[#EAEAEC] pl-4">
-          <button
-            id="btn-profile-menu"
-            onClick={() => setShowProfile(s => !s)}
-            onBlur={() => setTimeout(() => setShowProfile(false), 200)}
-            className="flex items-center gap-2 cursor-pointer group"
-          >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-accent-500 to-accent-700 flex items-center justify-center text-white text-xs font-bold font-display">
-              {initials(user?.email)}
-            </div>
-            <div className="hidden md:block text-left">
-              <p className="text-xs font-semibold text-gray-900 group-hover:text-accent-600 transition">
-                {user?.name || displayName(user?.email)}
-              </p>
-              <p className="text-[10px] text-gray-400 font-mono">
-                {isAdmin ? 'Administrator' : 'HR Specialist'}
-              </p>
-            </div>
-          </button>
-
-          {showProfile && (
-            <div className="absolute right-0 top-12 w-60 bg-white border border-[#EAEAEC] rounded-lg shadow-lg py-1.5 z-50 text-xs">
-              <div className="px-3 py-2 border-b border-[#EAEAEC]">
-                <p className="font-semibold text-gray-900 truncate">
+        <div className="border-l border-[#DAD4C8] pl-4">
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger
+              id="btn-profile-menu"
+              className={cn('group flex items-center gap-2 rounded-md', ui.focusRing)}
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-accent-500 to-accent-700 text-xs font-bold text-white font-display">
+                {initials(user?.email)}
+              </div>
+              <div className="hidden text-left md:block">
+                <p className="text-xs font-semibold text-gray-900 transition group-hover:text-accent-600">
                   {user?.name || displayName(user?.email)}
-                  {isAdmin && (
-                    <span className="ml-1.5 text-[9px] font-mono bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full align-middle">
-                      ADMIN
-                    </span>
-                  )}
                 </p>
-                <p className="text-[10px] text-gray-400 font-mono truncate flex items-center gap-1 mt-0.5">
-                  <Mail size={10} /> {user?.email}
+                <p className="font-mono text-[10px] text-gray-500">
+                  {isAdmin ? 'Administrator' : 'HR Specialist'}
                 </p>
               </div>
-              {isAdmin && (
-                <button
-                  id="btn-manage-access"
-                  onMouseDown={() => setShowAccess(true)}
-                  className="w-full text-left px-3 py-2 flex items-center gap-2 text-gray-600 hover:bg-[#F1F1F2] hover:text-accent-600 cursor-pointer transition font-medium"
-                >
-                  <ShieldCheck size={13} /> Manage access
-                </button>
-              )}
-              <button
-                id="btn-logout"
-                onMouseDown={onLogout}
-                className="w-full text-left px-3 py-2 flex items-center gap-2 text-gray-600 hover:bg-red-50 hover:text-red-600 cursor-pointer transition font-medium"
+            </DropdownMenu.Trigger>
+
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                align="end"
+                sideOffset={8}
+                className={cn(ui.surface, ui.motion, 'z-50 w-60 p-1.5 text-xs')}
               >
-                <LogOut size={13} /> Sign out
-              </button>
-            </div>
-          )}
+                <DropdownMenu.Label className="border-b border-border px-3 py-2">
+                  <p className="truncate font-semibold text-gray-900">
+                    {user?.name || displayName(user?.email)}
+                    {isAdmin && (
+                      <span className="ml-1.5 rounded-full bg-purple-50 px-1.5 py-0.5 align-middle font-mono text-[9px] text-purple-600">
+                        ADMIN
+                      </span>
+                    )}
+                  </p>
+                  <p className="mt-0.5 flex items-center gap-1 truncate font-mono text-[10px] font-normal text-gray-500">
+                    <Mail size={10} /> {user?.email}
+                  </p>
+                </DropdownMenu.Label>
+                {isAdmin && (
+                  <DropdownMenu.Item
+                    id="btn-manage-access"
+                    onSelect={() => setShowAccess(true)}
+                    className={cn(ui.item, 'mt-1 font-medium text-gray-600 focus:text-accent-600')}
+                  >
+                    <ShieldCheck size={13} /> Manage access
+                  </DropdownMenu.Item>
+                )}
+                <DropdownMenu.Item
+                  id="btn-logout"
+                  onSelect={onLogout}
+                  className={cn(
+                    ui.item,
+                    'font-medium text-gray-600 focus:bg-red-50 focus:text-red-600 data-[highlighted]:bg-red-50 data-[highlighted]:text-red-600',
+                  )}
+                >
+                  <LogOut size={13} /> Sign out
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
         </div>
 
         {showAccess && <AccessControlModal onClose={() => setShowAccess(false)} />}

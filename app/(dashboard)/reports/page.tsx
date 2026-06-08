@@ -16,10 +16,10 @@ export default function ReportsPage() {
       <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
         Opti Circle Enterprise Reports Dashboard
       </h2>
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-gray-500">
         Yield convert charts, time-to-hire averages, promotion trends, and offboarding completion scorecards.
       </p>
-      <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5">
+      <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5">
         <HiringFunnelChart candidates={candidates} interviews={interviews} />
       </div>
     </div>

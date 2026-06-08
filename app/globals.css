@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 
 @theme {
   /* Typography — Inter is loaded via next/font and exposed as --font-inter.
@@ -14,24 +15,82 @@
     var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     sans-serif;
 
-  /* Active palette — Primary brand accent: Cyan #0891B2.
+  /* Active palette — Primary brand accent: Crimson #A51C30.
      Swap the values below to re-theme; component classes use accent-* tokens. */
-  --color-brand: #0891b2;
+  --color-brand: #a51c30;
 
-  /* Custom "accent" palette — Cyan */
-  --color-accent-50: #ecfeff;
-  --color-accent-100: #cffafe;
-  --color-accent-200: #a5f0fa;
-  --color-accent-300: #67e3f4;
-  --color-accent-400: #22d3ee;
-  --color-accent-500: #06b6d4;
-  --color-accent-600: #0891b2;
-  --color-accent-700: #0e7490;
-  --color-accent-800: #155e75;
+  /* Custom "accent" palette — Crimson (600 = brand) */
+  --color-accent-50: #fbeeef;
+  --color-accent-100: #f5dadc;
+  --color-accent-200: #e9b3b7;
+  --color-accent-300: #da858c;
+  --color-accent-400: #c9545e;
+  --color-accent-500: #b62e39;
+  --color-accent-600: #a51c30;
+  --color-accent-700: #841526;
+  --color-accent-800: #5f0f16;
+}
+
+/* shadcn/ui token layer — maps shadcn's semantic tokens to the live
+   crimson/greige palette so its components render natively. Re-theming means
+   updating the :root values below (one place). */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #eae6df; /* greige page */
+  --foreground: #1a1a1a;
+  --card: #f7f4ee;
+  --card-foreground: #1a1a1a;
+  --popover: #f7f4ee;
+  --popover-foreground: #1a1a1a;
+  --primary: #a51c30; /* crimson brand */
+  --primary-foreground: #ffffff;
+  --secondary: #ece8e0;
+  --secondary-foreground: #1a1a1a;
+  --muted: #ece8e0;
+  --muted-foreground: #6b7280;
+  --accent: #e6e1d8; /* subtle hover fill */
+  --accent-foreground: #1a1a1a;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #dad4c8;
+  --input: #dad4c8;
+  --ring: #b62e39; /* crimson focus ring */
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
 }
 
 body {
-  background-color: #f6f6f7; /* light neutral page surface */
+  background-color: #eae6df; /* warm greige page surface */
   color: #1a1a1a; /* near-black text */
   font-family: var(--font-sans);
   letter-spacing: -0.011em;
@@ -73,18 +132,18 @@ h4 {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d6d6d8;
+  background: #cfc8ba;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #bfbfc2;
+  background: #b7af9e;
 }
 
 /* Enterprise styles */
 .gradient-border-button {
-  background: #ffffff;
-  border: 1px solid #eaeaec;
+  background: #f7f4ee;
+  border: 1px solid #dad4c8;
   position: relative;
 }
 

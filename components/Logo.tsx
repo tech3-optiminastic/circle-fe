@@ -19,13 +19,13 @@ export function Logo({ size = 32, className = '' }: { size?: number; className?:
       {/* ring segments (clockwise from the bottom of the right-side gap) */}
       <g fill="none" strokeWidth="8" strokeLinecap="butt">
         {/* bottom-right — darkest (midnight indigo) */}
-        <path d="M36.29 32.60 A15 15 0 0 1 19.48 38.30" stroke="#155E75" />
+        <path d="M36.29 32.60 A15 15 0 0 1 19.48 38.30" stroke="#5F0F16" />
         {/* bottom-left — midnight indigo */}
-        <path d="M19.48 38.30 A15 15 0 0 1 9 24" stroke="#0891B2" />
+        <path d="M19.48 38.30 A15 15 0 0 1 9 24" stroke="#A51C30" />
         {/* upper-left — slate indigo */}
-        <path d="M9 24 A15 15 0 0 1 19.48 9.70" stroke="#22D3EE" />
+        <path d="M9 24 A15 15 0 0 1 19.48 9.70" stroke="#C9545E" />
         {/* top-right — pale cream */}
-        <path d="M19.48 9.70 A15 15 0 0 1 36.29 15.40" stroke="#F6F6F7" />
+        <path d="M19.48 9.70 A15 15 0 0 1 36.29 15.40" stroke="#ECE8E0" />
       </g>
       {/* center dot */}
       <circle cx="24" cy="24" r="5.5" fill="#D8DBDE" />

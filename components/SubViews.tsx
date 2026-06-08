@@ -4,6 +4,14 @@ import { DocumentsPanel } from './DocumentsPanel';
 import { ActionMenu } from './ActionMenu';
 import { useToast } from './Toaster';
 import { useUiStore } from '@/store/ui-store';
+import {
+  getCalendarStatus,
+  getCalendarAuthUrl,
+  type CalendarStatus,
+} from '@/lib/api/calendar';
+import { workspace } from '@/lib/config';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { EmptyState } from '@/components/ui/empty-state';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -28,6 +36,7 @@ import {
   FileText,
   AlertTriangle,
   UserCheck,
+  Users,
   Check,
   Briefcase,
   SlidersHorizontal,
@@ -85,16 +94,16 @@ export function IntroductoryCallsView({
         <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
           HR Introductory Calls Manager
         </h2>
-        <p className="text-gray-400 text-[11px]">
+        <p className="text-gray-500 text-[11px]">
           Standardized assessment of interest level, joining notice period, communication, and expectation
           fit.
         </p>
       </div>
 
-      <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl overflow-hidden shadow-2xs">
+      <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden shadow-2xs">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-[#FAFBFC] border-b border-[#EAEAEC] text-gray-500 font-mono text-[9px] uppercase font-bold">
+            <tr className="bg-[#F2EEE7] border-b border-[#DAD4C8] text-gray-500 font-mono text-[9px] uppercase font-bold">
               <th className="p-3">Candidate</th>
               <th className="p-3">Applied Position</th>
               <th className="p-3 text-center font-semibold">Comm Rating</th>
@@ -103,16 +112,16 @@ export function IntroductoryCallsView({
               <th className="p-3 text-right">Operational Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#EAEAEC]">
+          <tbody className="divide-y divide-[#DAD4C8]">
             {hrCallCandidates.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-8 text-gray-400">
+                <td colSpan={6} className="text-center py-8 text-gray-500">
                   No candidates are currently scheduled or completed for introductory HR calls.
                 </td>
               </tr>
             ) : (
               hrCallCandidates.map(c => (
-                <tr key={c.id} className="hover:bg-[#FAFBFC] transition">
+                <tr key={c.id} className="hover:bg-[#F2EEE7] transition">
                   <td className="p-3 font-semibold text-gray-900">{c.fullName}</td>
                   <td className="p-3">
                     {c.appliedRole} ({c.department})
@@ -136,7 +145,7 @@ export function IntroductoryCallsView({
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => onSelectCandidate(c.id)}
-                        className="text-[10px] bg-[#FFFFFF] border border-[#EAEAEC] hover:border-accent-400 text-accent-600 px-3 py-1 rounded-md font-semibold cursor-pointer transition"
+                        className="text-[10px] bg-[#F7F4EE] border border-[#DAD4C8] hover:border-accent-400 text-accent-600 px-3 py-1 rounded-md font-semibold cursor-pointer transition"
                       >
                         {c.hrCall?.completed ? 'View Records' : 'Complete Form'}
                       </button>
@@ -250,7 +259,7 @@ export function InterviewsView({
           <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
             Interview Panel & Scheduling
           </h2>
-          <p className="text-gray-400 text-[11px]">
+          <p className="text-gray-500 text-[11px]">
             Coordinate panel feedback, calendar alignments, and digital meet bridges.
           </p>
         </div>
@@ -266,7 +275,7 @@ export function InterviewsView({
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs flex items-center justify-center z-50">
           <form
             onSubmit={handleSubmit}
-            className="bg-[#FFFFFF] p-5 rounded-xl border border-[#EAEAEC] shadow-lg w-96 space-y-3.5"
+            className="bg-[#F7F4EE] p-5 rounded-xl border border-[#DAD4C8] shadow-lg w-96 space-y-3.5"
           >
             <h3 className="font-bold text-gray-900 text-xs uppercase tracking-wider font-mono">
               Schedule Candidate Panel
@@ -277,7 +286,7 @@ export function InterviewsView({
               <Select
                 value={form.candidateId}
                 onChange={e => setForm({ ...form, candidateId: e.target.value })}
-                className="w-full px-2 py-1.5 border border-[#EAEAEC] bg-[#F1F1F2] rounded"
+                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
               >
                 {candidates.map(c => (
                   <option key={c.id} value={c.id}>
@@ -293,7 +302,7 @@ export function InterviewsView({
                 type="text"
                 value={form.round}
                 onChange={e => setForm({ ...form, round: e.target.value })}
-                className="w-full px-2 py-1.5 border border-[#EAEAEC] bg-[#F1F1F2] rounded"
+                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
                 required
               />
             </div>
@@ -304,7 +313,7 @@ export function InterviewsView({
                 type="text"
                 value={form.interviewer}
                 onChange={e => setForm({ ...form, interviewer: e.target.value })}
-                className="w-full px-2 py-1.5 border border-[#EAEAEC] bg-[#F1F1F2] rounded"
+                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
                 required
               />
             </div>
@@ -315,7 +324,7 @@ export function InterviewsView({
                 type="datetime-local"
                 value={form.dateTime}
                 onChange={e => setForm({ ...form, dateTime: e.target.value })}
-                className="w-full px-2 py-1.5 border border-[#EAEAEC] bg-[#F1F1F2] rounded"
+                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
                 required
               />
             </div>
@@ -325,7 +334,7 @@ export function InterviewsView({
               <Select
                 value={form.mode}
                 onChange={e => setForm({ ...form, mode: e.target.value as any })}
-                className="w-full px-2 py-1.5 border border-[#EAEAEC] bg-[#F1F1F2] rounded"
+                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
               >
                 <option value="Google Meet">Google Meet</option>
                 <option value="Zoom">Zoom Video</option>
@@ -337,7 +346,7 @@ export function InterviewsView({
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
-                className="px-3 py-1.5 border border-[#EAEAEC] hover:bg-gray-100 rounded text-gray-600 font-semibold cursor-pointer"
+                className="px-3 py-1.5 border border-[#DAD4C8] hover:bg-[#E6E1D8] rounded text-gray-600 font-semibold cursor-pointer"
               >
                 Cancel
               </button>
@@ -357,7 +366,7 @@ export function InterviewsView({
         {interviews.map(i => (
           <div
             key={i.id}
-            className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-4 flex flex-col justify-between hover:shadow-xs transition duration-150 relative"
+            className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-4 flex flex-col justify-between hover:shadow-xs transition duration-150 relative"
           >
             <div className="space-y-2">
               <div className="flex justify-between items-start">
@@ -418,7 +427,7 @@ export function InterviewsView({
                 </p>
               </div>
 
-              <div className="text-[11px] text-gray-600 bg-[#F1F1F2] p-2 rounded-lg space-y-1 font-mono">
+              <div className="text-[11px] text-gray-600 bg-[#E6E1D8] p-2 rounded-lg space-y-1 font-mono">
                 <div className="flex justify-between">
                   <span>Panel Evaluator:</span>
                   <span className="font-semibold text-gray-800">{i.interviewerName}</span>
@@ -440,11 +449,11 @@ export function InterviewsView({
             </div>
 
             {i.grading && (
-              <div className="mt-3 pt-2.5 border-t border-[#EAEAEC]/60 text-[11px] space-y-1">
+              <div className="mt-3 pt-2.5 border-t border-[#DAD4C8]/60 text-[11px] space-y-1">
                 <p className="font-bold text-gray-700">
                   Recommendation: <span className="text-emerald-600">{i.grading.recommendation}</span>
                 </p>
-                <p className="text-gray-400 italic">"{i.grading.interviewerComments}"</p>
+                <p className="text-gray-500 italic">"{i.grading.interviewerComments}"</p>
               </div>
             )}
           </div>
@@ -482,20 +491,20 @@ export function IQTestAssignmentsView({
           <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
             Assessments & Assignments Library
           </h2>
-          <p className="text-gray-400 text-[11px]">
+          <p className="text-gray-500 text-[11px]">
             Role-based question building, IQ metrics automatic scoring, and trial repo reviews.
           </p>
         </div>
-        <div className="border border-[#EAEAEC] rounded-lg bg-[#FFFFFF] overflow-hidden flex font-semibold text-xs">
+        <div className="border border-[#DAD4C8] rounded-lg bg-[#F7F4EE] overflow-hidden flex font-semibold text-xs">
           <button
             onClick={() => setActiveTab('iq')}
-            className={`px-3 py-1.5 transition ${activeTab === 'iq' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#F1F1F2]'}`}
+            className={`px-3 py-1.5 transition ${activeTab === 'iq' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#E6E1D8]'}`}
           >
             IQ Test Logs
           </button>
           <button
             onClick={() => setActiveTab('assignments')}
-            className={`px-3 py-1.5 transition ${activeTab === 'assignments' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#F1F1F2]'}`}
+            className={`px-3 py-1.5 transition ${activeTab === 'assignments' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#E6E1D8]'}`}
           >
             Submissions Queue
           </button>
@@ -503,10 +512,10 @@ export function IQTestAssignmentsView({
       </div>
 
       {activeTab === 'iq' ? (
-        <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl overflow-hidden">
+        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[#FAFBFC] border-b border-[#EAEAEC] text-gray-400 font-mono text-[9px] uppercase font-bold">
+              <tr className="bg-[#F2EEE7] border-b border-[#DAD4C8] text-gray-500 font-mono text-[9px] uppercase font-bold">
                 <th className="p-3">Candidate</th>
                 <th className="p-3">Test Date</th>
                 <th className="p-3">Attempted questions</th>
@@ -516,9 +525,9 @@ export function IQTestAssignmentsView({
                 <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#EAEAEC]">
+            <tbody className="divide-y divide-[#DAD4C8]">
               {iqTests.map(idx => (
-                <tr key={idx.id} className="hover:bg-[#FAFBFC] transition">
+                <tr key={idx.id} className="hover:bg-[#F2EEE7] transition">
                   <td className="p-3 font-semibold text-gray-900">{idx.candidateName}</td>
                   <td className="p-3 font-mono">{idx.testDate}</td>
                   <td className="p-3 font-mono">
@@ -585,11 +594,11 @@ export function IQTestAssignmentsView({
       ) : (
         <div className="space-y-4">
           {assignments.map(asm => (
-            <div key={asm.id} className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-4 space-y-3">
-              <div className="flex justify-between items-start border-b border-[#F1F1F2] pb-2">
+            <div key={asm.id} className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-4 space-y-3">
+              <div className="flex justify-between items-start border-b border-[#E6E1D8] pb-2">
                 <div>
                   <h4 className="font-bold text-gray-900">{asm.assignmentTitle}</h4>
-                  <p className="text-[10px] text-gray-400 font-mono mt-0.5">
+                  <p className="text-[10px] text-gray-500 font-mono mt-0.5">
                     Role: {asm.role} • Max Score: {asm.maximumMarks} • Pass: {asm.passingMarks}
                   </p>
                 </div>
@@ -600,21 +609,21 @@ export function IQTestAssignmentsView({
                 </span>
               </div>
 
-              <p className="text-gray-600 bg-[#F1F1F2] p-3 rounded-lg">{asm.instructions}</p>
+              <p className="text-gray-600 bg-[#E6E1D8] p-3 rounded-lg">{asm.instructions}</p>
 
               <div>
-                <h5 className="font-bold text-[10px] uppercase font-mono text-gray-400 mb-2">
+                <h5 className="font-bold text-[10px] uppercase font-mono text-gray-500 mb-2">
                   Candidate submissions ({asm.submissions.length})
                 </h5>
                 <div className="space-y-2">
                   {asm.submissions.map(sub => (
                     <div
                       key={sub.id}
-                      className="border border-gray-100 rounded-lg p-3 flex justify-between items-center text-xs bg-[#FAFBFC]"
+                      className="border border-[#E2DDD2] rounded-lg p-3 flex justify-between items-center text-xs bg-[#F2EEE7]"
                     >
                       <div>
                         <span className="font-semibold text-gray-900">{sub.candidateName}</span>
-                        <p className="text-[10px] text-gray-400 font-mono">
+                        <p className="text-[10px] text-gray-500 font-mono">
                           Submitted: {new Date(sub.submittedAt).toLocaleDateString()}
                         </p>
                       </div>
@@ -624,7 +633,7 @@ export function IQTestAssignmentsView({
                           <span className="font-bold text-emerald-600">
                             {sub.grading.overallScore} / {asm.maximumMarks}
                           </span>
-                          <span className="text-[10px] text-gray-400 block italic mt-0.5">
+                          <span className="text-[10px] text-gray-500 block italic mt-0.5">
                             "{sub.grading.evaluatorComments}"
                           </span>
                         </div>
@@ -671,7 +680,7 @@ export function OnboardingChecklistView({
           <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
             Onboarding Progress Tracker
           </h2>
-          <p className="text-gray-400 text-[11px]">
+          <p className="text-gray-500 text-[11px]">
             Checklist-driven joiner actions. Completing criteria enables corporate asset/login allocations.
           </p>
         </div>
@@ -680,7 +689,7 @@ export function OnboardingChecklistView({
         <Select
           value={selectedCandidate}
           onChange={e => setSelectedCandidate(e.target.value)}
-          className="px-2.5 py-1 text-xs border border-[#EAEAEC] bg-[#FFFFFF] rounded font-medium focus:outline-none"
+          className="px-2.5 py-1 text-xs border border-[#DAD4C8] bg-[#F7F4EE] rounded font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
         >
           {onboarding.map(o => (
             <option key={o.candidateId} value={o.candidateName}>
@@ -693,9 +702,9 @@ export function OnboardingChecklistView({
       {activeChecklist ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Progress Circular indicators */}
-          <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 flex flex-col justify-between space-y-4">
+          <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 flex flex-col justify-between space-y-4">
             <div className="space-y-1.5">
-              <span className="text-[11px] text-gray-400 font-mono font-semibold uppercase tracking-wider">
+              <span className="text-[11px] text-gray-500 font-mono font-semibold uppercase tracking-wider">
                 Candidate Progress
               </span>
               <h3 className="font-bold text-gray-900 font-display text-base truncate">
@@ -706,11 +715,11 @@ export function OnboardingChecklistView({
               </p>
             </div>
 
-            <div className="flex flex-col items-center justify-center py-4 bg-[#F1F1F2]/50 rounded-lg">
+            <div className="flex flex-col items-center justify-center py-4 bg-[#E6E1D8]/50 rounded-lg">
               <div className="text-3xl font-extrabold text-accent-600 font-display">
                 {activeChecklist.progressPercentage}%
               </div>
-              <span className="text-[9px] text-gray-400 font-mono uppercase tracking-wider block mt-1">
+              <span className="text-[9px] text-gray-500 font-mono uppercase tracking-wider block mt-1">
                 Actions Complete
               </span>
             </div>
@@ -731,7 +740,7 @@ export function OnboardingChecklistView({
             ) : (
               <button
                 disabled
-                className="w-full bg-gray-100 text-gray-400 font-medium rounded py-2 text-center text-[10px] font-mono cursor-not-allowed"
+                className="w-full bg-[#E6E1D8] text-gray-500 font-medium rounded py-2 text-center text-[10px] font-mono cursor-not-allowed"
               >
                 Clear all tasks to active EMP conversion
               </button>
@@ -739,10 +748,10 @@ export function OnboardingChecklistView({
           </div>
 
           {/* Checklist Tasks List (Linear style) (Col-span-2) */}
-          <div className="md:col-span-2 bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 space-y-4">
-            <div className="border-b border-[#F1F1F2] pb-2">
+          <div className="md:col-span-2 bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-4">
+            <div className="border-b border-[#E6E1D8] pb-2">
               <h4 className="font-bold text-gray-900">Pre-joining & Induction Checklist Items</h4>
-              <p className="text-[10px] text-gray-400">Click checkboxes to log finalized state:</p>
+              <p className="text-[10px] text-gray-500">Click checkboxes to log finalized state:</p>
             </div>
 
             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
@@ -750,24 +759,24 @@ export function OnboardingChecklistView({
                 <div
                   key={t.id}
                   onClick={() => onToggleTask(activeChecklist.candidateName, t.id)}
-                  className="flex items-center gap-3 p-2.5 border border-[#EAEAEC] hover:bg-[#F1F1F2] rounded-lg cursor-pointer transition"
+                  className="flex items-center gap-3 p-2.5 border border-[#DAD4C8] hover:bg-[#E6E1D8] rounded-lg cursor-pointer transition"
                 >
                   <div
                     className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition ${
                       t.isChecked
                         ? 'bg-accent-600 border-accent-600 text-white'
-                        : 'border-gray-300 bg-[#FFFFFF]'
+                        : 'border-gray-300 bg-[#F7F4EE]'
                     }`}
                   >
                     {t.isChecked && <Check size={10} />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p
-                      className={`font-medium ${t.isChecked ? 'line-through text-gray-400' : 'text-gray-800'}`}
+                      className={`font-medium ${t.isChecked ? 'line-through text-gray-500' : 'text-gray-800'}`}
                     >
                       {t.title}
                     </p>
-                    <span className="text-[9px] text-gray-400 font-mono italic block mt-0.5">
+                    <span className="text-[9px] text-gray-500 font-mono italic block mt-0.5">
                       Category: {t.category}
                     </span>
                   </div>
@@ -777,7 +786,7 @@ export function OnboardingChecklistView({
           </div>
         </div>
       ) : (
-        <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-6 text-center text-gray-400">
+        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-6 text-center text-gray-500">
           No candidates in the onboarding pipeline presently.
         </div>
       )}
@@ -871,7 +880,7 @@ export function EmployeeDirectoryView({
           <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
             Opti Circle Active Employee Directory
           </h2>
-          <p className="text-gray-400 text-[11px]">
+          <p className="text-gray-500 text-[11px]">
             Browse employee records, issued system logins, assigned hardware, and historic review scorecards.
           </p>
         </div>
@@ -879,7 +888,7 @@ export function EmployeeDirectoryView({
         {/* Directory filter bars */}
         <div className="flex items-center gap-2">
           <div className="relative">
-            <span className="absolute left-2 top-2 text-gray-400">
+            <span className="absolute left-2 top-2 text-gray-500">
               <Search size={12} />
             </span>
             <input
@@ -887,14 +896,14 @@ export function EmployeeDirectoryView({
               placeholder="Filter names..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-7 pr-3 py-1 bg-[#FFFFFF] border border-[#EAEAEC] rounded text-xs focus:outline-none"
+              className="pl-7 pr-3 py-1 bg-[#F7F4EE] border border-[#DAD4C8] rounded text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
             />
           </div>
 
           <Select
             value={selectedDept}
             onChange={e => setSelectedDept(e.target.value)}
-            className="px-2 py-1 bg-[#FFFFFF] border border-[#EAEAEC] rounded focus:outline-none font-medium"
+            className="px-2 py-1 bg-[#F7F4EE] border border-[#DAD4C8] rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 font-medium"
           >
             {departments.map(d => (
               <option key={d} value={d}>
@@ -916,10 +925,10 @@ export function EmployeeDirectoryView({
       </div>
 
       {/* Employee table */}
-      <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-2xl shadow-2xs overflow-x-auto">
+      <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-2xl shadow-2xs overflow-x-auto">
         <table id="employees-table" className="w-full text-left min-w-[820px]">
           <thead>
-            <tr className="border-b border-[#F1F1F2] text-[10px] font-mono uppercase tracking-wider text-gray-400">
+            <tr className="border-b border-[#E6E1D8] text-[10px] font-mono uppercase tracking-wider text-gray-500">
               <th className="p-3">Employee</th>
               <th className="p-3">ID</th>
               <th className="p-3">Role</th>
@@ -933,8 +942,17 @@ export function EmployeeDirectoryView({
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="p-8 text-center text-gray-400 text-xs">
-                  No employees match the current filters.
+                <td colSpan={8} className="p-3">
+                  <EmptyState
+                    icon={Users}
+                    title={employees.length === 0 ? 'No employees yet' : 'No matches'}
+                    description={
+                      employees.length === 0
+                        ? 'Active employees will appear here once added.'
+                        : 'No employees match the current filters.'
+                    }
+                    className="border-0 bg-transparent py-10"
+                  />
                 </td>
               </tr>
             ) : (
@@ -942,7 +960,7 @@ export function EmployeeDirectoryView({
                 <tr
                   key={emp.id}
                   onClick={() => onSelectEmployee(emp.id)}
-                  className="border-b border-[#F1F1F2] last:border-0 hover:bg-[#FAFBFC] cursor-pointer transition"
+                  className="border-b border-[#E6E1D8] last:border-0 hover:bg-[#F2EEE7] cursor-pointer transition"
                 >
                   <td className="p-3">
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -957,7 +975,7 @@ export function EmployeeDirectoryView({
                       <div className="min-w-0">
                         <p className="font-bold text-gray-900 text-[12px] truncate">{emp.fullName}</p>
                         {emp.email && (
-                          <p className="text-[10px] text-gray-400 font-mono truncate">{emp.email}</p>
+                          <p className="text-[10px] text-gray-500 font-mono truncate">{emp.email}</p>
                         )}
                       </div>
                     </div>
@@ -975,7 +993,7 @@ export function EmployeeDirectoryView({
                           : emp.status === 'On Leave'
                             ? 'bg-yellow-50 text-yellow-600'
                             : emp.status === 'Offboarded'
-                              ? 'bg-gray-100 text-gray-500'
+                              ? 'bg-[#E6E1D8] text-gray-500'
                               : 'bg-red-50 text-red-600'
                       }`}
                     >
@@ -989,7 +1007,7 @@ export function EmployeeDirectoryView({
                           e.stopPropagation();
                           onSelectEmployee(emp.id);
                         }}
-                        className="text-[10px] bg-[#FFFFFF] border border-[#EAEAEC] text-gray-700 hover:text-accent-600 hover:border-accent-300 px-2 py-1 rounded-md font-semibold font-mono flex items-center gap-1 cursor-pointer transition shadow-2xs"
+                        className="text-[10px] bg-[#F7F4EE] border border-[#DAD4C8] text-gray-700 hover:text-accent-600 hover:border-accent-300 px-2 py-1 rounded-md font-semibold font-mono flex items-center gap-1 cursor-pointer transition shadow-2xs"
                       >
                         <Eye size={11} /> File
                       </button>
@@ -1007,16 +1025,16 @@ export function EmployeeDirectoryView({
         <div className="fixed inset-0 bg-gray-900/45 backdrop-blur-xs flex items-center justify-center z-[110] p-4">
           <form
             onSubmit={handleAddEmployee}
-            className="bg-[#FFFFFF] p-5 rounded-xl border border-[#EAEAEC] shadow-2xl w-full max-w-2xl space-y-3.5 max-h-[90vh] overflow-y-auto"
+            className="bg-[#F7F4EE] p-5 rounded-xl border border-[#DAD4C8] shadow-2xl w-full max-w-2xl space-y-3.5 max-h-[90vh] overflow-y-auto"
           >
-            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+            <div className="flex justify-between items-center border-b border-[#E2DDD2] pb-2">
               <h3 className="font-bold text-gray-900 text-xs font-mono uppercase tracking-wider">
                 Add Employee to Directory
               </h3>
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="text-gray-400 hover:text-gray-600 cursor-pointer p-1"
+                className="text-gray-500 hover:text-gray-600 cursor-pointer p-1"
               >
                 <X size={14} />
               </button>
@@ -1030,7 +1048,7 @@ export function EmployeeDirectoryView({
                   placeholder="e.g. Priya Sharma"
                   value={empForm.fullName}
                   onChange={e => setEmpForm({ ...empForm, fullName: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] focus:bg-[#FFFFFF] focus:outline-none"
+                  className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                   required
                 />
               </div>
@@ -1041,7 +1059,7 @@ export function EmployeeDirectoryView({
                   placeholder="e.g. Senior React Engineer"
                   value={empForm.role}
                   onChange={e => setEmpForm({ ...empForm, role: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] focus:bg-[#FFFFFF] focus:outline-none"
+                  className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                   required
                 />
               </div>
@@ -1055,7 +1073,7 @@ export function EmployeeDirectoryView({
                   placeholder="name@optiminastic.com"
                   value={empForm.email}
                   onChange={e => setEmpForm({ ...empForm, email: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] focus:bg-[#FFFFFF] focus:outline-none"
+                  className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                 />
               </div>
               <div className="space-y-1">
@@ -1065,7 +1083,7 @@ export function EmployeeDirectoryView({
                   placeholder="+91 ..."
                   value={empForm.phone}
                   onChange={e => setEmpForm({ ...empForm, phone: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] focus:bg-[#FFFFFF] focus:outline-none"
+                  className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                 />
               </div>
             </div>
@@ -1076,7 +1094,7 @@ export function EmployeeDirectoryView({
                 <Select
                   value={empForm.department}
                   onChange={e => setEmpForm({ ...empForm, department: e.target.value })}
-                  className="w-full px-2 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2]"
+                  className="w-full px-2 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8]"
                 >
                   <option value="Engineering">Engineering</option>
                   <option value="Product">Product</option>
@@ -1092,7 +1110,7 @@ export function EmployeeDirectoryView({
                   onChange={e =>
                     setEmpForm({ ...empForm, status: e.target.value as Employee['status'] })
                   }
-                  className="w-full px-2 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2]"
+                  className="w-full px-2 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8]"
                 >
                   <option value="Active">Active</option>
                   <option value="On Leave">On Leave</option>
@@ -1105,7 +1123,7 @@ export function EmployeeDirectoryView({
                   type="date"
                   value={empForm.joiningDate}
                   onChange={e => setEmpForm({ ...empForm, joiningDate: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] font-mono"
+                  className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] font-mono"
                 />
               </div>
               <div className="space-y-1">
@@ -1115,7 +1133,7 @@ export function EmployeeDirectoryView({
                   placeholder="Mumbai, India"
                   value={empForm.workLocation}
                   onChange={e => setEmpForm({ ...empForm, workLocation: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] focus:bg-[#FFFFFF] focus:outline-none"
+                  className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                 />
               </div>
             </div>
@@ -1127,12 +1145,12 @@ export function EmployeeDirectoryView({
                 placeholder="e.g. Akshae (Director)"
                 value={empForm.reportingManager}
                 onChange={e => setEmpForm({ ...empForm, reportingManager: e.target.value })}
-                className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] focus:bg-[#FFFFFF] focus:outline-none"
+                className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
               />
             </div>
 
-            <div className="pt-1 border-t border-gray-100">
-              <p className="font-bold text-gray-400 font-mono text-[9px] uppercase tracking-wider mb-2">
+            <div className="pt-1 border-t border-[#E2DDD2]">
+              <p className="font-bold text-gray-500 font-mono text-[9px] uppercase tracking-wider mb-2">
                 Personal records (optional)
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
@@ -1143,7 +1161,7 @@ export function EmployeeDirectoryView({
                     placeholder="Mailing address"
                     value={empForm.address}
                     onChange={e => setEmpForm({ ...empForm, address: e.target.value })}
-                    className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] focus:bg-[#FFFFFF] focus:outline-none"
+                    className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                   />
                 </div>
                 <div className="space-y-1">
@@ -1153,7 +1171,7 @@ export function EmployeeDirectoryView({
                     placeholder="Name · +91 ..."
                     value={empForm.emergencyContact}
                     onChange={e => setEmpForm({ ...empForm, emergencyContact: e.target.value })}
-                    className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] focus:bg-[#FFFFFF] focus:outline-none"
+                    className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                   />
                 </div>
                 <div className="space-y-1">
@@ -1163,7 +1181,7 @@ export function EmployeeDirectoryView({
                     placeholder="Account / IFSC"
                     value={empForm.bankAccount}
                     onChange={e => setEmpForm({ ...empForm, bankAccount: e.target.value })}
-                    className="w-full px-2.5 py-1.5 border border-[#EAEAEC] rounded text-xs bg-[#F1F1F2] focus:bg-[#FFFFFF] focus:outline-none"
+                    className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                   />
                 </div>
               </div>
@@ -1173,7 +1191,7 @@ export function EmployeeDirectoryView({
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="px-4 py-1.5 border border-[#EAEAEC] hover:bg-gray-100 rounded text-gray-650 cursor-pointer font-semibold"
+                className="px-4 py-1.5 border border-[#DAD4C8] hover:bg-[#E6E1D8] rounded text-gray-650 cursor-pointer font-semibold"
               >
                 Cancel
               </button>
@@ -1232,21 +1250,21 @@ export function CredentialsAssetsView({
           <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
             Credentials & IT Hardware Assets
           </h2>
-          <p className="text-gray-400 text-[11px]">
+          <p className="text-gray-500 text-[11px]">
             Security access controls list and physical company inventory logs.
           </p>
         </div>
 
-        <div className="border border-[#EAEAEC] rounded-lg bg-[#FFFFFF] overflow-hidden flex font-semibold text-xs shrink-0">
+        <div className="border border-[#DAD4C8] rounded-lg bg-[#F7F4EE] overflow-hidden flex font-semibold text-xs shrink-0">
           <button
             onClick={() => setActiveTab('creds')}
-            className={`px-3 py-1.5 transition ${activeTab === 'creds' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#F1F1F2]'}`}
+            className={`px-3 py-1.5 transition ${activeTab === 'creds' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#E6E1D8]'}`}
           >
             System Credentials
           </button>
           <button
             onClick={() => setActiveTab('assets')}
-            className={`px-3 py-1.5 transition ${activeTab === 'assets' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#F1F1F2]'}`}
+            className={`px-3 py-1.5 transition ${activeTab === 'assets' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#E6E1D8]'}`}
           >
             Hardware Inventory
           </button>
@@ -1254,10 +1272,10 @@ export function CredentialsAssetsView({
       </div>
 
       {activeTab === 'creds' ? (
-        <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl overflow-hidden shadow-2xs">
+        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden shadow-2xs">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[#FAFBFC] border-b border-[#EAEAEC] text-gray-400 font-mono text-[9px] uppercase font-bold">
+              <tr className="bg-[#F2EEE7] border-b border-[#DAD4C8] text-gray-500 font-mono text-[9px] uppercase font-bold">
                 <th className="p-3">Employee</th>
                 <th className="p-3">Target System</th>
                 <th className="p-3">Assigned Identity</th>
@@ -1267,15 +1285,15 @@ export function CredentialsAssetsView({
                 <th className="p-3 text-right">Moderator Control</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#EAEAEC]">
+            <tbody className="divide-y divide-[#DAD4C8]">
               {employees.flatMap(emp =>
                 (emp.credentials || []).map(cred => (
-                  <tr key={cred.id} className="hover:bg-[#FAFBFC] transition">
+                  <tr key={cred.id} className="hover:bg-[#F2EEE7] transition">
                     <td className="p-3 font-semibold text-gray-900">{emp.fullName}</td>
                     <td className="p-3 font-medium text-gray-800">{cred.systemName}</td>
                     <td className="p-3 font-mono">{cred.assignedEmail}</td>
                     <td className="p-3 text-center font-semibold">{cred.accessLevel}</td>
-                    <td className="p-3 text-center font-mono text-gray-400 select-all">••••••••••</td>
+                    <td className="p-3 text-center font-mono text-gray-500 select-all">••••••••••</td>
                     <td className="p-3">
                       <span
                         className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${
@@ -1283,7 +1301,7 @@ export function CredentialsAssetsView({
                             ? 'bg-green-50 text-green-600'
                             : cred.status === 'Suspended'
                               ? 'bg-red-50 text-red-600'
-                              : 'bg-gray-100 text-gray-500'
+                              : 'bg-[#E6E1D8] text-gray-500'
                         }`}
                       >
                         {cred.status}
@@ -1293,7 +1311,7 @@ export function CredentialsAssetsView({
                       <Select
                         value={cred.status}
                         onChange={e => onUpdateCredential(emp.id, cred.id, e.target.value)}
-                        className="text-[10px] bg-[#FFFFFF] border border-[#EAEAEC] px-1.5 py-1 rounded cursor-pointer text-gray-600 focus:ring-1 focus:ring-accent-600 focus:outline-none"
+                        className="text-[10px] bg-[#F7F4EE] border border-[#DAD4C8] px-1.5 py-1 rounded cursor-pointer text-gray-600 focus:ring-1 focus:ring-accent-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                       >
                         <option value="Active">Grant Active</option>
                         <option value="Suspended">Suspend Access</option>
@@ -1307,10 +1325,10 @@ export function CredentialsAssetsView({
           </table>
         </div>
       ) : (
-        <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl overflow-hidden shadow-2xs">
+        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden shadow-2xs">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[#FAFBFC] border-b border-[#EAEAEC] text-gray-400 font-mono text-[9px] uppercase font-bold">
+              <tr className="bg-[#F2EEE7] border-b border-[#DAD4C8] text-gray-500 font-mono text-[9px] uppercase font-bold">
                 <th className="p-3">Asset ID</th>
                 <th className="p-3">Specification</th>
                 <th className="p-3">Item Category</th>
@@ -1319,9 +1337,9 @@ export function CredentialsAssetsView({
                 <th className="p-3 text-right">Condition / Modification</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#EAEAEC]">
+            <tbody className="divide-y divide-[#DAD4C8]">
               {assets.map(ast => (
-                <tr key={ast.id} className="hover:bg-[#FAFBFC] transition">
+                <tr key={ast.id} className="hover:bg-[#F2EEE7] transition">
                   <td className="p-3 font-mono font-bold text-gray-700">{ast.id}</td>
                   <td className="p-3 font-semibold text-gray-900">{ast.assetName}</td>
                   <td className="p-3">{ast.assetType}</td>
@@ -1329,7 +1347,7 @@ export function CredentialsAssetsView({
                     {ast.assignedToEmployeeName ? (
                       <span className="font-medium text-gray-800">{ast.assignedToEmployeeName}</span>
                     ) : (
-                      <span className="text-gray-400 italic">Available in IT Depot</span>
+                      <span className="text-gray-500 italic">Available in IT Depot</span>
                     )}
                   </td>
                   <td className="p-3">
@@ -1349,7 +1367,7 @@ export function CredentialsAssetsView({
                     <Select
                       value={ast.status}
                       onChange={e => handleAssetStatusChange(ast.id, e.target.value)}
-                      className="text-[10px] bg-[#FFFFFF] border border-[#EAEAEC] px-1.5 py-1 rounded cursor-pointer text-gray-600 focus:outline-none"
+                      className="text-[10px] bg-[#F7F4EE] border border-[#DAD4C8] px-1.5 py-1 rounded cursor-pointer text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                     >
                       <option value="Available">Available</option>
                       <option value="Assigned">Assigned</option>
@@ -1427,12 +1445,12 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
 
   return (
     <div className="space-y-4 text-xs select-none">
-      <div className="flex justify-between items-center bg-[#FAFBFC] border-b border-[#EAEAEC] pb-3">
+      <div className="flex justify-between items-center bg-[#F2EEE7] border-b border-[#DAD4C8] pb-3">
         <div>
           <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
             Appraisals & Growth Scorecards
           </h2>
-          <p className="text-gray-400 text-[11px]">
+          <p className="text-gray-500 text-[11px]">
             Systematic salary reviews, manager feedback recording, and promotion workflows.
           </p>
         </div>
@@ -1440,7 +1458,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
         <Select
           value={selectedEmp}
           onChange={e => setSelectedEmp(e.target.value)}
-          className="px-2.5 py-1 text-xs border border-[#EAEAEC] bg-[#FFFFFF] rounded font-medium focus:outline-none"
+          className="px-2.5 py-1 text-xs border border-[#DAD4C8] bg-[#F7F4EE] rounded font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
         >
           {employees.map(e => (
             <option key={e.id} value={e.fullName}>
@@ -1453,7 +1471,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <form
           onSubmit={handleSubmit}
-          className="md:col-span-2 bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 space-y-4"
+          className="md:col-span-2 bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-4"
         >
           <h3 className="font-bold text-gray-900">Conduct Annual Appraisal Cycle Review</h3>
 
@@ -1464,7 +1482,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
                 type="text"
                 value={reviewForm.reviewPeriod}
                 onChange={e => setReviewForm({ ...reviewForm, reviewPeriod: e.target.value })}
-                className="w-full px-2 py-1.5 border border-[#EAEAEC] bg-[#F1F1F2] rounded"
+                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
               />
             </div>
             <div className="space-y-1">
@@ -1475,7 +1493,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
                 max="5"
                 value={reviewForm.performanceScore}
                 onChange={e => setReviewForm({ ...reviewForm, performanceScore: Number(e.target.value) })}
-                className="w-full px-2 py-1.5 border border-[#EAEAEC] bg-[#F1F1F2] rounded"
+                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
               />
             </div>
           </div>
@@ -1486,7 +1504,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
               value={reviewForm.targetAchievement}
               onChange={e => setReviewForm({ ...reviewForm, targetAchievement: e.target.value })}
               rows={2}
-              className="w-full px-2 py-1.5 border border-[#EAEAEC] bg-[#F1F1F2] rounded"
+              className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
               required
             />
           </div>
@@ -1497,7 +1515,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
               value={reviewForm.managerFeedback}
               onChange={e => setReviewForm({ ...reviewForm, managerFeedback: e.target.value })}
               rows={2}
-              className="w-full px-2 py-1.5 border border-[#EAEAEC] bg-[#F1F1F2] rounded"
+              className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
               required
             />
           </div>
@@ -1509,7 +1527,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
                 type="text"
                 value={reviewForm.recommendedPromotion}
                 onChange={e => setReviewForm({ ...reviewForm, recommendedPromotion: e.target.value })}
-                className="w-full px-2 py-1.5 border border-[#EAEAEC] bg-[#F1F1F2] rounded"
+                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
               />
             </div>
             <div className="space-y-1">
@@ -1518,7 +1536,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
                 type="text"
                 value={reviewForm.recommendedSalaryRevision}
                 onChange={e => setReviewForm({ ...reviewForm, recommendedSalaryRevision: e.target.value })}
-                className="w-full px-2 py-1.5 border border-[#EAEAEC] bg-[#F1F1F2] rounded"
+                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
               />
             </div>
           </div>
@@ -1534,14 +1552,14 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
         </form>
 
         {/* Existing Appraisal track lists */}
-        <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 space-y-4">
-          <h3 className="font-bold text-gray-900 uppercase font-mono text-[10px] text-gray-400">
+        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-4">
+          <h3 className="font-bold text-gray-900 uppercase font-mono text-[10px] text-gray-500">
             Historic Logs
           </h3>
 
           {targetEmp?.appraisalHistory && targetEmp.appraisalHistory.length > 0 ? (
             targetEmp.appraisalHistory.map(hist => (
-              <div key={hist.id} className="p-3 border border-gray-100 rounded-lg space-y-2 bg-[#FAFBFC]">
+              <div key={hist.id} className="p-3 border border-[#E2DDD2] rounded-lg space-y-2 bg-[#F2EEE7]">
                 <div className="flex justify-between items-center font-mono text-[9px]">
                   <span className="font-semibold text-accent-600">{hist.reviewPeriod}</span>
                   <span className="bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">
@@ -1550,7 +1568,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
                 </div>
                 <div>
                   <p className="font-bold text-gray-800">Scorecard: ⭐ {hist.performanceScore} / 5</p>
-                  <p className="text-gray-400 text-[10px] mt-0.5">
+                  <p className="text-gray-500 text-[10px] mt-0.5">
                     Promotion recommendation: {hist.recommendedPromotion}
                   </p>
                 </div>
@@ -1558,7 +1576,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
               </div>
             ))
           ) : (
-            <div className="text-center py-8 text-gray-400 text-xs">
+            <div className="text-center py-8 text-gray-500 text-xs">
               No annual review logs historically saved for this employee.
             </div>
           )}
@@ -1597,7 +1615,7 @@ export function OffboardingChecklistView({
           <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
             Offboarding & exit Workflows
           </h2>
-          <p className="text-gray-400 text-[11px]">
+          <p className="text-gray-500 text-[11px]">
             Notice period clearances, asset collection, and formal Knowledge Transfer document approvals.
           </p>
         </div>
@@ -1605,7 +1623,7 @@ export function OffboardingChecklistView({
         <Select
           value={selectedCase}
           onChange={e => setSelectedCase(e.target.value)}
-          className="px-2.5 py-1 text-xs border border-[#EAEAEC] bg-[#FFFFFF] rounded font-medium focus:outline-none"
+          className="px-2.5 py-1 text-xs border border-[#DAD4C8] bg-[#F7F4EE] rounded font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
         >
           {offboarding.map(o => (
             <option key={o.employeeId} value={o.employeeName}>
@@ -1619,7 +1637,7 @@ export function OffboardingChecklistView({
         <div className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* KT & Notice Summary Card */}
-          <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 flex flex-col justify-between space-y-4">
+          <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 flex flex-col justify-between space-y-4">
             <div className="space-y-2">
               <span className="text-[10px] text-red-650 bg-red-50 font-bold px-2 py-0.5 rounded">
                 Resignation Triggered
@@ -1631,8 +1649,8 @@ export function OffboardingChecklistView({
                 Notice end:{' '}
                 <span className="font-mono font-bold text-gray-800">{activeCase.lastWorkingDay}</span>
               </p>
-              <div className="bg-[#F1F1F2] p-2.5 rounded-lg text-[10px] border border-[#EAEAEC] space-y-1.5 font-mono">
-                <p className="text-gray-400 uppercase font-bold text-[9px]">Knowledge Transfer Summary:</p>
+              <div className="bg-[#E6E1D8] p-2.5 rounded-lg text-[10px] border border-[#DAD4C8] space-y-1.5 font-mono">
+                <p className="text-gray-500 uppercase font-bold text-[9px]">Knowledge Transfer Summary:</p>
                 <p className="text-gray-700 font-sans">{activeCase.ktRecord?.currentProjects}</p>
                 <div className="flex justify-between mt-2 font-bold py-1 border-t border-gray-150">
                   <span>KT Status:</span>
@@ -1653,8 +1671,8 @@ export function OffboardingChecklistView({
           </div>
 
           {/* Checkout clearances list */}
-          <div className="md:col-span-2 bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 space-y-3">
-            <h4 className="font-bold text-gray-900 border-b border-[#F1F1F2] pb-1.5">
+          <div className="md:col-span-2 bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-3">
+            <h4 className="font-bold text-gray-900 border-b border-[#E6E1D8] pb-1.5">
               Compliance Clearance Checkpoints
             </h4>
             <div className="space-y-2 max-h-[320px] overflow-y-auto">
@@ -1662,22 +1680,22 @@ export function OffboardingChecklistView({
                 <div
                   key={t.id}
                   onClick={() => onToggleExitTask(activeCase.employeeId, t.id)}
-                  className="flex items-center gap-3 p-2.5 border border-[#EAEAEC] hover:bg-gray-55 rounded-lg cursor-pointer transition"
+                  className="flex items-center gap-3 p-2.5 border border-[#DAD4C8] hover:bg-gray-55 rounded-lg cursor-pointer transition"
                 >
                   <div
                     className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition ${
-                      t.isChecked ? 'bg-red-600 border-red-600 text-white' : 'border-gray-300 bg-[#FFFFFF]'
+                      t.isChecked ? 'bg-red-600 border-red-600 text-white' : 'border-gray-300 bg-[#F7F4EE]'
                     }`}
                   >
                     {t.isChecked && <Check size={10} />}
                   </div>
                   <div className="flex-1">
                     <p
-                      className={`font-medium ${t.isChecked ? 'line-through text-gray-400' : 'text-gray-800'}`}
+                      className={`font-medium ${t.isChecked ? 'line-through text-gray-500' : 'text-gray-800'}`}
                     >
                       {t.title}
                     </p>
-                    <span className="text-[9px] text-gray-400 font-mono block mt-0.5">
+                    <span className="text-[9px] text-gray-500 font-mono block mt-0.5">
                       Control: {t.category}
                     </span>
                   </div>
@@ -1688,16 +1706,16 @@ export function OffboardingChecklistView({
           </div>
 
           {/* Exit Deliverables & Handover */}
-          <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 space-y-3">
-            <div className="flex items-center justify-between border-b border-[#F1F1F2] pb-1.5">
+          <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-3">
+            <div className="flex items-center justify-between border-b border-[#E6E1D8] pb-1.5">
               <h4 className="font-bold text-gray-900">Exit Deliverables &amp; Handover</h4>
-              <span className="text-[10px] font-mono text-gray-400">
+              <span className="text-[10px] font-mono text-gray-500">
                 {(activeCase.deliverables || []).filter(d => d.isSubmitted).length}/
                 {(activeCase.deliverables || []).length} submitted
               </span>
             </div>
             {(activeCase.deliverables || []).length === 0 ? (
-              <p className="text-gray-400 text-[11px] py-3 text-center">
+              <p className="text-gray-500 text-[11px] py-3 text-center">
                 No deliverables defined for this exit.
               </p>
             ) : (
@@ -1706,25 +1724,25 @@ export function OffboardingChecklistView({
                   <div
                     key={d.id}
                     onClick={() => onToggleDeliverable(activeCase.employeeId, d.id)}
-                    className="flex items-center gap-3 p-2.5 border border-[#EAEAEC] hover:bg-gray-55 rounded-lg cursor-pointer transition"
+                    className="flex items-center gap-3 p-2.5 border border-[#DAD4C8] hover:bg-gray-55 rounded-lg cursor-pointer transition"
                   >
                     <div
                       className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition ${
                         d.isSubmitted
                           ? 'bg-accent-600 border-accent-600 text-white'
-                          : 'border-gray-300 bg-[#FFFFFF]'
+                          : 'border-gray-300 bg-[#F7F4EE]'
                       }`}
                     >
                       {d.isSubmitted && <Check size={10} />}
                     </div>
                     <div className="flex-1">
                       <p
-                        className={`font-medium ${d.isSubmitted ? 'line-through text-gray-400' : 'text-gray-800'}`}
+                        className={`font-medium ${d.isSubmitted ? 'line-through text-gray-500' : 'text-gray-800'}`}
                       >
                         {d.title}
                       </p>
                       {d.owner && (
-                        <span className="text-[9px] text-gray-400 font-mono block mt-0.5">
+                        <span className="text-[9px] text-gray-500 font-mono block mt-0.5">
                           Hand over to: {d.owner}
                         </span>
                       )}
@@ -1744,7 +1762,7 @@ export function OffboardingChecklistView({
           />
         </div>
       ) : (
-        <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-6 text-center text-gray-400">
+        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-6 text-center text-gray-500">
           No live employee offboarding case in notice cycle currently.
         </div>
       )}
@@ -1764,9 +1782,9 @@ interface EmailCenterProps {
 export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: EmailCenterProps) {
   const toast = useToast();
   const [activeTemplateId, setActiveTemplateId] = useState('');
-  const [recipientName, setRecipientName] = useState('Sophia Henderson');
-  const [recipientEmail, setRecipientEmail] = useState('sophia.h@gmail.com');
-  const [roleField, setRoleField] = useState('Senior React Developer');
+  const [recipientName, setRecipientName] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [roleField, setRoleField] = useState('');
 
   const selectedTemplate = emailTemplates.find(t => t.id === activeTemplateId) ?? emailTemplates[0];
 
@@ -1790,14 +1808,14 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
         <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
           Candidate Automations & Email Center
         </h2>
-        <p className="text-gray-400 text-[11px]">
+        <p className="text-gray-500 text-[11px]">
           System communication template builder, tracking mail delivery and candidate response times.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {/* Template selector & trigger */}
-        <form onSubmit={handleSend} className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 space-y-4">
+        <form onSubmit={handleSend} className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-4">
           <h3 className="font-bold text-gray-900">Email Draft Trigger Creator</h3>
 
           <div className="space-y-1">
@@ -1805,7 +1823,7 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
             <Select
               value={activeTemplateId}
               onChange={e => setActiveTemplateId(e.target.value)}
-              className="w-full px-2 py-1.5 border border-[#EAEAEC] bg-[#F1F1F2] rounded"
+              className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
             >
               {emailTemplates.map(t => (
                 <option key={t.id} value={t.id}>
@@ -1815,14 +1833,14 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
             </Select>
           </div>
 
-          <div className="space-y-2 pt-2 border-t border-[#F1F1F2]">
+          <div className="space-y-2 pt-2 border-t border-[#E6E1D8]">
             <div className="space-y-1">
               <label className="font-semibold text-gray-700">Recipient Name</label>
               <input
                 type="text"
                 value={recipientName}
                 onChange={e => setRecipientName(e.target.value)}
-                className="w-full px-2 py-1.5 border border-[#EAEAEC] bg-[#F1F1F2] rounded"
+                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
                 required
               />
             </div>
@@ -1832,7 +1850,7 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
                 type="email"
                 value={recipientEmail}
                 onChange={e => setRecipientEmail(e.target.value)}
-                className="w-full px-2 py-1.5 border border-[#EAEAEC] bg-[#F1F1F2] rounded"
+                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
                 required
               />
             </div>
@@ -1842,7 +1860,7 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
                 type="text"
                 value={roleField}
                 onChange={e => setRoleField(e.target.value)}
-                className="w-full px-2 py-1.5 border border-[#EAEAEC] bg-[#F1F1F2] rounded"
+                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
                 required
               />
             </div>
@@ -1858,12 +1876,12 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
 
         {/* Live WYSIWYG Parser Preview */}
         {selectedTemplate && (
-          <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 flex flex-col justify-between">
+          <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 flex flex-col justify-between">
             <div className="space-y-2">
-              <span className="text-[10px] text-gray-400 font-mono uppercase tracking-wider font-semibold">
+              <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider font-semibold">
                 Live Variable Compilation Parser
               </span>
-              <div className="border border-[#EAEAEC] p-3 rounded-lg bg-[#FAFBFC] font-mono text-[11px] text-gray-700 space-y-2 max-h-[300px] overflow-y-auto">
+              <div className="border border-[#DAD4C8] p-3 rounded-lg bg-[#F2EEE7] font-mono text-[11px] text-gray-700 space-y-2 max-h-[300px] overflow-y-auto">
                 <p className="font-bold text-gray-900 border-b border-gray-150 pb-1">
                   Subject: {selectedTemplate.subject.replace('{{ROLE}}', roleField)}
                 </p>
@@ -1883,19 +1901,19 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
         )}
 
         {/* Sent Mails Ledger */}
-        <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-5 space-y-3 overflow-y-auto max-h-[380px]">
-          <h3 className="font-bold text-gray-900 uppercase font-mono text-[10px] text-gray-400">
+        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-3 overflow-y-auto max-h-[380px]">
+          <h3 className="font-bold text-gray-900 uppercase font-mono text-[10px] text-gray-500">
             Sent Triggers Log
           </h3>
           <div className="space-y-2">
             {sentMails.map(m => (
-              <div key={m.id} className="p-2.5 border border-gray-100 bg-[#FAFBFC] rounded-lg">
+              <div key={m.id} className="p-2.5 border border-[#E2DDD2] bg-[#F2EEE7] rounded-lg">
                 <div className="flex justify-between text-[10px]">
                   <span className="font-semibold text-gray-800">{m.recipientName}</span>
                   <span className="text-green-600 font-bold">{m.status}</span>
                 </div>
                 <p className="text-[11px] text-gray-600 mt-1 font-mono">{m.subject}</p>
-                <p className="text-[9px] text-gray-400 font-mono mt-1.5">
+                <p className="text-[9px] text-gray-500 font-mono mt-1.5">
                   {new Date(m.dateSent).toLocaleDateString()}{' '}
                   {new Date(m.dateSent).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
@@ -1911,60 +1929,148 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
 // ==========================================
 // 8. SETTINGS VIEW
 // ==========================================
+function GoogleCalendarCard() {
+  const toast = useToast();
+  const [status, setStatus] = useState<CalendarStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const refresh = React.useCallback(() => {
+    getCalendarStatus()
+      .then(setStatus)
+      .catch(() => setStatus(null));
+  }, []);
+
+  React.useEffect(() => {
+    refresh();
+    // Surface the result of the OAuth redirect (?calendar=connected|error).
+    const params = new URLSearchParams(window.location.search);
+    const r = params.get('calendar');
+    if (r === 'connected') toast.success('Google Calendar connected.');
+    else if (r === 'error') toast.error('Could not connect Google Calendar — try again.');
+    if (r) window.history.replaceState({}, '', window.location.pathname);
+  }, [refresh, toast]);
+
+  const connect = async () => {
+    setLoading(true);
+    try {
+      const { url, reason } = await getCalendarAuthUrl();
+      if (!url) {
+        toast.error(
+          reason === 'not_configured'
+            ? 'Google is not configured — set GOOGLE_CLIENT_ID/SECRET in the backend .env.'
+            : 'Could not start Google sign-in.',
+        );
+        setLoading(false);
+        return;
+      }
+      window.location.href = url; // hand off to Google's consent screen
+    } catch {
+      toast.error('Could not start Google sign-in.');
+      setLoading(false);
+    }
+  };
+
+  const connected = !!status?.connected;
+  const configured = !!status?.configured;
+
+  return (
+    <div className="border border-[#DAD4C8] rounded-lg p-4 bg-[#F2EEE7] space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2.5">
+          <span className="w-9 h-9 rounded-lg bg-accent-50 text-accent-600 flex items-center justify-center shrink-0">
+            <CalendarDays size={16} />
+          </span>
+          <div>
+            <p className="font-semibold text-gray-900">Google Calendar Sync</p>
+            <p className="text-[11px] text-gray-500 max-w-md">
+              Push scheduled interviews, HR calls and tests to the shared HR Google Calendar
+              (one-way). Connect the team Google account once.
+            </p>
+          </div>
+        </div>
+        <span
+          className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold shrink-0 ${
+            connected
+              ? 'bg-emerald-50 text-emerald-600'
+              : configured
+                ? 'bg-yellow-50 text-yellow-600'
+                : 'bg-[#E6E1D8] text-gray-500'
+          }`}
+        >
+          {connected ? 'Connected' : configured ? 'Not connected' : 'Not configured'}
+        </span>
+      </div>
+
+      {connected && status?.connectedEmail && (
+        <p className="text-[11px] text-gray-600 font-mono pl-11">
+          {status.connectedEmail} · calendar “{status.calendarId}”
+        </p>
+      )}
+
+      <div className="pl-11">
+        {!configured ? (
+          <p className="text-[11px] text-gray-500">
+            Add <span className="font-mono">GOOGLE_CLIENT_ID</span> and{' '}
+            <span className="font-mono">GOOGLE_CLIENT_SECRET</span> to the backend{' '}
+            <span className="font-mono">.env</span>, then reload to connect.
+          </p>
+        ) : (
+          <button
+            onClick={connect}
+            disabled={loading}
+            className="bg-accent-600 hover:bg-accent-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg font-medium cursor-pointer transition flex items-center gap-1.5"
+          >
+            <CalendarDays size={13} />
+            {connected ? 'Reconnect Google Calendar' : 'Connect Google Calendar'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function SettingsView() {
   const [activeTab, setActiveTab] = useState<'general' | 'roles' | 'rules'>('general');
 
   return (
-    <div className="bg-[#FFFFFF] border border-[#EAEAEC] rounded-xl p-6 text-xs select-none space-y-5">
+    <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-6 text-xs select-none space-y-5">
       <div>
         <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
           Circle HR Workspace Settings
         </h2>
-        <p className="text-gray-400 text-[11px]">
+        <p className="text-gray-500 text-[11px]">
           Manage security guidelines, background validation rules, and template variables.
         </p>
       </div>
 
-      <div className="border-b border-gray-100 flex gap-4 pb-1.5 font-semibold">
-        <button
-          onClick={() => setActiveTab('general')}
-          className={`pb-1.5 border-b-2 ${activeTab === 'general' ? 'border-accent-600 text-accent-600' : 'border-transparent text-gray-400'}`}
-        >
-          General Workspace
-        </button>
-        <button
-          onClick={() => setActiveTab('roles')}
-          className={`pb-1.5 border-b-2 ${activeTab === 'roles' ? 'border-accent-600 text-accent-600' : 'border-transparent text-gray-400'}`}
-        >
-          Roles & Cryptography
-        </button>
-        <button
-          onClick={() => setActiveTab('rules')}
-          className={`pb-1.5 border-b-2 ${activeTab === 'rules' ? 'border-accent-600 text-accent-600' : 'border-transparent text-gray-400'}`}
-        >
-          Automated Rules Rules
-        </button>
-      </div>
+      <Tabs value={activeTab} onValueChange={v => setActiveTab(v as 'general' | 'roles' | 'rules')}>
+        <TabsList>
+          <TabsTrigger value="general">General Workspace</TabsTrigger>
+          <TabsTrigger value="roles">Roles &amp; Cryptography</TabsTrigger>
+          <TabsTrigger value="rules">Automated Rules Rules</TabsTrigger>
+        </TabsList>
 
-      {activeTab === 'general' && (
+        <TabsContent value="general">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <p className="font-semibold text-gray-800">Workspace Tenant Name</p>
               <input
                 type="text"
-                value="Opti Corp HQ Inc"
-                disabled
-                className="w-full bg-[#F1F1F2] px-2.5 py-1.5 rounded border border-[#EAEAEC]"
+                value={workspace.name}
+                readOnly
+                placeholder="Set NEXT_PUBLIC_WORKSPACE_NAME"
+                className="w-full bg-[#E6E1D8] px-2.5 py-1.5 rounded border border-[#DAD4C8]"
               />
             </div>
             <div className="space-y-1">
               <p className="font-semibold text-gray-800">Primary Domain Link</p>
               <input
                 type="text"
-                value="https://projectcircle.optiprime.io"
-                disabled
-                className="w-full bg-[#F1F1F2] px-2.5 py-1.5 rounded border border-[#EAEAEC]"
+                value={workspace.domain}
+                readOnly
+                placeholder="Set NEXT_PUBLIC_WORKSPACE_DOMAIN"
+                className="w-full bg-[#E6E1D8] px-2.5 py-1.5 rounded border border-[#DAD4C8]"
               />
             </div>
           </div>
@@ -1975,13 +2081,15 @@ export function SettingsView() {
               transport tunnels are active on port 3000.
             </span>
           </div>
-        </div>
-      )}
 
-      {activeTab === 'roles' && (
+          <GoogleCalendarCard />
+        </div>
+        </TabsContent>
+
+        <TabsContent value="roles">
         <div className="space-y-3">
           <h4 className="font-bold text-gray-850">Regulatory Role permissions matrix</h4>
-          <div className="border border-[#EAEAEC] rounded bg-[#F1F1F2] p-3 space-y-2 font-mono text-[11px]">
+          <div className="border border-[#DAD4C8] rounded bg-[#E6E1D8] p-3 space-y-2 font-mono text-[11px]">
             <div className="flex justify-between">
               <span className="font-semibold">HR Specialist Role:</span>
               <span>Reads CRM, Uploads CVs, Schedules slots, triggers email templates drafts.</span>
@@ -1994,12 +2102,12 @@ export function SettingsView() {
             </div>
           </div>
         </div>
-      )}
+        </TabsContent>
 
-      {activeTab === 'rules' && (
+        <TabsContent value="rules">
         <div className="space-y-3">
           <h4 className="font-bold text-gray-850">Corporate BGV Dependency Checklist Rules</h4>
-          <div className="space-y-2 bg-[#FAFBFC] p-3 rounded-lg border border-gray-100">
+          <div className="space-y-2 bg-[#F2EEE7] p-3 rounded-lg border border-[#E2DDD2]">
             <div className="flex items-center gap-2">
               <div className="w-3.5 h-3.5 bg-accent-600 rounded flex items-center justify-center text-white">
                 <Check size={8} />
@@ -2017,7 +2125,8 @@ export function SettingsView() {
             </div>
           </div>
         </div>
-      )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

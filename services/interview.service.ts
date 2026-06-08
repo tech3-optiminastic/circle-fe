@@ -19,8 +19,9 @@ export function buildScheduledInterview(candidate: Candidate, input: ScheduleInp
     interviewerName: input.interviewer,
     dateTime: input.dateTime,
     meetingMode: input.mode as Interview['meetingMode'],
-    meetingLink:
-      input.mode === 'In-Person' ? 'Building A conference wing' : 'https://meet.google.com/qwe-asdf-zxc',
+    // Left empty: an online Meet link is populated by the Google Calendar push
+    // (lib/api/calendar), and an in-person location is entered by the scheduler.
+    meetingLink: '',
     durationMinutes: 45,
     status: 'Scheduled',
   };
@@ -40,20 +41,29 @@ export function buildInterviewInviteEmail(candidate: Candidate, round: string): 
 }
 
 export function applyGrading(interview: Interview, recommendation: string, comments: string): Interview {
+  // Derive a representative score from the interviewer's actual recommendation
+  // rather than hardcoding a fixed scorecard.
+  const base = /strong/i.test(recommendation)
+    ? 5
+    : /no\s*hire|reject/i.test(recommendation)
+      ? 2
+      : /hold|maybe|consider/i.test(recommendation)
+        ? 3
+        : 4;
   return {
     ...interview,
     status: 'Completed',
     grading: {
       grades: {
-        subjectKnowledge: 4,
-        clarityOfCommunication: 5,
-        confidence: 5,
-        practicalExperience: 4,
-        problemSolvingAbility: 4,
-        attitude: 4,
-        teamFit: 4,
-        learningAbility: 4,
-        overallSuitability: 5,
+        subjectKnowledge: base,
+        clarityOfCommunication: base,
+        confidence: base,
+        practicalExperience: base,
+        problemSolvingAbility: base,
+        attitude: base,
+        teamFit: base,
+        learningAbility: base,
+        overallSuitability: base,
       },
       interviewerComments: comments,
       recommendation: recommendation as any,

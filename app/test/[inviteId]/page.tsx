@@ -409,8 +409,8 @@ function TestFlow({ invite }: { invite: TestInvite }) {
               Your responses have been recorded.
             </p>
           </div>
-          <div className="bg-white border border-[#EAEAEC] rounded-2xl px-8 py-5 shadow-2xs">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-gray-400">
+          <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-2xl px-8 py-5 shadow-2xs">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-gray-500">
               Your score
             </p>
             <p
@@ -421,7 +421,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
               {result.score}
               {invite.kind === 'assessment' && <span className="text-xl">%</span>}
             </p>
-            <p className="text-[11px] text-gray-400 mt-1">
+            <p className="text-[11px] text-gray-500 mt-1">
               {invite.kind === 'iq'
                 ? `Qualifying score: ${IQ_PASS_SCORE}+`
                 : `Qualifying score: ${ASSESSMENT_PASS_PERCENT}%+`}
@@ -471,36 +471,36 @@ function TestFlow({ invite }: { invite: TestInvite }) {
           </div>
 
           <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="bg-white border border-[#EAEAEC] rounded-xl py-3.5">
+            <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl py-3.5">
               <ListChecks size={16} className="mx-auto text-accent-600" />
               <p className="text-lg font-bold text-gray-900 mt-1">{questions.length}</p>
-              <p className="text-[10px] text-gray-400 font-mono uppercase">Questions</p>
+              <p className="text-[10px] text-gray-500 font-mono uppercase">Questions</p>
             </div>
-            <div className="bg-white border border-[#EAEAEC] rounded-xl py-3.5">
+            <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl py-3.5">
               <Timer size={16} className="mx-auto text-accent-600" />
               <p className="text-lg font-bold text-gray-900 mt-1">{invite.durationMin} min</p>
-              <p className="text-[10px] text-gray-400 font-mono uppercase">Time limit</p>
+              <p className="text-[10px] text-gray-500 font-mono uppercase">Time limit</p>
             </div>
-            <div className="bg-white border border-[#EAEAEC] rounded-xl py-3.5">
+            <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl py-3.5">
               <CheckCircle2 size={16} className="mx-auto text-accent-600" />
               <p className="text-lg font-bold text-gray-900 mt-1">
                 {isIq ? IQ_PASS_SCORE : `${ASSESSMENT_PASS_PERCENT}%`}
               </p>
-              <p className="text-[10px] text-gray-400 font-mono uppercase">To qualify</p>
+              <p className="text-[10px] text-gray-500 font-mono uppercase">To qualify</p>
             </div>
           </div>
 
-          <div className="bg-[#FAFBFC] border border-[#EAEAEC] rounded-2xl p-5 space-y-3">
+          <div className="bg-[#F2EEE7] border border-[#DAD4C8] rounded-2xl p-5 space-y-3">
             <p className="flex items-center gap-2 text-sm font-bold text-gray-900">
               <ShieldAlert size={16} className="text-accent-600" /> Test rules — read carefully
             </p>
             <ul className="space-y-2 text-[13px] text-gray-600">
               <li className="flex items-start gap-2">
-                <Maximize2 size={14} className="mt-0.5 shrink-0 text-gray-400" />
+                <Maximize2 size={14} className="mt-0.5 shrink-0 text-gray-500" />
                 The test runs in <strong>full screen</strong>. Exiting full screen is flagged.
               </li>
               <li className="flex items-start gap-2">
-                <EyeOff size={14} className="mt-0.5 shrink-0 text-gray-400" />
+                <EyeOff size={14} className="mt-0.5 shrink-0 text-gray-500" />
                 <span>
                   <strong>Do not switch tabs or leave this window.</strong> Each switch is a
                   violation — after {MAX_VIOLATIONS} your test auto-submits with whatever you have
@@ -508,7 +508,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <Clock4 size={14} className="mt-0.5 shrink-0 text-gray-400" />
+                <Clock4 size={14} className="mt-0.5 shrink-0 text-gray-500" />
                 The timer keeps running even if you refresh — your answers are preserved, the
                 clock is not paused.
               </li>
@@ -528,9 +528,9 @@ function TestFlow({ invite }: { invite: TestInvite }) {
 
   /* --------------------------- running ----------------------------- */
   return (
-    <div className="min-h-screen bg-[#F6F6F7] select-none">
+    <div className="min-h-screen bg-[#ECE8E0] select-none">
       {/* Sticky proctor bar */}
-      <div className="sticky top-0 z-50 bg-[#0891B2] text-white px-4 py-2.5 flex items-center justify-between gap-3">
+      <div className="sticky top-0 z-50 bg-[#A51C30] text-white px-4 py-2.5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <Logo size={22} />
           <span className="text-xs font-bold truncate">
@@ -548,7 +548,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
           )}
           <span
             className={`font-mono font-bold text-sm tabular-nums px-2.5 py-1 rounded-lg ${
-              lowTime ? 'bg-red-500 text-white animate-pulse' : 'bg-white/10'
+              lowTime ? 'bg-red-500 text-white animate-pulse' : 'bg-[#F7F4EE]/10'
             }`}
           >
             {fmtClock(remainingMs)}
@@ -574,7 +574,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
         {questions.map((q, i) => (
           <div
             key={q.id}
-            className="bg-white border border-[#EAEAEC] rounded-2xl p-4 sm:p-5 shadow-2xs"
+            className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-2xl p-4 sm:p-5 shadow-2xs"
           >
             <p className="text-[13px] font-semibold text-gray-900 leading-relaxed">
               <span className="text-accent-600 font-mono font-bold mr-1.5">{i + 1}.</span>
@@ -591,10 +591,10 @@ function TestFlow({ invite }: { invite: TestInvite }) {
                     className={`text-left text-[12.5px] px-3 py-2.5 rounded-lg border transition cursor-pointer ${
                       selected
                         ? 'border-accent-500 bg-accent-50 text-accent-800 font-semibold'
-                        : 'border-[#EAEAEC] text-gray-600 hover:bg-[#FAFBFC]'
+                        : 'border-[#DAD4C8] text-gray-600 hover:bg-[#F2EEE7]'
                     }`}
                   >
-                    <span className="font-mono font-bold mr-1.5 text-gray-400">
+                    <span className="font-mono font-bold mr-1.5 text-gray-500">
                       {String.fromCharCode(65 + idx)}.
                     </span>
                     {opt}
@@ -607,7 +607,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
       </div>
 
       {/* Submit bar */}
-      <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-[#EAEAEC] px-4 py-3">
+      <div className="fixed bottom-0 inset-x-0 bg-[#F7F4EE]/95 backdrop-blur border-t border-[#DAD4C8] px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <p className="text-[11px] text-gray-500 font-mono">
             {answered}/{questions.length} answered
@@ -631,8 +631,8 @@ function TestFlow({ invite }: { invite: TestInvite }) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#F6F6F7] flex flex-col">
-      <header className="bg-[#0891B2] px-5 py-3.5 flex items-center gap-2.5">
+    <div className="min-h-screen bg-[#ECE8E0] flex flex-col">
+      <header className="bg-[#A51C30] px-5 py-3.5 flex items-center gap-2.5">
         <Logo size={26} />
         <div>
           <p className="text-white text-sm font-bold leading-tight">Curcle</p>
@@ -644,7 +644,7 @@ function Shell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 flex flex-col justify-center max-w-2xl w-full mx-auto">
         {children}
       </main>
-      <footer className="text-center text-[10px] text-gray-400 py-4 font-mono">
+      <footer className="text-center text-[10px] text-gray-500 py-4 font-mono">
         Proctored online test · Curcle HRMS
       </footer>
     </div>
