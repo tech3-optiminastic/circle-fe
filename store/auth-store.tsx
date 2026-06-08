@@ -79,15 +79,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     const e = email.trim().toLowerCase();
     try {
-      await ensureSeeded();
+      // Fast path: look the account up directly (1 round trip). Only fall back
+      // to seeding on a 404 — i.e. the very first run against an empty DB.
       let account: AuthUser;
       try {
         account = await repositories.authUsers.get(e);
       } catch (err) {
         if (err instanceof ApiError && err.status === 404) {
-          return { ok: false, error: 'This email is not authorized to access Curcle.' };
+          await ensureSeeded();
+          try {
+            account = await repositories.authUsers.get(e);
+          } catch (retryErr) {
+            if (retryErr instanceof ApiError && retryErr.status === 404) {
+              return { ok: false, error: 'This email is not authorized to access Curcle.' };
+            }
+            throw retryErr;
+          }
+        } else {
+          throw err;
         }
-        throw err;
       }
       if (account.password !== password) {
         return { ok: false, error: 'Incorrect password. Please try again.' };

@@ -9,6 +9,7 @@ import { useToast } from './Toaster';
 
 import React, { useState } from 'react';
 import { Candidate, CandidateStatus } from '../types';
+import { useUiStore } from '@/store/ui-store';
 import {
   Search,
   Filter,
@@ -19,6 +20,7 @@ import {
   Eye,
   Trash2,
   UserCheck,
+  ShieldCheck,
   X,
 } from 'lucide-react';
 
@@ -38,6 +40,7 @@ export function CandidateListView({
   onShortlistCandidate,
 }: CandidateListViewProps) {
   const toast = useToast();
+  const { openCandidate } = useUiStore();
   const [search, setSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
@@ -320,6 +323,12 @@ export function CandidateListView({
                             icon: <UserCheck size={13} />,
                             disabled: cand.status === 'Shortlisted' || !onShortlistCandidate,
                             onClick: () => onShortlistCandidate?.(cand.id, cand.fullName),
+                          },
+                          {
+                            key: 'bgv',
+                            label: 'BGV Verification',
+                            icon: <ShieldCheck size={13} />,
+                            onClick: () => openCandidate(cand.id, 'bgv'),
                           },
                           {
                             key: 'delete',

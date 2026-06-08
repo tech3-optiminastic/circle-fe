@@ -6,7 +6,10 @@ export function createQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 30_000,
+        // Mutations invalidate their own queries, so cached data can stay
+        // fresh for longer — navigation then renders instantly from cache.
+        staleTime: 120_000,
+        gcTime: 15 * 60_000,
         refetchOnWindowFocus: false,
         // Don't retry client errors (4xx); retry transient ones up to twice.
         retry: (failureCount, error) =>

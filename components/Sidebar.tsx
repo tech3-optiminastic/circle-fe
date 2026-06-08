@@ -12,18 +12,12 @@ import {
   CalendarRange,
   BrainCircuit,
   ListTodo,
-  FolderLock,
-  Boxes,
-  TrendingUp,
   LogOut,
-  MessageSquare,
-  Gauge,
   BarChart3,
   Settings,
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
-  UserSearch,
   FileText,
   Briefcase,
 } from 'lucide-react';
@@ -39,7 +33,6 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
   const [expandedSections, setExpandedSections] = useState({
     recruitment: true,
     employees: true,
-    performance: true,
     offboarding: true,
   });
 
@@ -108,7 +101,6 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
           {navItem('/', 'Dashboard', <LayoutDashboard size={14} />)}
           {navItem('/jobs', 'Job Postings', <Briefcase size={14} />)}
           {navItem('/calendar', 'Recruitment Calendar', <CalendarRange size={14} />)}
-          {navItem('/candidates', 'Candidates', <UserSearch size={14} />)}
         </div>
 
         {/* RECRUITMENT DIVISION */}
@@ -147,28 +139,6 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
             <div className="space-y-0.5">
               {navItem('/onboarding', 'Onboarding Checklist', <ListTodo size={14} />)}
               {navItem('/directory', 'Employee Directory', <Users size={14} />)}
-              {navItem('/credentials', 'System Credentials', <FolderLock size={14} />)}
-              {navItem('/assets', 'Hardware Assets', <Boxes size={14} />)}
-            </div>
-          )}
-        </div>
-
-        {/* PERFORMANCE DIVISION */}
-        <div className="space-y-1">
-          {!isCollapsed && (
-            <div
-              onClick={() => toggleSection('performance')}
-              className="px-3 py-1 flex items-center justify-between text-[10px] font-semibold text-gray-400 uppercase font-mono tracking-wider cursor-pointer hover:text-gray-600"
-            >
-              <span>Performance</span>
-              <span className="text-[8px]">{expandedSections.performance ? '▼' : '▶'}</span>
-            </div>
-          )}
-          {(isCollapsed || expandedSections.performance) && (
-            <div className="space-y-0.5">
-              {navItem('/performance', 'Task Performance', <Gauge size={14} />)}
-              {navItem('/appraisals', 'Reviews & Feedback', <TrendingUp size={14} />)}
-              {navItem('/communication', 'Communication', <MessageSquare size={14} />)}
             </div>
           )}
         </div>

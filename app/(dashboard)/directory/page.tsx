@@ -7,13 +7,14 @@ import { useEmployees, useEmployeeMutations } from '@/features/employees/hooks';
 export default function DirectoryPage() {
   const { setSelectedEmployeeId } = useUiStore();
   const { data: employees = [] } = useEmployees();
-  const { update } = useEmployeeMutations();
+  const { create, update } = useEmployeeMutations();
 
   return (
     <EmployeeDirectoryView
       employees={employees}
       onSelectEmployee={setSelectedEmployeeId}
       onUpdateEmployee={updated => update.mutate(updated)}
+      onAddEmployee={employee => create.mutate(employee)}
     />
   );
 }

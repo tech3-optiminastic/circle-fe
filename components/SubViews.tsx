@@ -3,6 +3,7 @@ import { Select } from './Select';
 import { DocumentsPanel } from './DocumentsPanel';
 import { ActionMenu } from './ActionMenu';
 import { useToast } from './Toaster';
+import { useUiStore } from '@/store/ui-store';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -33,6 +34,7 @@ import {
   X,
   Eye,
   Trash2,
+  ShieldCheck,
   KeyRound,
   Laptop,
   Network,
@@ -74,6 +76,7 @@ export function IntroductoryCallsView({
   onShortlistCandidate,
   onDeleteCandidate,
 }: HRCallsViewProps) {
+  const { openCandidate } = useUiStore();
   const hrCallCandidates = candidates.filter(c => c.status === 'Moved to HR Call' || c.hrCall?.completed);
 
   return (
@@ -153,6 +156,12 @@ export function IntroductoryCallsView({
                             onClick: () => onShortlistCandidate?.(c.id, c.fullName),
                           },
                           {
+                            key: 'bgv',
+                            label: 'BGV Verification',
+                            icon: <ShieldCheck size={13} />,
+                            onClick: () => openCandidate(c.id, 'bgv'),
+                          },
+                          {
                             key: 'delete',
                             label: 'Delete',
                             icon: <Trash2 size={13} />,
@@ -199,6 +208,7 @@ export function InterviewsView({
   onDeleteInterview,
 }: InterviewsViewProps) {
   const toast = useToast();
+  const { openCandidate } = useUiStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [form, setForm] = useState({
     candidateId: candidates[0]?.id || '',
@@ -379,6 +389,12 @@ export function InterviewsView({
                         onClick: () => onShortlistCandidate?.(i.candidateId, i.candidateName),
                       },
                       {
+                        key: 'bgv',
+                        label: 'BGV Verification',
+                        icon: <ShieldCheck size={13} />,
+                        onClick: () => openCandidate(i.candidateId, 'bgv'),
+                      },
+                      {
                         key: 'delete',
                         label: 'Delete',
                         icon: <Trash2 size={13} />,
@@ -456,6 +472,7 @@ export function IQTestAssignmentsView({
   onShortlistCandidate,
   onDeleteTest,
 }: IQViewProps) {
+  const { openCandidate } = useUiStore();
   const [activeTab, setActiveTab] = useState<'iq' | 'assignments'>('iq');
 
   return (
@@ -537,6 +554,12 @@ export function IQTestAssignmentsView({
                             icon: <UserCheck size={13} />,
                             disabled: !onShortlistCandidate,
                             onClick: () => onShortlistCandidate?.(idx.candidateId, idx.candidateName),
+                          },
+                          {
+                            key: 'bgv',
+                            label: 'BGV Verification',
+                            icon: <ShieldCheck size={13} />,
+                            onClick: () => openCandidate(idx.candidateId, 'bgv'),
                           },
                           {
                             key: 'delete',
@@ -769,13 +792,69 @@ interface DirectoryViewProps {
   employees: Employee[];
   onSelectEmployee: (id: string) => void;
   onUpdateEmployee: (updated: Employee) => void;
+  onAddEmployee?: (employee: Employee) => void;
 }
 
-export function EmployeeDirectoryView({ employees, onSelectEmployee, onUpdateEmployee }: DirectoryViewProps) {
+const EMPTY_EMPLOYEE_FORM = {
+  fullName: '',
+  email: '',
+  phone: '',
+  department: 'Engineering',
+  role: '',
+  reportingManager: '',
+  joiningDate: new Date().toISOString().split('T')[0],
+  workLocation: 'Mumbai, India',
+  status: 'Active' as Employee['status'],
+  address: '',
+  emergencyContact: '',
+  bankAccount: '',
+};
+
+export function EmployeeDirectoryView({
+  employees,
+  onSelectEmployee,
+  onUpdateEmployee,
+  onAddEmployee,
+}: DirectoryViewProps) {
+  const toast = useToast();
   const [search, setSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [empForm, setEmpForm] = useState(EMPTY_EMPLOYEE_FORM);
 
   const departments = ['All', 'Engineering', 'Product', 'Design', 'Sales', 'Human Resources'];
+
+  const handleAddEmployee = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!empForm.fullName.trim() || !empForm.role.trim()) {
+      toast.error('Full name and role are required.');
+      return;
+    }
+    const created: Employee = {
+      id: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
+      fullName: empForm.fullName.trim(),
+      email: empForm.email.trim(),
+      phone: empForm.phone.trim(),
+      department: empForm.department,
+      role: empForm.role.trim(),
+      reportingManager: empForm.reportingManager.trim() || '—',
+      joiningDate: empForm.joiningDate,
+      workLocation: empForm.workLocation.trim(),
+      status: empForm.status,
+      personalDetails: {
+        address: empForm.address.trim(),
+        emergencyContact: empForm.emergencyContact.trim(),
+        bankAccount: empForm.bankAccount.trim(),
+      },
+      credentials: [],
+      assets: [],
+      appraisalHistory: [],
+    };
+    onAddEmployee?.(created);
+    setShowAddForm(false);
+    setEmpForm(EMPTY_EMPLOYEE_FORM);
+    toast.success(`${created.fullName} added to the directory (${created.id}).`);
+  };
 
   const filtered = employees.filter(e => {
     const matchesSearch =
@@ -823,49 +902,291 @@ export function EmployeeDirectoryView({ employees, onSelectEmployee, onUpdateEmp
               </option>
             ))}
           </Select>
+
+          {onAddEmployee && (
+            <button
+              id="btn-add-employee"
+              onClick={() => setShowAddForm(true)}
+              className="bg-accent-600 hover:bg-accent-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer transition font-semibold shrink-0 shadow-2xs"
+            >
+              <Plus size={13} /> Add Employee
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Grid of employees */}
-      <div
-        id="employees-cards"
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-      >
-        {filtered.map(emp => (
-          <div
-            key={emp.id}
-            onClick={() => onSelectEmployee(emp.id)}
-            className="bg-[#FFFFFF] border border-[#E1D6BC] rounded-xl p-4 flex flex-col justify-between hover:shadow-xs hover:border-accent-400 cursor-pointer transition duration-150"
-          >
-            <div className="space-y-3">
-              <div className="flex justify-between items-start">
-                <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs truncate">
-                  {emp.fullName
-                    .split(' ')
-                    .map(n => n[0])
-                    .join('')}
-                </div>
-                <span className="text-[10px] bg-green-50 text-green-600 font-bold px-2 py-0.5 rounded font-mono">
-                  {emp.status}
-                </span>
-              </div>
-
-              <div>
-                <h4 className="font-bold text-gray-900 text-xs tracking-tight">{emp.fullName}</h4>
-                <p className="text-[10px] text-gray-400 font-mono uppercase mt-0.5">{emp.role}</p>
-                <p className="text-[11px] text-gray-500 mt-1">
-                  {emp.department} Squad • {emp.workLocation}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-2.5 border-t border-[#E1D6BC]/65 flex justify-between items-center text-[10px] font-mono text-gray-400">
-              <span>ID: {emp.id}</span>
-              <span>Joined: {emp.joiningDate}</span>
-            </div>
-          </div>
-        ))}
+      {/* Employee table */}
+      <div className="bg-[#FFFFFF] border border-[#E1D6BC] rounded-2xl shadow-2xs overflow-x-auto">
+        <table id="employees-table" className="w-full text-left min-w-[820px]">
+          <thead>
+            <tr className="border-b border-[#EAE1CC] text-[10px] font-mono uppercase tracking-wider text-gray-400">
+              <th className="p-3">Employee</th>
+              <th className="p-3">ID</th>
+              <th className="p-3">Role</th>
+              <th className="p-3">Department</th>
+              <th className="p-3">Location</th>
+              <th className="p-3">Joined</th>
+              <th className="p-3">Status</th>
+              <th className="p-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="p-8 text-center text-gray-400 text-xs">
+                  No employees match the current filters.
+                </td>
+              </tr>
+            ) : (
+              filtered.map(emp => (
+                <tr
+                  key={emp.id}
+                  onClick={() => onSelectEmployee(emp.id)}
+                  className="border-b border-[#F2ECDD] last:border-0 hover:bg-[#F7F1E4] cursor-pointer transition"
+                >
+                  <td className="p-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-7 h-7 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-[10px] shrink-0">
+                        {emp.fullName
+                          .split(' ')
+                          .map(n => n[0])
+                          .slice(0, 2)
+                          .join('')
+                          .toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-gray-900 text-[12px] truncate">{emp.fullName}</p>
+                        {emp.email && (
+                          <p className="text-[10px] text-gray-400 font-mono truncate">{emp.email}</p>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-3 font-mono text-[11px] text-gray-500">{emp.id}</td>
+                  <td className="p-3 font-semibold text-gray-700">{emp.role}</td>
+                  <td className="p-3 text-gray-600">{emp.department}</td>
+                  <td className="p-3 text-gray-500">{emp.workLocation}</td>
+                  <td className="p-3 font-mono text-[11px] text-gray-500">{emp.joiningDate}</td>
+                  <td className="p-3">
+                    <span
+                      className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${
+                        emp.status === 'Active'
+                          ? 'bg-green-50 text-green-600'
+                          : emp.status === 'On Leave'
+                            ? 'bg-yellow-50 text-yellow-600'
+                            : emp.status === 'Offboarded'
+                              ? 'bg-gray-100 text-gray-500'
+                              : 'bg-red-50 text-red-600'
+                      }`}
+                    >
+                      {emp.status}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    <div className="flex items-center justify-end">
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          onSelectEmployee(emp.id);
+                        }}
+                        className="text-[10px] bg-[#FFFFFF] border border-[#E1D6BC] text-gray-700 hover:text-accent-600 hover:border-accent-300 px-2 py-1 rounded-md font-semibold font-mono flex items-center gap-1 cursor-pointer transition shadow-2xs"
+                      >
+                        <Eye size={11} /> File
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
+
+      {/* Add Employee modal — register existing staff with full details */}
+      {showAddForm && (
+        <div className="fixed inset-0 bg-gray-900/45 backdrop-blur-xs flex items-center justify-center z-[110] p-4">
+          <form
+            onSubmit={handleAddEmployee}
+            className="bg-[#FFFFFF] p-5 rounded-xl border border-[#E1D6BC] shadow-2xl w-full max-w-2xl space-y-3.5 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+              <h3 className="font-bold text-gray-900 text-xs font-mono uppercase tracking-wider">
+                Add Employee to Directory
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAddForm(false)}
+                className="text-gray-400 hover:text-gray-600 cursor-pointer p-1"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div className="space-y-1">
+                <label className="font-semibold text-gray-700">Full Name *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Priya Sharma"
+                  value={empForm.fullName}
+                  onChange={e => setEmpForm({ ...empForm, fullName: e.target.value })}
+                  className="w-full px-2.5 py-1.5 border border-[#E1D6BC] rounded text-xs bg-[#EAE1CC] focus:bg-[#FFFFFF] focus:outline-none"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="font-semibold text-gray-700">Role / Designation *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Senior React Engineer"
+                  value={empForm.role}
+                  onChange={e => setEmpForm({ ...empForm, role: e.target.value })}
+                  className="w-full px-2.5 py-1.5 border border-[#E1D6BC] rounded text-xs bg-[#EAE1CC] focus:bg-[#FFFFFF] focus:outline-none"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div className="space-y-1">
+                <label className="font-semibold text-gray-700">Work Email</label>
+                <input
+                  type="email"
+                  placeholder="name@optiminastic.com"
+                  value={empForm.email}
+                  onChange={e => setEmpForm({ ...empForm, email: e.target.value })}
+                  className="w-full px-2.5 py-1.5 border border-[#E1D6BC] rounded text-xs bg-[#EAE1CC] focus:bg-[#FFFFFF] focus:outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="font-semibold text-gray-700">Phone</label>
+                <input
+                  type="text"
+                  placeholder="+91 ..."
+                  value={empForm.phone}
+                  onChange={e => setEmpForm({ ...empForm, phone: e.target.value })}
+                  className="w-full px-2.5 py-1.5 border border-[#E1D6BC] rounded text-xs bg-[#EAE1CC] focus:bg-[#FFFFFF] focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+              <div className="space-y-1">
+                <label className="font-semibold text-gray-700">Department</label>
+                <Select
+                  value={empForm.department}
+                  onChange={e => setEmpForm({ ...empForm, department: e.target.value })}
+                  className="w-full px-2 py-1.5 border border-[#E1D6BC] rounded text-xs bg-[#EAE1CC]"
+                >
+                  <option value="Engineering">Engineering</option>
+                  <option value="Product">Product</option>
+                  <option value="Design">Design</option>
+                  <option value="Sales">Sales</option>
+                  <option value="Human Resources">Human Resources</option>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="font-semibold text-gray-700">Status</label>
+                <Select
+                  value={empForm.status}
+                  onChange={e =>
+                    setEmpForm({ ...empForm, status: e.target.value as Employee['status'] })
+                  }
+                  className="w-full px-2 py-1.5 border border-[#E1D6BC] rounded text-xs bg-[#EAE1CC]"
+                >
+                  <option value="Active">Active</option>
+                  <option value="On Leave">On Leave</option>
+                  <option value="Suspended">Suspended</option>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="font-semibold text-gray-700">Joining Date</label>
+                <input
+                  type="date"
+                  value={empForm.joiningDate}
+                  onChange={e => setEmpForm({ ...empForm, joiningDate: e.target.value })}
+                  className="w-full px-2.5 py-1.5 border border-[#E1D6BC] rounded text-xs bg-[#EAE1CC] font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="font-semibold text-gray-700">Work Location</label>
+                <input
+                  type="text"
+                  placeholder="Mumbai, India"
+                  value={empForm.workLocation}
+                  onChange={e => setEmpForm({ ...empForm, workLocation: e.target.value })}
+                  className="w-full px-2.5 py-1.5 border border-[#E1D6BC] rounded text-xs bg-[#EAE1CC] focus:bg-[#FFFFFF] focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-semibold text-gray-700">Reporting Manager</label>
+              <input
+                type="text"
+                placeholder="e.g. Akshae (Director)"
+                value={empForm.reportingManager}
+                onChange={e => setEmpForm({ ...empForm, reportingManager: e.target.value })}
+                className="w-full px-2.5 py-1.5 border border-[#E1D6BC] rounded text-xs bg-[#EAE1CC] focus:bg-[#FFFFFF] focus:outline-none"
+              />
+            </div>
+
+            <div className="pt-1 border-t border-gray-100">
+              <p className="font-bold text-gray-400 font-mono text-[9px] uppercase tracking-wider mb-2">
+                Personal records (optional)
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                <div className="space-y-1">
+                  <label className="font-semibold text-gray-700">Address</label>
+                  <input
+                    type="text"
+                    placeholder="Mailing address"
+                    value={empForm.address}
+                    onChange={e => setEmpForm({ ...empForm, address: e.target.value })}
+                    className="w-full px-2.5 py-1.5 border border-[#E1D6BC] rounded text-xs bg-[#EAE1CC] focus:bg-[#FFFFFF] focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-semibold text-gray-700">Emergency Contact</label>
+                  <input
+                    type="text"
+                    placeholder="Name · +91 ..."
+                    value={empForm.emergencyContact}
+                    onChange={e => setEmpForm({ ...empForm, emergencyContact: e.target.value })}
+                    className="w-full px-2.5 py-1.5 border border-[#E1D6BC] rounded text-xs bg-[#EAE1CC] focus:bg-[#FFFFFF] focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-semibold text-gray-700">Bank Account</label>
+                  <input
+                    type="text"
+                    placeholder="Account / IFSC"
+                    value={empForm.bankAccount}
+                    onChange={e => setEmpForm({ ...empForm, bankAccount: e.target.value })}
+                    className="w-full px-2.5 py-1.5 border border-[#E1D6BC] rounded text-xs bg-[#EAE1CC] focus:bg-[#FFFFFF] focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowAddForm(false)}
+                className="px-4 py-1.5 border border-[#E1D6BC] hover:bg-gray-100 rounded text-gray-650 cursor-pointer font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-1.5 bg-accent-600 hover:bg-accent-700 text-white rounded cursor-pointer font-semibold"
+              >
+                Add to Directory
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

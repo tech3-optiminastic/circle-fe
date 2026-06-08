@@ -19,17 +19,19 @@ export function useBgvs() {
 export function useCandidateMutations() {
   const qc = useQueryClient();
 
+  // NOTE: BGV is intentionally NOT auto-created here — background verification
+  // only starts after the candidate clears the interview, triggered by HR
+  // (see useStartBgv + the gate in CandidateProfileModal's BGV tab).
   const create = useMutation({
     mutationFn: async (candidate: Candidate) => {
       await repositories.candidates.create(candidate);
-      await repositories.bgvs.create(buildBgvForCandidate(candidate));
       return candidate;
     },
     ...optimisticOptions<Candidate, Candidate>(
       qc,
       qk.candidates.all,
       candidate => listOps.prepend(candidate),
-      [qk.candidates.all, qk.bgvs.all],
+      [qk.candidates.all],
     ),
   });
 
@@ -77,5 +79,16 @@ export function useUpdateBgv() {
     ...optimisticOptions<BGVRequirement, BGVRequirement>(qc, qk.bgvs.all, bgv =>
       listOps.replaceBy(b => b.candidateId === bgv.candidateId, bgv),
     ),
+  });
+}
+
+/** Kick off background verification for a candidate who has no BGV record yet
+ *  (e.g. one who applied through a public job link). */
+export function useStartBgv() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (candidate: Candidate) =>
+      repositories.bgvs.create(buildBgvForCandidate(candidate)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.bgvs.all }),
   });
 }

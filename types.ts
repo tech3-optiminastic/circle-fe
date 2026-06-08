@@ -49,6 +49,35 @@ export interface ScheduleEvent {
   createdAt: string;
 }
 
+/**
+ * A secure invitation to take an online test (IQ or role assessment). The `id`
+ * doubles as the unguessable token in the public test URL (/test/[id]).
+ */
+export interface TestInvite {
+  id: string; // e.g. 'TIV-8F3K2P'
+  kind: 'iq' | 'assessment';
+  candidateId: string;
+  candidateName: string;
+  email: string;
+  position: string; // applied role (drives which assessment bank is used)
+  department: string;
+  jobId?: string;
+  durationMin: number; // iq: 20, assessment: 60
+  scheduledFor?: string; // ISO — from the schedule event
+  status: 'Pending' | 'In Progress' | 'Completed' | 'Auto-Submitted';
+  startedAt?: string;
+  completedAt?: string;
+  correct?: number;
+  total?: number;
+  /** IQ tests: IQ-scale score (pass >= 100). Assessments: percentage (pass >= 60). */
+  score?: number;
+  passed?: boolean;
+  violations?: number;
+  /** Question id -> selected option index, recorded at submit for HR analysis. */
+  answers?: Record<string, number>;
+  createdAt: string;
+}
+
 /** A dashboard login account. Stored server-side; `id` is the email. */
 export interface AuthUser {
   id: string; // email (primary key)
