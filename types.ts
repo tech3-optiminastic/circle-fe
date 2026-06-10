@@ -55,7 +55,10 @@ export interface ScheduleEvent {
  */
 export interface TestInvite {
   id: string; // e.g. 'TIV-8F3K2P'
-  kind: 'iq' | 'assessment';
+  /** 'iq' = MCQ reasoning test. 'assignment' = take-home task the candidate
+   *  submits a file for, graded manually by HR. ('assessment' is the legacy
+   *  MCQ stage, superseded by 'assignment'.) */
+  kind: 'iq' | 'assessment' | 'assignment';
   candidateId: string;
   candidateName: string;
   email: string;
@@ -64,14 +67,27 @@ export interface TestInvite {
   jobId?: string;
   durationMin: number; // iq: 20, assessment: 60
   scheduledFor?: string; // ISO — from the schedule event
-  status: 'Pending' | 'In Progress' | 'Completed' | 'Auto-Submitted';
+  status: 'Pending' | 'In Progress' | 'Completed' | 'Auto-Submitted' | 'Submitted' | 'Graded';
   startedAt?: string;
   completedAt?: string;
+  /* ----- assignment (take-home) fields ----- */
+  /** Brief shown to the candidate on the submission page. */
+  instructions?: string;
+  /** ISO deadline for the take-home assignment. */
+  deadlineIso?: string;
+  /** Document id (in the documents store) of the candidate's uploaded work. */
+  submissionDocId?: string;
+  submissionFileName?: string;
+  /** HR grading notes recorded when the assignment is graded. */
+  gradeComments?: string;
   correct?: number;
   total?: number;
   /** IQ tests: IQ-scale score (pass >= 100). Assessments: percentage (pass >= 60). */
   score?: number;
   passed?: boolean;
+  /** True when the attempt was voided for rule violations (e.g. 3 tab switches):
+   *  the score is not counted and the candidate is not accepted. */
+  disqualified?: boolean;
   violations?: number;
   /** Question id -> selected option index, recorded at submit for HR analysis. */
   answers?: Record<string, number>;

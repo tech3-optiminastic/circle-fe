@@ -26,6 +26,7 @@ export type TestEmailTemplate =
   | 'iq_invite'
   | 'iq_passed'
   | 'iq_failed'
+  | 'assignment_invite'
   | 'assessment_invite'
   | 'assessment_passed'
   | 'assessment_failed';

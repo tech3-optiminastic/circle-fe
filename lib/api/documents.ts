@@ -43,6 +43,27 @@ export async function uploadDocument(params: {
   return res.json();
 }
 
+export async function importDriveDocument(params: {
+  entityType: string;
+  entityId: string;
+  category: string;
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  accessToken: string;
+}): Promise<DocumentMeta> {
+  const res = await fetch(`${BASE}/api/documents/from-drive`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(detail || `Drive import failed (${res.status})`);
+  }
+  return res.json();
+}
+
 export async function getDocumentUrl(id: string): Promise<{ url: string; fileName: string }> {
   const res = await fetch(`${BASE}/api/documents/${id}/url`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to get download link');

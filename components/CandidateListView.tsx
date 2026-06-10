@@ -8,6 +8,7 @@ import { useToast } from './Toaster';
  */
 
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Candidate, CandidateStatus } from '../types';
 import { useUiStore } from '@/store/ui-store';
 import {
@@ -30,6 +31,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { FileDropzone, PickedFile } from '@/components/ui/file-dropzone';
+import { importDriveDocument, uploadDocument } from '@/lib/api/documents';
 import {
   Dialog,
   DialogContent,
@@ -54,6 +57,7 @@ export function CandidateListView({
   onShortlistCandidate,
 }: CandidateListViewProps) {
   const toast = useToast();
+  const qc = useQueryClient();
   const { openCandidate } = useUiStore();
   const [search, setSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
@@ -64,6 +68,7 @@ export function CandidateListView({
 
   // New Candidate Modal Form state
   const [showAddForm, setShowAddForm] = useState(false);
+  const [resume, setResume] = useState<PickedFile | null>(null);
   const [newCand, setNewCand] = useState({
     fullName: '',
     email: '',
@@ -137,7 +142,37 @@ export function CandidateListView({
     };
 
     onAddCandidate(created);
+
+    // Attach the resume (if any) to the new candidate — best-effort, so a
+    // storage hiccup never blocks adding the candidate to the pipeline.
+    if (resume) {
+      const upload =
+        resume.kind === 'local'
+          ? uploadDocument({
+              entityType: 'candidate',
+              entityId: created.id,
+              category: 'resume',
+              file: resume.file,
+            })
+          : importDriveDocument({
+              entityType: 'candidate',
+              entityId: created.id,
+              category: 'resume',
+              fileId: resume.ref.id,
+              fileName: resume.ref.name,
+              mimeType: resume.ref.mimeType,
+              accessToken: resume.ref.accessToken,
+            });
+      upload
+        .then(() => {
+          toast.success(`Resume attached to ${created.fullName}.`);
+          qc.invalidateQueries({ queryKey: ['documents', 'candidate', created.id] });
+        })
+        .catch(() => toast.error('Candidate added, but the resume failed to upload.'));
+    }
+
     setShowAddForm(false);
+    setResume(null);
     // Reset
     setNewCand({
       fullName: '',
@@ -173,7 +208,10 @@ export function CandidateListView({
         </div>
         <button
           id="btn-add-candidate-directory"
-          onClick={() => setShowAddForm(true)}
+          onClick={() => {
+            setResume(null);
+            setShowAddForm(true);
+          }}
           className="bg-accent-600 hover:bg-accent-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer transition font-medium"
         >
           <Plus size={14} /> Add Candidate
@@ -359,11 +397,13 @@ export function CandidateListView({
                             icon: <Trash2 size={13} />,
                             danger: true,
                             disabled: !onDeleteCandidate,
-                            onClick: () => {
-                              if (confirm('Delete candidate profile safely from secure ATS database?')) {
-                                onDeleteCandidate?.(cand.id);
-                              }
-                            },
+                            onClick: () =>
+                              toast.confirm({
+                                title: `Delete ${cand.fullName}?`,
+                                description: 'This removes the profile from the ATS database.',
+                                confirmLabel: 'Delete',
+                                onConfirm: () => onDeleteCandidate?.(cand.id),
+                              }),
                           },
                         ]}
                       />
@@ -377,7 +417,13 @@ export function CandidateListView({
       </div>
 
       {/* Slide overlay Adding Form Model */}
-      <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+      <Dialog
+        open={showAddForm}
+        onOpenChange={open => {
+          setShowAddForm(open);
+          if (!open) setResume(null);
+        }}
+      >
         <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
           <DialogHeader className="shrink-0 border-b border-border px-6 py-4 text-left">
             <DialogTitle className="font-mono text-xs font-bold uppercase tracking-wider text-gray-900">
@@ -545,6 +591,26 @@ export function CandidateListView({
                       />
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Resume */}
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div>
+                  <h2 className="font-semibold text-foreground">Resume</h2>
+                  <p className="mt-1 text-xs leading-6 text-muted-foreground">
+                    Drag &amp; drop, browse, or import a copy from Google Drive.
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <FileDropzone
+                    value={resume}
+                    onChange={setResume}
+                    accept=".pdf,.doc,.docx"
+                    hint="PDF, DOC or DOCX up to 15 MB"
+                  />
                 </div>
               </div>
 

@@ -199,7 +199,7 @@ export function CandidateProfileModal({
       await navigator.clipboard.writeText(url);
       toast.success('Test link copied.');
     } catch {
-      window.prompt('Copy the test link:', url);
+      toast.error('Could not copy the test link — try again.');
     }
   };
   const candidateAssignmentsSubmissions = assignments.flatMap(a =>

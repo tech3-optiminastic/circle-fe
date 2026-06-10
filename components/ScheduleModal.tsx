@@ -38,7 +38,13 @@ interface ScheduleModalProps {
   onClose: () => void;
 }
 
-const DURATION_MIN = 45;
+/** Slot length per round type. HR calls are quick screening calls. */
+const DURATIONS: Record<ScheduleType, number> = {
+  'HR Call': 10,
+  'IQ Test': 45,
+  Assessment: 45,
+  Interview: 45,
+};
 const pad = (n: number) => String(n).padStart(2, '0');
 
 /** Default to tomorrow at 10:00 (local) in datetime-local format. */
@@ -67,13 +73,15 @@ export function ScheduleModal({
   const [dt, setDt] = useState<string>(defaultSlot);
   const [notes, setNotes] = useState('');
 
+  const durationMin = DURATIONS[type];
+
   const { conflict, validDate, startMs } = useMemo(() => {
     const start = new Date(dt).getTime();
     if (isNaN(start)) return { conflict: null as BusySlot | null, validDate: false, startMs: 0 };
-    const end = start + DURATION_MIN * 60_000;
+    const end = start + durationMin * 60_000;
     const hit = busySlots.find(b => start < b.end && end > b.start) ?? null;
     return { conflict: hit, validDate: true, startMs: start };
-  }, [dt, busySlots]);
+  }, [dt, busySlots, durationMin]);
 
   const blocked = !validDate || !!conflict;
 
@@ -83,7 +91,7 @@ export function ScheduleModal({
     onConfirm({
       type,
       dateTime: new Date(startMs).toISOString(),
-      durationMin: DURATION_MIN,
+      durationMin,
       notes: notes.trim(),
     });
   };
@@ -122,7 +130,7 @@ export function ScheduleModal({
                     }`}
                   >
                     {TYPE_META[t].icon}
-                    {t}
+                    {t === 'Assessment' ? 'Assignment' : t}
                   </Button>
                 ))}
               </div>
@@ -132,7 +140,7 @@ export function ScheduleModal({
             {/* Date & time */}
             <div className="space-y-1">
               <Label htmlFor="schedule-dt" className="text-[11px] font-semibold text-gray-600">
-                Date &amp; time ({DURATION_MIN} min)
+                Date &amp; time ({durationMin} min)
               </Label>
               <Input
                 id="schedule-dt"

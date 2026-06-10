@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useMemo, useState } from 'react';
-import { Candidate, ScheduleEvent, ScheduleType, TestInvite } from '@/types';
+import { Candidate, CandidateStatus, ScheduleEvent, ScheduleType, TestInvite } from '@/types';
 import { useSchedules, useScheduleMutations } from '@/features/schedule/hooks';
 import { useInterviews } from '@/features/interviews/hooks';
 import { useCandidates, useCandidateMutations } from '@/features/candidates/hooks';
@@ -10,7 +10,7 @@ import { useToast } from '@/components/Toaster';
 import { sendScheduleEmail, sendTestEmail } from '@/lib/api/notifications';
 import { pushCalendarEvent } from '@/lib/api/calendar';
 import { repositories } from '@/lib/api/repositories';
-import { IQ_DURATION_MIN, ASSESSMENT_DURATION_MIN } from '@/data/test-banks';
+import { IQ_DURATION_MIN, ASSIGNMENT_DEADLINE_DAYS, assignmentBriefFor } from '@/data/test-banks';
 import { randomId, randomToken, nowISO } from '@/lib/utils';
 
 interface Pending {
@@ -90,7 +90,11 @@ export function ScheduleProvider({ children }: { children: React.ReactNode }) {
       createdAt: nowISO(),
     };
     create.mutate(event);
-    move.mutate({ id: p.candidateId, status: 'Shortlisted' });
+    // Advance the candidate to the stage that matches the event so it surfaces
+    // in the right view — an HR Call moves them into the HR Calls manager, while
+    // the other rounds keep them in the shortlisted pool.
+    const nextStatus: CandidateStatus = type === 'HR Call' ? 'Moved to HR Call' : 'Shortlisted';
+    move.mutate({ id: p.candidateId, status: nextStatus });
     setPending(null);
 
     // Best-effort candidate notification — never blocks/undoes the schedule.
@@ -130,20 +134,37 @@ export function ScheduleProvider({ children }: { children: React.ReactNode }) {
       else toast.info('Scheduled, but the candidate was not emailed.');
     };
 
-    // IQ Test / Assessment are online tests — create a secure invite and email
-    // its link. HR Call / Interview keep the plain schedule notification.
-    if (type === 'IQ Test' || type === 'Assessment') {
-      const isIq = type === 'IQ Test';
+    const position = candidate?.appliedRole || candidate?.department || 'the role';
+    const department = candidate?.department || 'General';
+
+    // The Assignment round is a take-home (the candidate uploads work remotely),
+    // so it gets the assignment email instead of an in-office appointment email.
+    // HR Call / IQ Test / Interview are at the office (HR Call is a phone call).
+    if (type !== 'Assessment') {
+      sendScheduleEmail({
+        to: email,
+        candidateName: p.candidateName,
+        type,
+        dateTimeIso: dateTime,
+        notes: notes || undefined,
+      })
+        .then(res => emailToast(res, `Appointment emailed to ${p.candidateName}.`))
+        .catch(() => toast.error('Scheduled, but sending the appointment email failed.'));
+    }
+
+    // IQ Test: the candidate takes the online MCQ test at the office during the
+    // scheduled session (preceded by the in-office appointment email above).
+    if (type === 'IQ Test') {
       const invite: TestInvite = {
         id: randomToken('TIV'),
-        kind: isIq ? 'iq' : 'assessment',
+        kind: 'iq',
         candidateId: p.candidateId,
         candidateName: p.candidateName,
         email,
-        position: candidate?.appliedRole || candidate?.department || 'the role',
-        department: candidate?.department || 'General',
+        position,
+        department,
         jobId: candidate?.jobId,
-        durationMin: isIq ? IQ_DURATION_MIN : ASSESSMENT_DURATION_MIN,
+        durationMin: IQ_DURATION_MIN,
         scheduledFor: dateTime,
         status: 'Pending',
         createdAt: nowISO(),
@@ -157,26 +178,52 @@ export function ScheduleProvider({ children }: { children: React.ReactNode }) {
       sendTestEmail({
         to: email,
         candidateName: p.candidateName,
-        template: isIq ? 'iq_invite' : 'assessment_invite',
+        template: 'iq_invite',
         testUrl: `${window.location.origin}/test/${invite.id}`,
-        position: invite.position,
-        durationMin: invite.durationMin,
+        position,
+        durationMin: IQ_DURATION_MIN,
         dateTimeIso: dateTime,
       })
         .then(res => emailToast(res, `Test link emailed to ${p.candidateName}.`))
         .catch(() => toast.error('Scheduled, but sending the test link failed.'));
-      return;
     }
 
-    sendScheduleEmail({
-      to: email,
-      candidateName: p.candidateName,
-      type,
-      dateTimeIso: dateTime,
-      notes: notes || undefined,
-    })
-      .then(res => emailToast(res, `Invitation emailed to ${p.candidateName}.`))
-      .catch(() => toast.error('Scheduled, but sending the email failed.'));
+    // Assignment round: a take-home task the candidate uploads work for, then HR
+    // grades it (see the Role Assignments view). No MCQ.
+    if (type === 'Assessment') {
+      const deadline = new Date(Date.now() + ASSIGNMENT_DEADLINE_DAYS * 86_400_000).toISOString();
+      const invite: TestInvite = {
+        id: randomToken('TIV'),
+        kind: 'assignment',
+        candidateId: p.candidateId,
+        candidateName: p.candidateName,
+        email,
+        position,
+        department,
+        jobId: candidate?.jobId,
+        durationMin: 0,
+        status: 'Pending',
+        instructions: assignmentBriefFor(position, department),
+        deadlineIso: deadline,
+        scheduledFor: dateTime,
+        createdAt: nowISO(),
+      };
+      try {
+        await repositories.testInvites.create(invite);
+      } catch {
+        toast.error('Scheduled, but creating the assignment failed — try again.');
+        return;
+      }
+      sendTestEmail({
+        to: email,
+        candidateName: p.candidateName,
+        template: 'assignment_invite',
+        testUrl: `${window.location.origin}/assignment/${invite.id}`,
+        position,
+      })
+        .then(res => emailToast(res, `Assignment emailed to ${p.candidateName}.`))
+        .catch(() => toast.error('Scheduled, but sending the assignment failed.'));
+    }
   };
 
   return (

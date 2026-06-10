@@ -1,9 +1,8 @@
 /**
  * Question banks for the online recruitment tests.
  *
- * IQ test: 20 logical-reasoning MCQs, 20-minute limit. Raw correct count maps
- * to an IQ-scale score: IQ = 60 + correct * 4 (range 60–140); pass >= 100,
- * i.e. at least 10/20 correct.
+ * IQ test: 50 logical-reasoning MCQs, 4 marks each (max 200). Score = correct
+ * × 4; qualify at >= 100 (i.e. at least 25/50 correct).
  *
  * Assessments: one bank per department, 60-minute limit, pass >= 60%.
  * The bank is selected by the candidate's department (General as fallback).
@@ -17,13 +16,39 @@ export interface TestQuestion {
   answer: number;
 }
 
-export const IQ_DURATION_MIN = 20;
+export const IQ_DURATION_MIN = 30;
 export const ASSESSMENT_DURATION_MIN = 60;
-export const IQ_PASS_SCORE = 100; // IQ-scale
+/** Days the candidate gets to submit the take-home assignment. */
+export const ASSIGNMENT_DEADLINE_DAYS = 3;
+/** Marks the assignment is graded out of; pass at 60%. */
+export const ASSIGNMENT_MAX_MARKS = 100;
+export const ASSIGNMENT_PASS_MARKS = 60;
+
+/** Default take-home brief, tailored to the candidate's role/department. */
+export function assignmentBriefFor(position: string, department: string): string {
+  const role = position || department || 'the role';
+  return [
+    `This is the take-home assignment for ${role}.`,
+    '',
+    'What to do:',
+    `• Complete a small, practical task that reflects real work for ${role}.`,
+    '• Keep it focused — quality over quantity. Document any assumptions you make.',
+    '• Package your work (code, document, or design) into a single file (PDF/ZIP/DOC).',
+    '',
+    'How you will be assessed: correctness, problem understanding, practical approach,',
+    'quality, and clarity of communication.',
+    '',
+    'Upload your finished work below before the deadline.',
+  ].join('\n');
+}
+export const IQ_MARKS_PER_QUESTION = 4;
+export const IQ_TOTAL_MARKS = 200; // 50 questions × 4 marks
+export const IQ_PASS_SCORE = 100; // out of 200
 export const ASSESSMENT_PASS_PERCENT = 60;
 
-export const iqScoreFromCorrect = (correct: number, total: number): number =>
-  Math.round(60 + (correct / total) * 80);
+/** Marks-based IQ score: 4 per correct answer (50 questions → 0–200). */
+export const iqScoreFromCorrect = (correct: number, _total: number): number =>
+  correct * IQ_MARKS_PER_QUESTION;
 
 export const IQ_QUESTIONS: TestQuestion[] = [
   {
@@ -150,6 +175,186 @@ export const IQ_QUESTIONS: TestQuestion[] = [
     q: 'Which figure count: how many triangles are in a triangle divided by its three medians?',
     options: ['4', '6', '12', '16'],
     answer: 3,
+  },
+  {
+    id: 'IQ21',
+    q: 'What comes next in the series: 3, 9, 27, 81, ... ?',
+    options: ['162', '216', '243', '324'],
+    answer: 2, // ×3
+  },
+  {
+    id: 'IQ22',
+    q: 'Pen is to Writer as Brush is to:',
+    options: ['Sculptor', 'Painter', 'Carpenter', 'Singer'],
+    answer: 1,
+  },
+  {
+    id: 'IQ23',
+    q: 'Which number is the odd one out: 4, 8, 16, 24, 32?',
+    options: ['8', '16', '24', '32'],
+    answer: 2, // not a power of 2
+  },
+  {
+    id: 'IQ24',
+    q: "If A=1, B=2, C=3 … what is the total value of the word 'CAB'?",
+    options: ['5', '6', '7', '8'],
+    answer: 1, // 3+1+2
+  },
+  {
+    id: 'IQ25',
+    q: 'What comes next: 100, 96, 88, 76, 60, ... ?',
+    options: ['40', '44', '48', '52'],
+    answer: 0, // differences -4,-8,-12,-16,-20
+  },
+  {
+    id: 'IQ26',
+    q: 'Which number should replace the question mark: 7, 14, 28, 56, ... ?',
+    options: ['84', '98', '112', '120'],
+    answer: 2, // ×2
+  },
+  {
+    id: 'IQ27',
+    q: 'A person walks 5 km north, 3 km east, then 5 km south. How far are they from the start?',
+    options: ['3 km', '5 km', '8 km', '13 km'],
+    answer: 0,
+  },
+  {
+    id: 'IQ28',
+    q: 'Doctor is to Hospital as Teacher is to:',
+    options: ['Library', 'School', 'Office', 'Clinic'],
+    answer: 1,
+  },
+  {
+    id: 'IQ29',
+    q: 'What comes next in the series: 1, 4, 9, 16, 25, ... ?',
+    options: ['30', '35', '36', '49'],
+    answer: 2, // perfect squares
+  },
+  {
+    id: 'IQ30',
+    q: 'If today is Friday, what day will it be 100 days from now?',
+    options: ['Saturday', 'Sunday', 'Monday', 'Friday'],
+    answer: 1, // 100 mod 7 = 2 → Sunday
+  },
+  {
+    id: 'IQ31',
+    q: 'Which word does NOT belong: Rose, Lily, Tulip, Oak?',
+    options: ['Rose', 'Lily', 'Tulip', 'Oak'],
+    answer: 3, // a tree, not a flower
+  },
+  {
+    id: 'IQ32',
+    q: 'What comes next: 5, 11, 23, 47, ... ?',
+    options: ['71', '83', '95', '99'],
+    answer: 2, // ×2 + 1
+  },
+  {
+    id: 'IQ33',
+    q: 'A is the father of B, but B is not the son of A. How is this possible?',
+    options: ['Impossible', 'B is a daughter', 'B is adopted', 'A is a grandfather'],
+    answer: 1,
+  },
+  {
+    id: 'IQ34',
+    q: 'Which is heavier: 1 kg of iron or 1 kg of cotton?',
+    options: ['Iron', 'Cotton', 'They weigh the same', 'Depends on size'],
+    answer: 2,
+  },
+  {
+    id: 'IQ35',
+    q: 'What comes next in the series: Z, X, V, T, ... ?',
+    options: ['S', 'R', 'Q', 'U'],
+    answer: 1, // every second letter backwards
+  },
+  {
+    id: 'IQ36',
+    q: 'Evaluate: 144 ÷ 12 + 3 × 2',
+    options: ['18', '24', '30', '36'],
+    answer: 0, // 12 + 6
+  },
+  {
+    id: 'IQ37',
+    q: 'Triangle is to 3 as Hexagon is to:',
+    options: ['5', '6', '7', '8'],
+    answer: 1,
+  },
+  {
+    id: 'IQ38',
+    q: 'If 2 cats catch 2 mice in 2 minutes, how many cats are needed to catch 50 mice in 50 minutes?',
+    options: ['2', '25', '50', '100'],
+    answer: 0,
+  },
+  {
+    id: 'IQ39',
+    q: 'What comes next: 2, 3, 5, 7, 11, 13, ... ?',
+    options: ['15', '16', '17', '19'],
+    answer: 2, // primes
+  },
+  {
+    id: 'IQ40',
+    q: 'If you rearrange the letters "DIANI", you get the name of a(n):',
+    options: ['City', 'River', 'Country', 'Mountain'],
+    answer: 2, // INDIA
+  },
+  {
+    id: 'IQ41',
+    q: 'Which shape has the most sides: Pentagon, Square, Octagon, or Triangle?',
+    options: ['Pentagon', 'Square', 'Octagon', 'Triangle'],
+    answer: 2,
+  },
+  {
+    id: 'IQ42',
+    q: 'What comes next in the series: 81, 64, 49, 36, ... ?',
+    options: ['16', '25', '30', '32'],
+    answer: 1, // 9²,8²,7²,6²,5²
+  },
+  {
+    id: 'IQ43',
+    q: 'Ocean is to Water as Desert is to:',
+    options: ['Heat', 'Sand', 'Camel', 'Dry'],
+    answer: 1,
+  },
+  {
+    id: 'IQ44',
+    q: 'If 3x = 12, then 5x = ?',
+    options: ['15', '18', '20', '24'],
+    answer: 2, // x=4
+  },
+  {
+    id: 'IQ45',
+    q: 'Which number is the odd one out: 121, 144, 169, 200?',
+    options: ['121', '144', '169', '200'],
+    answer: 3, // not a perfect square
+  },
+  {
+    id: 'IQ46',
+    q: 'What comes next: Monday, Wednesday, Friday, ... ?',
+    options: ['Saturday', 'Sunday', 'Tuesday', 'Thursday'],
+    answer: 1, // +2 days
+  },
+  {
+    id: 'IQ47',
+    q: 'How many months of the year have at least 28 days?',
+    options: ['1', '2', '11', '12'],
+    answer: 3,
+  },
+  {
+    id: 'IQ48',
+    q: 'What comes next in the series: 1, 2, 6, 24, 120, ... ?',
+    options: ['240', '360', '600', '720'],
+    answer: 3, // ×2, ×3, ×4, ×5, ×6
+  },
+  {
+    id: 'IQ49',
+    q: 'Bird is to Sky as Fish is to:',
+    options: ['Net', 'Water', 'Scale', 'Boat'],
+    answer: 1,
+  },
+  {
+    id: 'IQ50',
+    q: 'A bat and a ball cost ₹110 in total. The bat costs ₹100 more than the ball. How much is the ball?',
+    options: ['₹5', '₹10', '₹15', '₹100'],
+    answer: 0,
   },
 ];
 

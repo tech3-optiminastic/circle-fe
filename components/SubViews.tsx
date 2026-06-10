@@ -4,6 +4,9 @@ import { DocumentsPanel } from './DocumentsPanel';
 import { ActionMenu } from './ActionMenu';
 import { useToast } from './Toaster';
 import { useUiStore } from '@/store/ui-store';
+import { useSchedules } from '@/features/schedule/hooks';
+import { useCandidates } from '@/features/candidates/hooks';
+import { useScheduler } from '@/store/schedule-store';
 import {
   getCalendarStatus,
   getCalendarAuthUrl,
@@ -51,6 +54,8 @@ import {
   Terminal,
   Send,
   BookOpen,
+  MapPin,
+  Video,
 } from 'lucide-react';
 import {
   Candidate,
@@ -85,8 +90,18 @@ export function IntroductoryCallsView({
   onShortlistCandidate,
   onDeleteCandidate,
 }: HRCallsViewProps) {
+  const toast = useToast();
   const { openCandidate } = useUiStore();
-  const hrCallCandidates = candidates.filter(c => c.status === 'Moved to HR Call' || c.hrCall?.completed);
+  const { data: schedules = [] } = useSchedules();
+
+  // Candidates with a live HR-call booking surface here even if their status
+  // hasn't advanced yet, so a freshly-scheduled call never goes missing.
+  const scheduledForHrCall = new Set(
+    schedules.filter(s => s.type === 'HR Call' && s.status !== 'Cancelled').map(s => s.candidateId),
+  );
+  const hrCallCandidates = candidates.filter(
+    c => c.status === 'Moved to HR Call' || c.hrCall?.completed || scheduledForHrCall.has(c.id),
+  );
 
   return (
     <div className="space-y-4 text-xs select-none">
@@ -176,11 +191,13 @@ export function IntroductoryCallsView({
                             icon: <Trash2 size={13} />,
                             danger: true,
                             disabled: !onDeleteCandidate,
-                            onClick: () => {
-                              if (confirm(`Remove ${c.fullName} from the pipeline?`)) {
-                                onDeleteCandidate?.(c.id);
-                              }
-                            },
+                            onClick: () =>
+                              toast.confirm({
+                                title: `Remove ${c.fullName}?`,
+                                description: 'They will be taken off the pipeline.',
+                                confirmLabel: 'Remove',
+                                onConfirm: () => onDeleteCandidate?.(c.id),
+                              }),
                           },
                         ]}
                       />
@@ -218,6 +235,7 @@ export function InterviewsView({
 }: InterviewsViewProps) {
   const toast = useToast();
   const { openCandidate } = useUiStore();
+  const { data: schedules = [] } = useSchedules();
   const [showAddModal, setShowAddModal] = useState(false);
   const [form, setForm] = useState({
     candidateId: candidates[0]?.id || '',
@@ -251,6 +269,31 @@ export function InterviewsView({
     setShowAddModal(false);
     toast.success(`Interview scheduled for ${candidate.fullName}.`);
   };
+
+  // Interviews booked through the scheduler live in the schedules store (not the
+  // interviews resource), so surface those here too — otherwise a scheduled
+  // interview would be invisible on this page.
+  const scheduledInterviews: Interview[] = schedules
+    .filter(s => s.type === 'Interview' && s.status !== 'Cancelled')
+    .filter(s => !interviews.some(iv => iv.candidateId === s.candidateId && iv.dateTime === s.dateTime))
+    .map(s => {
+      const c = candidates.find(x => x.id === s.candidateId);
+      return {
+        id: s.id,
+        candidateId: s.candidateId,
+        candidateName: s.candidateName,
+        appliedRole: c?.appliedRole ?? '',
+        department: c?.department ?? '',
+        interviewRound: 'Interview',
+        interviewerName: 'To be assigned',
+        dateTime: s.dateTime,
+        meetingMode: 'In-Person',
+        meetingLink: 'Office',
+        durationMinutes: 45,
+        status: s.status === 'Completed' ? 'Completed' : 'Scheduled',
+      } satisfies Interview;
+    });
+  const allInterviews = [...interviews, ...scheduledInterviews];
 
   return (
     <div className="space-y-4 text-xs select-none">
@@ -361,103 +404,112 @@ export function InterviewsView({
         </div>
       )}
 
-      {/* Grid of active scheduled interviews */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {interviews.map(i => (
-          <div
-            key={i.id}
-            className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-4 flex flex-col justify-between hover:shadow-xs transition duration-150 relative"
-          >
-            <div className="space-y-2">
-              <div className="flex justify-between items-start">
-                <span className="text-[10px] bg-accent-50 text-accent-600 font-bold px-2 py-0.5 rounded font-mono">
-                  {i.interviewRound}
-                </span>
-                <div className="flex items-center gap-1">
-                  <span
-                    className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${
-                      i.status === 'Completed' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'
-                    }`}
-                  >
-                    {i.status}
-                  </span>
-                  <ActionMenu
-                    items={[
-                      {
-                        key: 'file',
-                        label: 'View File',
-                        icon: <Eye size={13} />,
-                        disabled: !onSelectCandidate,
-                        onClick: () => onSelectCandidate?.(i.candidateId),
-                      },
-                      {
-                        key: 'shortlist',
-                        label: 'Shortlist & Schedule',
-                        icon: <UserCheck size={13} />,
-                        disabled: !onShortlistCandidate,
-                        onClick: () => onShortlistCandidate?.(i.candidateId, i.candidateName),
-                      },
-                      {
-                        key: 'bgv',
-                        label: 'BGV Verification',
-                        icon: <ShieldCheck size={13} />,
-                        onClick: () => openCandidate(i.candidateId, 'bgv'),
-                      },
-                      {
-                        key: 'delete',
-                        label: 'Delete',
-                        icon: <Trash2 size={13} />,
-                        danger: true,
-                        disabled: !onDeleteInterview,
-                        onClick: () => {
-                          if (confirm(`Delete the ${i.interviewRound} interview for ${i.candidateName}?`)) {
-                            onDeleteInterview?.(i.id);
-                          }
-                        },
-                      },
-                    ]}
+      {/* Scheduled interviews table */}
+      <div className="overflow-hidden rounded-xl border border-[#DAD4C8] bg-[#F7F4EE] shadow-2xs">
+        <table className="w-full border-collapse text-left">
+          <thead>
+            <tr className="border-b border-[#DAD4C8] bg-[#F2EEE7] font-mono text-[9px] font-bold uppercase text-gray-500">
+              <th className="p-3">Candidate</th>
+              <th className="p-3">Role</th>
+              <th className="p-3">Round</th>
+              <th className="p-3">Panel evaluator</th>
+              <th className="p-3">Slot time</th>
+              <th className="p-3">Access mode</th>
+              <th className="p-3">Status</th>
+              <th className="p-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#DAD4C8]">
+            {allInterviews.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="bg-[#F7F4EE] p-3">
+                  <EmptyState
+                    icon={UserCheck}
+                    title="No interviews scheduled"
+                    description="Scheduled interviews appear here. Use “Schedule Interview”, or schedule one from a candidate / assignment grade."
+                    className="border-0 bg-transparent py-10"
                   />
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-bold text-gray-900 font-display">{i.candidateName}</h4>
-                <p className="text-[11px] text-gray-500 mt-1">
-                  {i.appliedRole} • {i.department}
-                </p>
-              </div>
-
-              <div className="text-[11px] text-gray-600 bg-[#E6E1D8] p-2 rounded-lg space-y-1 font-mono">
-                <div className="flex justify-between">
-                  <span>Panel Evaluator:</span>
-                  <span className="font-semibold text-gray-800">{i.interviewerName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Slot Time:</span>
-                  <span className="font-semibold text-gray-850">
+                </td>
+              </tr>
+            ) : (
+              allInterviews.map(i => (
+                <tr key={i.id} className="transition hover:bg-[#F2EEE7]">
+                  <td className="p-3 font-semibold text-gray-900">{i.candidateName}</td>
+                  <td className="p-3 text-gray-600">
+                    {i.appliedRole} <span className="text-gray-400">• {i.department}</span>
+                  </td>
+                  <td className="p-3">
+                    <span className="rounded bg-accent-50 px-2 py-0.5 font-mono text-[10px] font-bold text-accent-600">
+                      {i.interviewRound}
+                    </span>
+                  </td>
+                  <td className="p-3 text-gray-700">{i.interviewerName}</td>
+                  <td className="p-3 font-mono text-[11px] text-gray-700">
                     {new Date(i.dateTime).toLocaleDateString()}{' '}
                     {new Date(i.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-                <div className="flex justify-between truncate">
-                  <span>Access Mode:</span>
-                  <span className="font-semibold text-accent-600 underline truncate select-all">
-                    {i.meetingMode}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {i.grading && (
-              <div className="mt-3 pt-2.5 border-t border-[#DAD4C8]/60 text-[11px] space-y-1">
-                <p className="font-bold text-gray-700">
-                  Recommendation: <span className="text-emerald-600">{i.grading.recommendation}</span>
-                </p>
-                <p className="text-gray-500 italic">"{i.grading.interviewerComments}"</p>
-              </div>
+                  </td>
+                  <td className="p-3">
+                    <span className="flex items-center gap-1 text-accent-600">
+                      {i.meetingMode === 'In-Person' ? <MapPin size={12} /> : <Video size={12} />}
+                      {i.meetingMode}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    <span
+                      className={`rounded-full px-2 py-0.5 font-mono text-[9px] font-bold ${
+                        i.status === 'Completed' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'
+                      }`}
+                    >
+                      {i.status}
+                    </span>
+                  </td>
+                  <td className="p-3 text-right">
+                    <div className="flex items-center justify-end">
+                      <ActionMenu
+                        items={[
+                          {
+                            key: 'file',
+                            label: 'View File',
+                            icon: <Eye size={13} />,
+                            disabled: !onSelectCandidate,
+                            onClick: () => onSelectCandidate?.(i.candidateId),
+                          },
+                          {
+                            key: 'shortlist',
+                            label: 'Shortlist & Schedule',
+                            icon: <UserCheck size={13} />,
+                            disabled: !onShortlistCandidate,
+                            onClick: () => onShortlistCandidate?.(i.candidateId, i.candidateName),
+                          },
+                          {
+                            key: 'bgv',
+                            label: 'BGV Verification',
+                            icon: <ShieldCheck size={13} />,
+                            onClick: () => openCandidate(i.candidateId, 'bgv'),
+                          },
+                          {
+                            key: 'delete',
+                            label: 'Delete',
+                            icon: <Trash2 size={13} />,
+                            danger: true,
+                            disabled: !onDeleteInterview,
+                            onClick: () =>
+                              toast.confirm({
+                                title: `Delete the ${i.interviewRound} interview?`,
+                                description: `For ${i.candidateName}.`,
+                                confirmLabel: 'Delete',
+                                onConfirm: () => onDeleteInterview?.(i.id),
+                              }),
+                          },
+                        ]}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
-          </div>
-        ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -481,8 +533,25 @@ export function IQTestAssignmentsView({
   onShortlistCandidate,
   onDeleteTest,
 }: IQViewProps) {
+  const toast = useToast();
   const { openCandidate } = useUiStore();
+  const { openSchedule } = useScheduler();
+  const { data: candidates = [] } = useCandidates();
+  const { data: schedules = [] } = useSchedules();
   const [activeTab, setActiveTab] = useState<'iq' | 'assignments'>('iq');
+
+  // Candidates ready for / sitting in the IQ round but without a result yet:
+  // anyone shortlisted (e.g. just cleared the HR call) or with a live IQ-test
+  // booking, minus those who already have a completed IQ record.
+  const completedIqIds = new Set(iqTests.map(t => t.candidateId));
+  const scheduledIq = new Map(
+    schedules
+      .filter(s => s.type === 'IQ Test' && s.status !== 'Cancelled')
+      .map(s => [s.candidateId, s] as const),
+  );
+  const awaitingIq = candidates.filter(
+    c => !completedIqIds.has(c.id) && (scheduledIq.has(c.id) || c.status === 'Shortlisted'),
+  );
 
   return (
     <div className="space-y-4 text-xs select-none">
@@ -512,7 +581,81 @@ export function IQTestAssignmentsView({
       </div>
 
       {activeTab === 'iq' ? (
-        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden">
+        <div className="space-y-4">
+          {/* Shortlisted candidates flow into the IQ round here, even before a
+              result exists, so the next step is always visible to HR. */}
+          {awaitingIq.length > 0 && (
+            <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden">
+              <div className="flex items-center gap-1.5 bg-[#F2EEE7] border-b border-[#DAD4C8] px-3 py-2 text-gray-700 font-semibold">
+                <UserCheck size={13} className="text-accent-600" />
+                <span>Awaiting IQ Test</span>
+                <span className="text-[10px] font-mono text-gray-500">({awaitingIq.length})</span>
+              </div>
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#F2EEE7] border-b border-[#DAD4C8] text-gray-500 font-mono text-[9px] uppercase font-bold">
+                    <th className="p-3">Candidate</th>
+                    <th className="p-3">Applied position</th>
+                    <th className="p-3">Stage</th>
+                    <th className="p-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#DAD4C8]">
+                  {awaitingIq.map(c => {
+                    const sched = scheduledIq.get(c.id);
+                    return (
+                      <tr key={c.id} className="hover:bg-[#F2EEE7] transition">
+                        <td className="p-3 font-semibold text-gray-900">{c.fullName}</td>
+                        <td className="p-3">
+                          {c.appliedRole} ({c.department})
+                        </td>
+                        <td className="p-3">
+                          <span
+                            className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${
+                              sched ? 'bg-amber-50 text-amber-600' : 'bg-accent-50 text-accent-600'
+                            }`}
+                          >
+                            {sched
+                              ? `Scheduled · ${new Date(sched.dateTime).toLocaleDateString()}`
+                              : 'Ready to schedule'}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => openSchedule(c.id, c.fullName, 'IQ Test')}
+                              className="text-[10px] bg-accent-600 hover:bg-accent-700 text-white px-3 py-1 rounded-md font-semibold cursor-pointer transition"
+                            >
+                              {sched ? 'Reschedule' : 'Schedule IQ Test'}
+                            </button>
+                            <ActionMenu
+                              items={[
+                                {
+                                  key: 'file',
+                                  label: 'View File',
+                                  icon: <Eye size={13} />,
+                                  disabled: !onSelectCandidate,
+                                  onClick: () => onSelectCandidate?.(c.id),
+                                },
+                                {
+                                  key: 'bgv',
+                                  label: 'BGV Verification',
+                                  icon: <ShieldCheck size={13} />,
+                                  onClick: () => openCandidate(c.id, 'bgv'),
+                                },
+                              ]}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#F2EEE7] border-b border-[#DAD4C8] text-gray-500 font-mono text-[9px] uppercase font-bold">
@@ -576,11 +719,13 @@ export function IQTestAssignmentsView({
                             icon: <Trash2 size={13} />,
                             danger: true,
                             disabled: !onDeleteTest,
-                            onClick: () => {
-                              if (confirm(`Delete this IQ test record for ${idx.candidateName}?`)) {
-                                onDeleteTest?.(idx.id);
-                              }
-                            },
+                            onClick: () =>
+                              toast.confirm({
+                                title: 'Delete this IQ test record?',
+                                description: `For ${idx.candidateName}.`,
+                                confirmLabel: 'Delete',
+                                onConfirm: () => onDeleteTest?.(idx.id),
+                              }),
                           },
                         ]}
                       />
@@ -590,6 +735,7 @@ export function IQTestAssignmentsView({
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">

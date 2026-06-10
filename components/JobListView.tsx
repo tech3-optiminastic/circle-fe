@@ -101,12 +101,12 @@ export function JobListView({
   const copyLink = async (id: string) => {
     try {
       await navigator.clipboard.writeText(publicUrl(id));
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
     } catch {
-      // Clipboard API can be unavailable on insecure origins — fall back to prompt.
-      window.prompt('Copy the public application link:', publicUrl(id));
+      // Clipboard API can be unavailable on insecure origins.
+      toast.error('Could not copy the link — copy it from the address bar instead.');
     }
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleCreate = (e: React.FormEvent) => {
@@ -382,9 +382,12 @@ export function JobListView({
                               size="icon-xs"
                               onClick={e => {
                                 e.stopPropagation();
-                                if (confirm(`Delete the "${job.title}" posting? This cannot be undone.`)) {
-                                  onDeleteJob(job.id);
-                                }
+                                toast.confirm({
+                                  title: `Delete "${job.title}"?`,
+                                  description: 'This cannot be undone.',
+                                  confirmLabel: 'Delete',
+                                  onConfirm: () => onDeleteJob(job.id),
+                                });
                               }}
                               className="text-gray-500 hover:bg-red-50 hover:text-red-600"
                               aria-label="Delete posting"

@@ -12,13 +12,11 @@ import {
   Phone,
   CalendarDays,
 } from 'lucide-react';
-import { Interview, IQTest, Candidate, ScheduleEvent } from '../types';
+import { Interview, ScheduleEvent } from '../types';
 import { Tip } from '@/components/ui/tooltip';
 
 interface CalendarViewProps {
   interviews: Interview[];
-  iqTests: IQTest[];
-  candidates: Candidate[];
   schedules?: ScheduleEvent[];
   onSelectCandidate: (id: string) => void;
 }
@@ -54,8 +52,8 @@ const MONTHS = [
 ];
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const HOUR_HEIGHT = 56;
-const START_HOUR = 9; // 9 AM
-const END_HOUR = 16; // 4 PM
+const START_HOUR = 8; // 8 AM
+const END_HOUR = 20; // 8 PM
 const RANGE_HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
 const GRID_HEIGHT = (END_HOUR - START_HOUR) * HOUR_HEIGHT;
 const BOTTOM_BUFFER = 40;
@@ -166,8 +164,6 @@ function layoutTimed(timed: CalEvent[]): TimedPlacement[] {
 
 export function CalendarView({
   interviews,
-  iqTests,
-  candidates,
   schedules = [],
   onSelectCandidate,
 }: CalendarViewProps) {
@@ -177,7 +173,9 @@ export function CalendarView({
     () => new Date(today.getFullYear(), today.getMonth(), today.getDate()),
   );
 
-  // ---- merge all recruitment events ----
+  // ---- merge scheduled appointments (all timed — no all-day clutter) ----
+  // Only upcoming/scheduled events are shown; historical records (completed IQ
+  // tests, finished HR calls) are not calendar appointments and are omitted.
   const events = useMemo(() => {
     const list: CalEvent[] = [];
     for (const iv of interviews) {
@@ -194,34 +192,6 @@ export function CalendarView({
         meetingMode: iv.meetingMode,
       });
     }
-    for (const t of iqTests) {
-      const d = new Date(t.testDate);
-      if (isNaN(d.getTime())) continue;
-      list.push({
-        id: `iq-${t.id}`,
-        candidateId: t.candidateId,
-        candidateName: t.candidateName,
-        subtitle: `IQ Test · ${t.qualificationStatus}`,
-        date: d,
-        hasTime: false,
-        type: 'IQ Test',
-      });
-    }
-    for (const c of candidates) {
-      if (c.hrCall?.completedDate) {
-        const d = new Date(c.hrCall.completedDate);
-        if (isNaN(d.getTime())) continue;
-        list.push({
-          id: `call-${c.id}`,
-          candidateId: c.id,
-          candidateName: c.fullName,
-          subtitle: `HR Call · ${c.hrCall.nextStep}`,
-          date: d,
-          hasTime: false,
-          type: 'HR Call',
-        });
-      }
-    }
     for (const s of schedules) {
       if (s.status === 'Cancelled') continue;
       const d = new Date(s.dateTime);
@@ -230,14 +200,14 @@ export function CalendarView({
         id: `sch-${s.id}`,
         candidateId: s.candidateId,
         candidateName: s.candidateName,
-        subtitle: `${s.type} (scheduled)`,
+        subtitle: s.type,
         date: d,
         hasTime: true,
         type: s.type,
       });
     }
     return list;
-  }, [interviews, iqTests, candidates, schedules]);
+  }, [interviews, schedules]);
 
   const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 

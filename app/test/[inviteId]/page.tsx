@@ -15,14 +15,17 @@ import {
   assessmentBankFor,
   iqScoreFromCorrect,
   IQ_PASS_SCORE,
+  IQ_TOTAL_MARKS,
   ASSESSMENT_PASS_PERCENT,
-  ASSESSMENT_DURATION_MIN,
+  ASSIGNMENT_DEADLINE_DAYS,
+  assignmentBriefFor,
 } from '@/data/test-banks';
 import {
   BrainCircuit,
   ClipboardList,
   Clock4,
   ShieldAlert,
+  ShieldCheck,
   AlertTriangle,
   CheckCircle2,
   XCircle,
@@ -31,9 +34,14 @@ import {
   EyeOff,
   Timer,
   ListChecks,
+  Check,
+  Sparkles,
+  ArrowRight,
+  ArrowLeft,
 } from 'lucide-react';
 
 const MAX_VIOLATIONS = 3;
+const PAGE_SIZE = 1; // one question per page
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -88,10 +96,12 @@ export default function PublicTestPage() {
   if (isLoading) {
     return (
       <Shell>
-        <div className="flex flex-col items-center gap-3 py-20 text-gray-500">
-          <Loader2 size={26} className="animate-spin text-accent-600" />
-          <p className="text-sm">Loading your test…</p>
-        </div>
+        <Card>
+          <div className="flex flex-col items-center gap-4 py-16 text-gray-500">
+            <Loader2 size={28} className="animate-spin text-accent-600" />
+            <p className="text-sm font-medium">Loading your test…</p>
+          </div>
+        </Card>
       </Shell>
     );
   }
@@ -99,16 +109,20 @@ export default function PublicTestPage() {
   if (isError || !invite) {
     return (
       <Shell>
-        <div className="flex flex-col items-center gap-3 py-16 text-center px-6">
-          <span className="w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center">
-            <XCircle size={26} />
-          </span>
-          <h1 className="text-lg font-bold text-gray-900">Test link not found</h1>
-          <p className="text-sm text-gray-500 max-w-sm">
-            This test link is invalid or has been removed. Please contact the HR team if you
-            believe this is a mistake.
-          </p>
-        </div>
+        <Card>
+          <div className="flex flex-col items-center gap-4 py-14 text-center px-6">
+            <span className="grid h-16 w-16 place-items-center rounded-2xl bg-red-50 text-red-500 ring-8 ring-red-50/40">
+              <XCircle size={30} />
+            </span>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Test link not found</h1>
+              <p className="mt-1.5 text-sm text-gray-500 max-w-sm">
+                This test link is invalid or has been removed. Please contact the HR team if you
+                believe this is a mistake.
+              </p>
+            </div>
+          </div>
+        </Card>
       </Shell>
     );
   }
@@ -134,15 +148,22 @@ function TestFlow({ invite }: { invite: TestInvite }) {
   );
   const [startedAt, setStartedAt] = useState<string | null>(invite.startedAt ?? null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [page, setPage] = useState(0); // current 10-question page
   const [violations, setViolations] = useState<number>(invite.violations ?? 0);
   const [remainingMs, setRemainingMs] = useState<number>(invite.durationMin * 60_000);
   const [warning, setWarning] = useState<string | null>(null);
-  const [result, setResult] = useState<{ score: number; passed: boolean; autoSubmitted: boolean } | null>(
+  const [result, setResult] = useState<{
+    score: number;
+    passed: boolean;
+    autoSubmitted: boolean;
+    disqualified: boolean;
+  } | null>(
     invite.status === 'Completed' || invite.status === 'Auto-Submitted'
       ? {
           score: invite.score ?? 0,
           passed: invite.passed ?? false,
           autoSubmitted: invite.status === 'Auto-Submitted',
+          disqualified: invite.disqualified ?? false,
         }
       : null,
   );
@@ -176,11 +197,17 @@ function TestFlow({ invite }: { invite: TestInvite }) {
   };
 
   /* ----------------------------- submit ---------------------------- */
+  // reason: 'manual' (button) | 'timeout' (clock hit 0) | 'violation' (3 strikes).
+  // A violation VOIDS the attempt — the score is not counted and the candidate
+  // is not accepted, regardless of how many answers were correct.
   const submit = useCallback(
-    async (auto: boolean) => {
+    async (reason: 'manual' | 'timeout' | 'violation') => {
       if (submittingRef.current) return;
       submittingRef.current = true;
       setPhase('submitting');
+
+      const auto = reason !== 'manual';
+      const disqualified = reason === 'violation';
 
       const finalAnswers = answersRef.current;
       const total = questions.length;
@@ -188,8 +215,14 @@ function TestFlow({ invite }: { invite: TestInvite }) {
         (acc, q) => acc + (finalAnswers[q.id] === q.answer ? 1 : 0),
         0,
       );
-      const score = isIq ? iqScoreFromCorrect(correct, total) : Math.round((correct / total) * 100);
-      const passed = isIq ? score >= IQ_PASS_SCORE : score >= ASSESSMENT_PASS_PERCENT;
+      const rawScore = isIq ? iqScoreFromCorrect(correct, total) : Math.round((correct / total) * 100);
+      // Disqualified attempts are never a pass and carry no usable score.
+      const score = disqualified ? 0 : rawScore;
+      const passed = disqualified
+        ? false
+        : isIq
+          ? rawScore >= IQ_PASS_SCORE
+          : rawScore >= ASSESSMENT_PASS_PERCENT;
       const completedAt = nowISO();
       const timeTakenMin = startedAt
         ? Math.max(1, Math.round((Date.now() - new Date(startedAt).getTime()) / 60_000))
@@ -203,6 +236,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
           total,
           score,
           passed,
+          disqualified,
           violations: violationsRef.current,
           answers: finalAnswers, // per-question record for HR analysis
         });
@@ -226,34 +260,38 @@ function TestFlow({ invite }: { invite: TestInvite }) {
             scorePercentage: Math.round((correct / total) * 100),
             timeTakenMinutes: timeTakenMin,
             qualificationStatus: passed ? 'Passed' : 'Failed',
-            remarks: `IQ score ${score} · ${violationsRef.current} violation(s)${auto ? ' · auto-submitted' : ''}`,
+            remarks: disqualified
+              ? `Disqualified · ${violationsRef.current} rule violation(s) — attempt voided`
+              : `IQ score ${score} · ${violationsRef.current} violation(s)${auto ? ' · auto-submitted' : ''}`,
           };
           await repositories.iqTests.create(iqRecord).catch(() => {});
 
           if (passed) {
-            // Auto-chain: create the role assessment invite and email its link.
-            const assessment: TestInvite = {
+            // Auto-chain: assign the take-home ASSIGNMENT and email its link.
+            const deadline = new Date(Date.now() + ASSIGNMENT_DEADLINE_DAYS * 86_400_000).toISOString();
+            const assignment: TestInvite = {
               id: randomToken('TIV'),
-              kind: 'assessment',
+              kind: 'assignment',
               candidateId: invite.candidateId,
               candidateName: invite.candidateName,
               email: invite.email,
               position: invite.position,
               department: invite.department,
               jobId: invite.jobId,
-              durationMin: ASSESSMENT_DURATION_MIN,
+              durationMin: 0, // take-home, not timed
               status: 'Pending',
+              instructions: assignmentBriefFor(invite.position, invite.department),
+              deadlineIso: deadline,
               createdAt: nowISO(),
             };
-            await repositories.testInvites.create(assessment).catch(() => {});
+            await repositories.testInvites.create(assignment).catch(() => {});
             sendTestEmail({
               to: invite.email,
               candidateName: invite.candidateName,
               template: 'iq_passed',
-              testUrl: `${window.location.origin}/test/${assessment.id}`,
+              testUrl: `${window.location.origin}/assignment/${assignment.id}`,
               position: invite.position,
               score: String(score),
-              durationMin: ASSESSMENT_DURATION_MIN,
             }).catch(() => {});
           } else {
             repositories.candidates
@@ -264,7 +302,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
               candidateName: invite.candidateName,
               template: 'iq_failed',
               position: invite.position,
-              score: String(score),
+              score: disqualified ? undefined : String(score),
             }).catch(() => {});
           }
         } else {
@@ -286,7 +324,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
               candidateName: invite.candidateName,
               template: 'assessment_failed',
               position: invite.position,
-              score: `${score}%`,
+              score: disqualified ? undefined : `${score}%`,
             }).catch(() => {});
           }
         }
@@ -297,7 +335,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
           /* ignore */
         }
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-        setResult({ score, passed, autoSubmitted: auto });
+        setResult({ score, passed, autoSubmitted: auto, disqualified });
         setPhase('done');
       }
     },
@@ -311,7 +349,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
     const tick = () => {
       const left = deadline - Date.now();
       setRemainingMs(left);
-      if (left <= 0) submit(true);
+      if (left <= 0) submit('timeout');
     };
     tick();
     const iv = setInterval(tick, 1000);
@@ -332,10 +370,10 @@ function TestFlow({ invite }: { invite: TestInvite }) {
       repositories.testInvites.patch(invite.id, { violations: next }).catch(() => {});
       if (next >= MAX_VIOLATIONS) {
         setWarning(null);
-        submit(true);
+        submit('violation');
       } else {
         setWarning(
-          `${label} detected — warning ${next} of ${MAX_VIOLATIONS - 1}. One more and your test is auto-submitted.`,
+          `${label} detected — warning ${next} of ${MAX_VIOLATIONS - 1}. One more and your test is disqualified.`,
         );
       }
     },
@@ -389,52 +427,86 @@ function TestFlow({ invite }: { invite: TestInvite }) {
   /* ------------------------------ UI ------------------------------- */
 
   if (phase === 'done' && result) {
+    // A disqualified attempt is voided: no score, not accepted.
+    if (result.disqualified) {
+      return (
+        <Shell>
+          <Card>
+            <div className="flex flex-col items-center gap-5 px-6 py-12 text-center">
+              <span className="grid h-20 w-20 place-items-center rounded-full bg-red-50 text-red-500 ring-8 ring-red-50/50">
+                <ShieldAlert size={34} />
+              </span>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Test disqualified</h1>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-gray-500">
+                  Your test was voided because the test rules were broken
+                  {' '}({MAX_VIOLATIONS} window/tab-switch violations). No score is recorded and the
+                  attempt cannot be accepted.
+                </p>
+              </div>
+              <div className="w-full max-w-sm rounded-2xl border border-[#E2DCCF] bg-[#F2EEE7] px-5 py-3.5 text-sm text-gray-600">
+                Our HR team has been notified — you&apos;ll receive an email about the outcome.
+              </div>
+            </div>
+          </Card>
+        </Shell>
+      );
+    }
+
+    const passed = result.passed;
+    const tone = passed
+      ? { ring: 'ring-emerald-100', circle: 'border-emerald-200', text: 'text-emerald-600', soft: 'bg-emerald-50' }
+      : { ring: 'ring-red-100', circle: 'border-red-200', text: 'text-red-500', soft: 'bg-red-50' };
+
     return (
       <Shell>
-        <div className="flex flex-col items-center gap-4 py-14 text-center px-6">
-          <span
-            className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
-              result.passed ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
-            }`}
-          >
-            {result.passed ? <CheckCircle2 size={30} /> : <XCircle size={30} />}
-          </span>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">
-              {result.passed ? 'Congratulations — you passed!' : 'Test submitted'}
-            </h1>
-            <p className="text-sm text-gray-500 mt-1 max-w-md">
-              {result.autoSubmitted &&
-                'Your test was submitted automatically (time limit or rule violations). '}
-              Your responses have been recorded.
-            </p>
-          </div>
-          <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-2xl px-8 py-5 shadow-2xs">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-gray-500">
-              Your score
-            </p>
-            <p
-              className={`text-4xl font-bold tabular-nums mt-1 ${
-                result.passed ? 'text-emerald-600' : 'text-red-500'
-              }`}
+        <Card>
+          <div className="flex flex-col items-center gap-5 px-6 py-11 text-center">
+            <span
+              className={`grid h-16 w-16 place-items-center rounded-full ${tone.soft} ${tone.text} ring-8 ${tone.ring}`}
             >
-              {result.score}
-              {invite.kind === 'assessment' && <span className="text-xl">%</span>}
-            </p>
-            <p className="text-[11px] text-gray-500 mt-1">
+              {passed ? <Sparkles size={30} /> : <XCircle size={30} />}
+            </span>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {passed ? 'Congratulations — you passed!' : 'Test submitted'}
+              </h1>
+              <p className="mx-auto mt-1.5 max-w-md text-sm text-gray-500">
+                {result.autoSubmitted &&
+                  'Your test was submitted automatically (time limit reached). '}
+                Your responses have been recorded.
+              </p>
+            </div>
+
+            {/* Score gauge */}
+            <div
+              className={`grid h-40 w-40 place-items-center rounded-full border-8 ${tone.circle} bg-white shadow-inner`}
+            >
+              <div className="leading-none">
+                <p className={`text-5xl font-extrabold tabular-nums ${tone.text}`}>
+                  {result.score}
+                  {invite.kind === 'assessment' && <span className="text-2xl">%</span>}
+                </p>
+                <p className="mt-2 text-[11px] font-mono uppercase tracking-wider text-gray-400">
+                  {invite.kind === 'iq' ? `out of ${IQ_TOTAL_MARKS}` : 'score'}
+                </p>
+              </div>
+            </div>
+            <p className="-mt-1 text-[12px] font-medium text-gray-500">
               {invite.kind === 'iq'
-                ? `Qualifying score: ${IQ_PASS_SCORE}+`
-                : `Qualifying score: ${ASSESSMENT_PASS_PERCENT}%+`}
+                ? `Qualifying score: ${IQ_PASS_SCORE} / ${IQ_TOTAL_MARKS}`
+                : `Qualifying score: ${ASSESSMENT_PASS_PERCENT}% +`}
             </p>
+
+            <div className="w-full max-w-sm rounded-2xl border border-[#E2DCCF] bg-[#F2EEE7] px-5 py-3.5 text-sm text-gray-600">
+              {passed
+                ? invite.kind === 'iq'
+                  ? '📧 Check your email — your role assessment link is on its way.'
+                  : '📧 Check your email — details about your in-person interview are on the way.'
+                : 'Our HR team has been notified — you’ll receive an email about the outcome.'}
+            </div>
           </div>
-          <p className="text-sm text-gray-600 max-w-md">
-            {result.passed
-              ? invite.kind === 'iq'
-                ? '📧 Check your email — your role assessment link is on its way.'
-                : '📧 Check your email — details about your in-person interview are on the way.'
-              : 'Our HR team has been notified and you will receive an email about the outcome.'}
-          </p>
-        </div>
+        </Card>
       </Shell>
     );
   }
@@ -442,10 +514,12 @@ function TestFlow({ invite }: { invite: TestInvite }) {
   if (phase === 'submitting') {
     return (
       <Shell>
-        <div className="flex flex-col items-center gap-3 py-20 text-gray-500">
-          <Loader2 size={26} className="animate-spin text-accent-600" />
-          <p className="text-sm">Submitting your answers…</p>
-        </div>
+        <Card>
+          <div className="flex flex-col items-center gap-4 py-16 text-gray-500">
+            <Loader2 size={28} className="animate-spin text-accent-600" />
+            <p className="text-sm font-medium">Submitting your answers…</p>
+          </div>
+        </Card>
       </Shell>
     );
   }
@@ -453,172 +527,255 @@ function TestFlow({ invite }: { invite: TestInvite }) {
   if (phase === 'intro') {
     return (
       <Shell>
-        <div className="px-6 py-10 max-w-xl mx-auto space-y-6">
-          <div className="flex items-start gap-3.5">
-            <span className="w-12 h-12 rounded-2xl bg-accent-50 text-accent-600 flex items-center justify-center shrink-0">
-              {isIq ? <BrainCircuit size={22} /> : <ClipboardList size={22} />}
-            </span>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">
-                {isIq ? 'IQ Test' : `${invite.position} Assessment`}
-              </h1>
-              <p className="text-sm text-gray-500">
-                Hi <span className="font-semibold text-gray-700">{invite.candidateName}</span> —
-                you&apos;re about to start your{' '}
-                {isIq ? 'logical reasoning test' : 'role-specific assessment'}.
+        <Card>
+          <div className="space-y-6 px-6 py-8 sm:px-8">
+            <div className="flex items-start gap-4">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-accent-50 to-accent-100 text-accent-600 ring-1 ring-accent-200/60">
+                {isIq ? <BrainCircuit size={24} /> : <ClipboardList size={24} />}
+              </span>
+              <div className="min-w-0">
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {isIq ? 'IQ Test' : `${invite.position} Assessment`}
+                </h1>
+                <p className="mt-0.5 text-sm text-gray-500">
+                  Hi <span className="font-semibold text-gray-700">{invite.candidateName}</span> —
+                  you&apos;re about to start your{' '}
+                  {isIq ? 'logical reasoning test' : 'role-specific assessment'}.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 text-center">
+              {[
+                { icon: ListChecks, value: questions.length, label: 'Questions' },
+                { icon: Timer, value: `${invite.durationMin} min`, label: 'Time limit' },
+                {
+                  icon: CheckCircle2,
+                  value: isIq ? IQ_PASS_SCORE : `${ASSESSMENT_PASS_PERCENT}%`,
+                  label: 'To qualify',
+                },
+              ].map(({ icon: Icon, value, label }) => (
+                <div
+                  key={label}
+                  className="rounded-2xl border border-[#E2DCCF] bg-white/70 py-4 transition hover:border-accent-300"
+                >
+                  <Icon size={17} className="mx-auto text-accent-600" />
+                  <p className="mt-1.5 text-xl font-bold tabular-nums text-gray-900">{value}</p>
+                  <p className="text-[10px] font-mono uppercase tracking-wide text-gray-500">{label}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-2xl border border-[#E2DCCF] bg-[#F2EEE7] p-5">
+              <p className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                <ShieldAlert size={16} className="text-accent-600" /> Test rules — read carefully
               </p>
+              <ul className="mt-3 space-y-2.5 text-[13px] text-gray-600">
+                <li className="flex items-start gap-2.5">
+                  <Maximize2 size={15} className="mt-0.5 shrink-0 text-accent-600" />
+                  <span>The test runs in <strong>full screen</strong>. Exiting full screen is flagged.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <EyeOff size={15} className="mt-0.5 shrink-0 text-accent-600" />
+                  <span>
+                    <strong>Do not switch tabs or leave this window.</strong> Each switch is a
+                    violation — after {MAX_VIOLATIONS} your test is{' '}
+                    <strong>disqualified and not accepted</strong> (no score).
+                  </span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Clock4 size={15} className="mt-0.5 shrink-0 text-accent-600" />
+                  <span>
+                    The timer keeps running even if you refresh — your answers are preserved, the
+                    clock is not paused.
+                  </span>
+                </li>
+              </ul>
             </div>
-          </div>
 
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl py-3.5">
-              <ListChecks size={16} className="mx-auto text-accent-600" />
-              <p className="text-lg font-bold text-gray-900 mt-1">{questions.length}</p>
-              <p className="text-[10px] text-gray-500 font-mono uppercase">Questions</p>
-            </div>
-            <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl py-3.5">
-              <Timer size={16} className="mx-auto text-accent-600" />
-              <p className="text-lg font-bold text-gray-900 mt-1">{invite.durationMin} min</p>
-              <p className="text-[10px] text-gray-500 font-mono uppercase">Time limit</p>
-            </div>
-            <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl py-3.5">
-              <CheckCircle2 size={16} className="mx-auto text-accent-600" />
-              <p className="text-lg font-bold text-gray-900 mt-1">
-                {isIq ? IQ_PASS_SCORE : `${ASSESSMENT_PASS_PERCENT}%`}
-              </p>
-              <p className="text-[10px] text-gray-500 font-mono uppercase">To qualify</p>
-            </div>
+            <button
+              onClick={start}
+              className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-accent-600 to-accent-700 py-3.5 text-sm font-bold text-white shadow-md transition-all hover:shadow-lg active:translate-y-px"
+            >
+              I understand — Start the test
+              <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+            </button>
           </div>
-
-          <div className="bg-[#F2EEE7] border border-[#DAD4C8] rounded-2xl p-5 space-y-3">
-            <p className="flex items-center gap-2 text-sm font-bold text-gray-900">
-              <ShieldAlert size={16} className="text-accent-600" /> Test rules — read carefully
-            </p>
-            <ul className="space-y-2 text-[13px] text-gray-600">
-              <li className="flex items-start gap-2">
-                <Maximize2 size={14} className="mt-0.5 shrink-0 text-gray-500" />
-                The test runs in <strong>full screen</strong>. Exiting full screen is flagged.
-              </li>
-              <li className="flex items-start gap-2">
-                <EyeOff size={14} className="mt-0.5 shrink-0 text-gray-500" />
-                <span>
-                  <strong>Do not switch tabs or leave this window.</strong> Each switch is a
-                  violation — after {MAX_VIOLATIONS} your test auto-submits with whatever you have
-                  answered.
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Clock4 size={14} className="mt-0.5 shrink-0 text-gray-500" />
-                The timer keeps running even if you refresh — your answers are preserved, the
-                clock is not paused.
-              </li>
-            </ul>
-          </div>
-
-          <button
-            onClick={start}
-            className="w-full bg-accent-600 hover:bg-accent-700 text-white py-3 rounded-xl font-bold text-sm cursor-pointer transition shadow-sm"
-          >
-            I understand — Start the test
-          </button>
-        </div>
+        </Card>
       </Shell>
     );
   }
 
   /* --------------------------- running ----------------------------- */
+  const progress = Math.round((answered / questions.length) * 100);
+  const totalPages = Math.ceil(questions.length / PAGE_SIZE);
+  const pageStart = page * PAGE_SIZE;
+  const pageQuestions = questions.slice(pageStart, pageStart + PAGE_SIZE);
+  const isLastPage = page >= totalPages - 1;
+  const goToPage = (next: number) => {
+    setPage(Math.max(0, Math.min(totalPages - 1, next)));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   return (
-    <div className="min-h-screen bg-[#ECE8E0] select-none">
+    <div className="flex min-h-screen flex-col select-none bg-gradient-to-b from-[#EFEBE3] to-[#E4DED4]">
       {/* Sticky proctor bar */}
-      <div className="sticky top-0 z-50 bg-[#A51C30] text-white px-4 py-2.5 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <Logo size={22} />
-          <span className="text-xs font-bold truncate">
-            {isIq ? 'IQ Test' : `${invite.position} Assessment`}
-          </span>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <span className="text-[10px] font-mono text-white/70 hidden sm:inline">
-            {answered}/{questions.length} answered
-          </span>
-          {violations > 0 && (
-            <span className="text-[10px] font-mono bg-red-500/20 text-red-200 px-2 py-0.5 rounded-full">
-              ⚠ {violations}/{MAX_VIOLATIONS}
+      <div className="sticky top-0 z-50 bg-gradient-to-r from-accent-700 to-accent-800 text-white shadow-md">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2.5">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-white/15">
+              <Logo size={16} />
             </span>
-          )}
-          <span
-            className={`font-mono font-bold text-sm tabular-nums px-2.5 py-1 rounded-lg ${
-              lowTime ? 'bg-red-500 text-white animate-pulse' : 'bg-[#F7F4EE]/10'
-            }`}
-          >
-            {fmtClock(remainingMs)}
-          </span>
+            <span className="truncate text-xs font-bold">
+              {isIq ? 'IQ Test' : `${invite.position} Assessment`}
+            </span>
+          </div>
+          <div className="flex shrink-0 items-center gap-2.5">
+            <span className="hidden text-[10px] font-mono text-white/70 sm:inline">
+              {answered}/{questions.length}
+            </span>
+            {violations > 0 && (
+              <span className="flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-mono font-bold text-amber-200">
+                <AlertTriangle size={11} /> {violations}/{MAX_VIOLATIONS}
+              </span>
+            )}
+            <span
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm font-mono font-bold tabular-nums ${
+                lowTime ? 'animate-pulse bg-white text-red-600' : 'bg-white/15 text-white'
+              }`}
+            >
+              <Timer size={13} />
+              {fmtClock(remainingMs)}
+            </span>
+          </div>
+        </div>
+        {/* Progress bar */}
+        <div className="h-1 w-full bg-black/15">
+          <div
+            className="h-full bg-white/80 transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </div>
 
       {/* Violation warning */}
       {warning && (
-        <div className="sticky top-[44px] z-40 bg-red-50 border-b border-red-200 text-red-700 text-xs px-4 py-2.5 flex items-center gap-2">
-          <AlertTriangle size={14} className="shrink-0" />
-          <span className="font-semibold">{warning}</span>
-          <button
-            onClick={() => setWarning(null)}
-            className="ml-auto text-red-400 hover:text-red-600 font-bold cursor-pointer"
-          >
-            ✕
-          </button>
+        <div className="sticky top-[53px] z-40 flex items-center gap-2 border-b border-red-200 bg-red-50 px-4 py-2.5 text-xs text-red-700">
+          <div className="mx-auto flex w-full max-w-3xl items-center gap-2">
+            <AlertTriangle size={14} className="shrink-0" />
+            <span className="font-semibold">{warning}</span>
+            <button
+              onClick={() => setWarning(null)}
+              className="ml-auto font-bold text-red-400 hover:text-red-600 cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
 
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4 pb-28">
-        {questions.map((q, i) => (
-          <div
-            key={q.id}
-            className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-2xl p-4 sm:p-5 shadow-2xs"
-          >
-            <p className="text-[13px] font-semibold text-gray-900 leading-relaxed">
-              <span className="text-accent-600 font-mono font-bold mr-1.5">{i + 1}.</span>
-              {q.q}
+      {/* Content area — fills the space between the bar and the pager and
+          vertically centres the single question. */}
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pb-28">
+        {/* Page heading */}
+        <div className="pt-6">
+          <div className="flex items-center justify-between">
+            <p className="font-mono text-xs font-bold uppercase tracking-wider text-gray-500">
+              Question {page + 1} <span className="text-gray-400">of {totalPages}</span>
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-              {q.options.map((opt, idx) => {
-                const selected = answers[q.id] === idx;
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => pick(q.id, idx)}
-                    className={`text-left text-[12.5px] px-3 py-2.5 rounded-lg border transition cursor-pointer ${
-                      selected
-                        ? 'border-accent-500 bg-accent-50 text-accent-800 font-semibold'
-                        : 'border-[#DAD4C8] text-gray-600 hover:bg-[#F2EEE7]'
+            <p className="text-[11px] font-medium text-gray-500">{answered} answered</p>
+          </div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#DAD4C8]">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-accent-500 to-accent-700 transition-all duration-300"
+              style={{ width: `${((page + 1) / totalPages) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-1 items-center justify-center py-6">
+          {pageQuestions.map((q, idx) => {
+            const i = pageStart + idx;
+            const done = answers[q.id] !== undefined;
+            return (
+              <div
+                key={q.id}
+                className="w-full rounded-3xl border border-[#E2DCCF] bg-[#FBFAF7] p-6 shadow-[0_20px_50px_-24px_rgba(95,15,22,0.25)] sm:p-9"
+              >
+                <div className="flex items-start gap-4">
+                  <span
+                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sm font-bold transition ${
+                      done ? 'bg-accent-600 text-white' : 'bg-[#ECE6DA] text-gray-500'
                     }`}
                   >
-                    <span className="font-mono font-bold mr-1.5 text-gray-500">
-                      {String.fromCharCode(65 + idx)}.
-                    </span>
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
+                    {done ? <Check size={18} /> : i + 1}
+                  </span>
+                  <p className="pt-1 text-lg font-semibold leading-relaxed text-gray-900 sm:text-xl">
+                    {q.q}
+                  </p>
+                </div>
+                <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {q.options.map((opt, idx) => {
+                    const selected = answers[q.id] === idx;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => pick(q.id, idx)}
+                        className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left text-sm transition cursor-pointer ${
+                          selected
+                            ? 'border-accent-500 bg-accent-50 font-semibold text-accent-800 ring-2 ring-accent-500/25'
+                            : 'border-[#E2DCCF] text-gray-700 hover:border-accent-300 hover:bg-[#F2EEE7]'
+                        }`}
+                      >
+                        <span
+                          className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold transition ${
+                            selected ? 'bg-accent-600 text-white' : 'bg-[#ECE6DA] text-gray-500'
+                          }`}
+                        >
+                          {selected ? <Check size={15} /> : String.fromCharCode(65 + idx)}
+                        </span>
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </main>
 
-      {/* Submit bar */}
-      <div className="fixed bottom-0 inset-x-0 bg-[#F7F4EE]/95 backdrop-blur border-t border-[#DAD4C8] px-4 py-3">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
-          <p className="text-[11px] text-gray-500 font-mono">
-            {answered}/{questions.length} answered
-            {answered < questions.length && ' — unanswered count as incorrect'}
-          </p>
+      {/* Pager / submit bar */}
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#E2DCCF] bg-[#FBFAF7]/95 backdrop-blur">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
           <button
-            onClick={() => submit(false)}
-            className="bg-accent-600 hover:bg-accent-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm cursor-pointer transition shadow-sm"
+            onClick={() => goToPage(page - 1)}
+            disabled={page === 0}
+            className="flex items-center gap-1.5 rounded-xl border border-[#E2DCCF] bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-[#F2EEE7] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
           >
-            Submit test
+            <ArrowLeft size={15} /> Previous
           </button>
+
+          <p className="hidden text-[11px] font-medium text-gray-500 sm:block">
+            {answered}/{questions.length} answered
+          </p>
+
+          {isLastPage ? (
+            <button
+              onClick={() => submit('manual')}
+              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-accent-600 to-accent-700 px-6 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:shadow-lg active:translate-y-px cursor-pointer"
+            >
+              <Check size={16} /> Submit test
+            </button>
+          ) : (
+            <button
+              onClick={() => goToPage(page + 1)}
+              className="group flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-accent-600 to-accent-700 px-6 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:shadow-lg active:translate-y-px cursor-pointer"
+            >
+              Next
+              <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -631,22 +788,54 @@ function TestFlow({ invite }: { invite: TestInvite }) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#ECE8E0] flex flex-col">
-      <header className="bg-[#A51C30] px-5 py-3.5 flex items-center gap-2.5">
-        <Logo size={26} />
-        <div>
-          <p className="text-white text-sm font-bold leading-tight">Curcle</p>
-          <p className="text-white/50 text-[9px] font-mono uppercase tracking-wider">
-            Recruitment Test Portal
-          </p>
+    <div className="relative min-h-screen flex flex-col overflow-hidden bg-gradient-to-b from-[#EFEBE3] to-[#E4DED4]">
+      {/* Soft brand glows in the background */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-32 -right-24 h-80 w-80 rounded-full bg-accent-600/10 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-40 -left-24 h-96 w-96 rounded-full bg-accent-800/10 blur-3xl"
+      />
+
+      <header className="relative z-10 flex items-center justify-between px-5 py-4">
+        <div className="flex items-center gap-2.5">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 text-white shadow-sm">
+            <Logo size={20} />
+          </span>
+          <div>
+            <p className="text-sm font-bold leading-tight text-gray-900">Curcle</p>
+            <p className="text-[9px] font-mono uppercase tracking-[0.15em] text-gray-500">
+              Recruitment Test Portal
+            </p>
+          </div>
         </div>
+        <span className="hidden items-center gap-1.5 rounded-full border border-[#DAD4C8] bg-white/60 px-3 py-1 text-[10px] font-semibold text-gray-600 sm:inline-flex">
+          <ShieldCheck size={12} className="text-accent-600" /> Proctored
+        </span>
       </header>
-      <main className="flex-1 flex flex-col justify-center max-w-2xl w-full mx-auto">
+
+      <main className="relative z-10 flex-1 flex flex-col justify-center w-full max-w-xl mx-auto px-4 py-6">
         {children}
       </main>
-      <footer className="text-center text-[10px] text-gray-500 py-4 font-mono">
+
+      <footer className="relative z-10 text-center text-[10px] text-gray-500 py-5 font-mono">
         Proctored online test · Curcle HRMS
       </footer>
+    </div>
+  );
+}
+
+/** Elevated surface used by every non-running screen. */
+function Card({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-[#E2DCCF] bg-[#FBFAF7] shadow-[0_20px_50px_-20px_rgba(95,15,22,0.25)]">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-accent-400 via-accent-600 to-accent-800"
+      />
+      {children}
     </div>
   );
 }
