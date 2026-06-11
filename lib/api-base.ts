@@ -2,22 +2,28 @@
  * Resolve the backend API origin.
  *
  * Priority:
- *  1. `NEXT_PUBLIC_API_URL` if explicitly set (prod / custom setups).
- *  2. Otherwise derive it from the page's own hostname, so the app works when
- *     opened over the LAN / on a phone — there `localhost` would point at the
- *     device itself, not the dev machine. The API is assumed to run on the same
- *     host, port 8000 (override with `NEXT_PUBLIC_API_PORT`).
- *  3. SSR fallback: localhost.
+ *  1. `NEXT_PUBLIC_API_URL` if set — REQUIRED in production (the backend lives on
+ *     a different domain there, e.g. https://api.example.com). Set it in your host's
+ *     env (on Vercel: Project → Settings → Environment Variables) and redeploy.
+ *  2. Development only: derive `http://<page-host>:8000` so the app works on
+ *     localhost AND from a phone/other device over the LAN without any config.
+ *  3. Production with no explicit URL: fall back to the SAME origin (relative
+ *     `/api/...`). This is correct only if the API is reverse-proxied under the
+ *     web domain; for a separate API domain you MUST set NEXT_PUBLIC_API_URL.
  *
- * Evaluated at call time (not module load) so `window` is available in the browser.
+ * Returns an origin with no trailing slash, or '' for same-origin (the HTTP
+ * client always appends `/api/...`).
  */
 const API_PORT = process.env.NEXT_PUBLIC_API_PORT || '8000';
 
 export function apiBase(): string {
   const explicit = process.env.NEXT_PUBLIC_API_URL;
   if (explicit) return explicit.replace(/\/$/, '');
-  if (typeof window !== 'undefined') {
+
+  if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
     return `${window.location.protocol}//${window.location.hostname}:${API_PORT}`;
   }
-  return `http://localhost:${API_PORT}`;
+
+  // Same-origin fallback (relative). Set NEXT_PUBLIC_API_URL for a separate API host.
+  return '';
 }
