@@ -49,7 +49,10 @@ interface AuthState {
   logout: () => void;
   listUsers: () => Promise<AuthUser[]>;
   changePassword: (targetEmail: string, newPassword: string) => Promise<{ ok: boolean; error?: string }>;
+  changeEmail: (currentEmail: string, newEmail: string) => Promise<{ ok: boolean; error?: string }>;
 }
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 const AuthContext = createContext<AuthState | null>(null);
 
@@ -142,8 +145,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Change an account's login email. Since the email is the primary key, this
+  // recreates the record under the new email and removes the old one. If the
+  // admin changes their own email, the active session is updated too.
+  const changeEmail = async (currentEmail: string, newEmail: string) => {
+    if (!user || user.role !== 'admin') {
+      return { ok: false, error: 'Only an administrator can change emails.' };
+    }
+    const from = currentEmail.trim().toLowerCase();
+    const to = newEmail.trim().toLowerCase();
+    if (!EMAIL_RE.test(to)) {
+      return { ok: false, error: 'Enter a valid email address.' };
+    }
+    if (from === to) {
+      return { ok: false, error: 'That is already the account email.' };
+    }
+    try {
+      const taken = await repositories.authUsers.get(to).catch(() => null);
+      if (taken) {
+        return { ok: false, error: 'That email is already in use.' };
+      }
+      const account = await repositories.authUsers.get(from);
+      const moved: AuthUser = { ...account, id: to, email: to };
+      await repositories.authUsers.create(moved);
+      await repositories.authUsers.remove(from).catch(() => {});
+      if (user.email === from) {
+        const session: SessionUser = { email: to, role: account.role, name: account.name };
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+        } catch {
+          /* ignore */
+        }
+        setUser(session);
+      }
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'Could not update the email. Please try again.' };
+    }
+  };
+
   const value = useMemo<AuthState>(
-    () => ({ user, ready, isAdmin: user?.role === 'admin', login, logout, listUsers, changePassword }),
+    () => ({ user, ready, isAdmin: user?.role === 'admin', login, logout, listUsers, changePassword, changeEmail }),
     [user, ready],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

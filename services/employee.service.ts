@@ -15,6 +15,9 @@ export function buildEmployeeFromCandidate(candidate: Candidate): Employee {
     joiningDate: todayISO(),
     workLocation: 'Remote',
     status: 'Active',
+    // Keep the link + agreed pay so the employee file can show BGV/docs/offer history.
+    candidateId: candidate.id,
+    annualCtc: candidate.expectedCtc || candidate.currentCtc || '',
     personalDetails: {
       address: candidate.location,
       emergencyContact: 'Notified on day 1 form',

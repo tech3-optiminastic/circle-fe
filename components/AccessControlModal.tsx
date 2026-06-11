@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { AuthUser } from '@/types';
 import { useAuth, displayName } from '@/store/auth-store';
-import { ShieldCheck, KeyRound, Loader2, Check, Eye, EyeOff, User } from 'lucide-react';
+import { ShieldCheck, KeyRound, Loader2, Check, Eye, EyeOff, User, AtSign } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -29,13 +29,16 @@ import { Badge } from '@/components/ui/badge';
  * account's password (e.g. the HR login). Rendered from the header profile menu.
  */
 export function AccessControlModal({ onClose }: { onClose: () => void }) {
-  const { user, listUsers, changePassword } = useAuth();
+  const { user, listUsers, changePassword, changeEmail } = useAuth();
   const [users, setUsers] = useState<AuthUser[] | null>(null);
   const [target, setTarget] = useState<string>('');
+  const [newEmail, setNewEmail] = useState('');
   const [newPw, setNewPw] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const refresh = () => listUsers().then(setUsers).catch(() => setUsers([]));
 
   useEffect(() => {
     listUsers()
@@ -51,15 +54,48 @@ export function AccessControlModal({ onClose }: { onClose: () => void }) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg(null);
-    setSaving(true);
-    const res = await changePassword(target, newPw);
-    setSaving(false);
-    if (res.ok) {
-      setMsg({ ok: true, text: `Password updated for ${target}.` });
-      setNewPw('');
-    } else {
-      setMsg({ ok: false, text: res.error ?? 'Could not update password.' });
+
+    const wantsEmail = newEmail.trim().length > 0 && newEmail.trim().toLowerCase() !== target.toLowerCase();
+    const wantsPw = newPw.trim().length > 0;
+    if (!wantsEmail && !wantsPw) {
+      setMsg({ ok: false, text: 'Enter a new email or a new password.' });
+      return;
     }
+
+    setSaving(true);
+    const done: string[] = [];
+
+    // Change the password first (while the account still has its old email).
+    if (wantsPw) {
+      const res = await changePassword(target, newPw);
+      if (!res.ok) {
+        setSaving(false);
+        setMsg({ ok: false, text: res.error ?? 'Could not update password.' });
+        return;
+      }
+      done.push('password');
+    }
+
+    let finalEmail = target;
+    if (wantsEmail) {
+      const res = await changeEmail(target, newEmail);
+      if (!res.ok) {
+        setSaving(false);
+        setMsg({ ok: false, text: res.error ?? 'Could not update email.' });
+        // A password change may already have applied — refresh + report it.
+        if (done.length) await refresh();
+        return;
+      }
+      finalEmail = newEmail.trim().toLowerCase();
+      done.push('email');
+    }
+
+    await refresh();
+    setSaving(false);
+    setTarget(finalEmail);
+    setNewEmail('');
+    setNewPw('');
+    setMsg({ ok: true, text: `Updated ${done.join(' & ')} for ${finalEmail}.` });
   };
 
   return (
@@ -119,7 +155,7 @@ export function AccessControlModal({ onClose }: { onClose: () => void }) {
         {/* Reset password */}
         <form onSubmit={submit} className="space-y-3 border-t border-border px-5 pt-3 pb-5">
           <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-gray-500">
-            <KeyRound size={12} /> Reset a password
+            <KeyRound size={12} /> Update an account
           </p>
 
           <div className="space-y-1">
@@ -140,8 +176,29 @@ export function AccessControlModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="space-y-1">
+            <Label htmlFor="new-email" className="text-[11px] font-semibold text-gray-600">
+              New email <span className="font-normal text-gray-400">(optional)</span>
+            </Label>
+            <div className="relative">
+              <Input
+                id="new-email"
+                type="email"
+                value={newEmail}
+                onChange={e => setNewEmail(e.target.value)}
+                placeholder={target || 'name@optiminastic.com'}
+                className="pl-9"
+                autoComplete="off"
+              />
+              <AtSign
+                size={14}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
             <Label htmlFor="new-password" className="text-[11px] font-semibold text-gray-600">
-              New password
+              New password <span className="font-normal text-gray-400">(optional)</span>
             </Label>
             <div className="relative">
               <Input
@@ -151,7 +208,7 @@ export function AccessControlModal({ onClose }: { onClose: () => void }) {
                 onChange={e => setNewPw(e.target.value)}
                 placeholder="At least 6 characters"
                 className="pr-10"
-                required
+                autoComplete="new-password"
               />
               <Button
                 type="button"
@@ -190,7 +247,7 @@ export function AccessControlModal({ onClose }: { onClose: () => void }) {
                   <Loader2 size={14} className="animate-spin" /> Saving…
                 </>
               ) : (
-                'Update password'
+                'Save changes'
               )}
             </Button>
           </DialogFooter>

@@ -373,6 +373,8 @@ export function CandidateListView({
                       className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold select-none ${
                         cand.status === 'Selected'
                           ? 'bg-green-50 text-green-600'
+                          : cand.status === 'Offer Shortlisted'
+                            ? 'bg-emerald-50 text-emerald-600'
                           : cand.status === 'Shortlisted'
                             ? 'bg-purple-50 text-purple-600'
                             : cand.status === 'Moved to HR Call'

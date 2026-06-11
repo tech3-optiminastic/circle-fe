@@ -9,6 +9,7 @@ export const RESOURCES = {
   jobs: { slug: 'jobs', idField: 'id' },
   candidates: { slug: 'candidates', idField: 'id' },
   testInvites: { slug: 'test-invites', idField: 'id' },
+  docRequests: { slug: 'doc-requests', idField: 'id' },
   interviews: { slug: 'interviews', idField: 'id' },
   iqTests: { slug: 'iq-tests', idField: 'id' },
   assignments: { slug: 'assignments', idField: 'id' },

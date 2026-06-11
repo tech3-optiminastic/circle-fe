@@ -13,6 +13,7 @@ import { useCandidates } from '@/features/candidates/hooks';
 import { useEmployees } from '@/features/employees/hooks';
 import { repositories } from '@/lib/api/repositories';
 import { qk } from '@/lib/query/keys';
+import { apiBase } from '@/lib/api-base';
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -98,7 +99,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <div className="bg-[#F7F4EE] border border-red-200 rounded-xl p-6">
                 <p className="text-sm font-semibold text-red-600">Backend unavailable</p>
                 <p className="text-xs text-gray-500 mt-2">
-                  Could not reach {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}
+                  Could not reach {apiBase()}
                 </p>
                 <p className="text-[11px] text-gray-500 mt-3 font-mono">
                   Start it: <span className="text-gray-600">uvicorn app.main:app --port 8000</span>

@@ -22,26 +22,26 @@ import {
   ShieldCheck,
   CheckCircle2,
   XCircle,
-  Download,
-  Star,
   Award,
   ThumbsDown,
   MessageSquarePlus,
+  UserCheck,
+  Eye,
 } from 'lucide-react';
 import { CandidateStatus, HRCallRecord, Interview, ScheduleType, ScreeningReview, TestInvite } from '@/types';
 import { useCandidates, useCandidateMutations } from '@/features/candidates/hooks';
 import { useSchedules } from '@/features/schedule/hooks';
 import { useInterviews, useInterviewMutations } from '@/features/interviews/hooks';
 import { useIqTests } from '@/features/assessments/hooks';
+import { useEnsureOnboarding } from '@/features/onboarding/hooks';
 import { useScheduler } from '@/store/schedule-store';
 import { repositories } from '@/lib/api/repositories';
 import { qk } from '@/lib/query/keys';
 import { effectiveFit, fitStyle } from '@/lib/screening';
+import { pipelineFlags } from '@/lib/pipeline';
 import { sendTestEmail } from '@/lib/api/notifications';
-import { ASSIGNMENT_MAX_MARKS, ASSIGNMENT_PASS_MARKS } from '@/data/test-banks';
 import { useToast } from '@/components/Toaster';
-import { DocumentsPanel } from '@/components/DocumentsPanel';
-import { openDocument } from '@/features/documents/hooks';
+import { openDocument, useDocuments } from '@/features/documents/hooks';
 import { PageLoading } from '@/components/PageLoading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -125,8 +125,10 @@ export default function CandidateDetailPage() {
     queryKey: qk.testInvites.all,
     queryFn: () => repositories.testInvites.list(),
   });
+  const { data: candidateDocs = [] } = useDocuments('candidate', id);
   const { openSchedule } = useScheduler();
   const { move } = useCandidateMutations();
+  const ensureOnboarding = useEnsureOnboarding();
   const { grade: gradeInterview } = useInterviewMutations();
   const toast = useToast();
   const qc = useQueryClient();
@@ -138,11 +140,9 @@ export default function CandidateDetailPage() {
   // Which stage's detail is shown in the side panel (null = follow current stage).
   const [picked, setPicked] = useState<number | null>(null);
   // Right-side drawer used to fill in a stage's details from the candidate flow.
-  const [openForm, setOpenForm] = useState<null | 'screening' | 'hrcall' | 'grade' | 'feedback'>(null);
+  const [openForm, setOpenForm] = useState<null | 'screening' | 'hrcall' | 'feedback'>(null);
   const [sr, setSr] = useState<ScreeningReview>(blankScreening());
   const [hc, setHc] = useState<HRCallRecord>(blankHrCall());
-  const [gradeScore, setGradeScore] = useState('');
-  const [gradeComments, setGradeComments] = useState('');
   const [fbInterview, setFbInterview] = useState<Interview | null>(null);
   const [fbRec, setFbRec] = useState('Hire');
   const [fbComments, setFbComments] = useState('');
@@ -154,44 +154,6 @@ export default function CandidateDetailPage() {
     const t = setTimeout(() => setStepIn(true), 60);
     return () => clearTimeout(t);
   }, [candidate?.id]);
-
-  // Grade the take-home assignment from the candidate's own flow — a pass
-  // schedules the interview; a fail rejects the candidate and emails them.
-  const gradeAssignment = useMutation({
-    mutationFn: async ({ invite, value, notes }: { invite: TestInvite; value: number; notes: string }) => {
-      const passed = value >= ASSIGNMENT_PASS_MARKS;
-      await repositories.testInvites.patch(invite.id, {
-        status: 'Graded',
-        score: value,
-        passed,
-        gradeComments: notes,
-      });
-      if (!passed) {
-        await repositories.candidates.patch(invite.candidateId, { status: 'Rejected' }).catch(() => {});
-        sendTestEmail({
-          to: invite.email,
-          candidateName: invite.candidateName,
-          template: 'assessment_failed',
-          position: invite.position,
-        }).catch(() => {});
-      }
-      return { invite, passed };
-    },
-    onSuccess: ({ invite, passed }) => {
-      qc.invalidateQueries({ queryKey: qk.testInvites.all });
-      qc.invalidateQueries({ queryKey: qk.candidates.all });
-      setOpenForm(null);
-      setGradeScore('');
-      setGradeComments('');
-      if (passed) {
-        toast.success('Assignment cleared — schedule the interview.');
-        openSchedule(invite.candidateId, invite.candidateName, 'Interview');
-      } else {
-        toast.info('Candidate was not moved forward.');
-      }
-    },
-    onError: () => toast.error('Could not save the grade — try again.'),
-  });
 
   // Record HR's screening review (why we're reaching out, what stands out, etc.).
   const saveScreening = useMutation({
@@ -240,26 +202,34 @@ export default function CandidateDetailPage() {
   }
 
   const fit = effectiveFit(candidate);
+  const resumeDoc = candidateDocs.find(d => d.category === 'resume') ?? candidateDocs[0];
   const mySchedules = schedules.filter(s => s.candidateId === id && s.status !== 'Cancelled');
   const myIq = iqTests.filter(t => t.candidateId === id);
   const myInterviews = interviews.filter(iv => iv.candidateId === id);
   const myInvites = (invites as TestInvite[]).filter(i => i.candidateId === id);
 
-  // ---- pipeline stage states ----
-  const hrCallDone = Boolean(candidate.hrCall?.completed);
-  const hrCallReached =
-    hrCallDone || mySchedules.some(s => s.type === 'HR Call') || candidate.status === 'Moved to HR Call';
+  // ---- pipeline stage states (shared with the dashboard Kanban) ----
   const iqInvite = myInvites.find(i => i.kind === 'iq');
-  const iqDone = myIq.length > 0 || Boolean(iqInvite && ['Completed', 'Auto-Submitted'].includes(iqInvite.status));
-  const iqReached = iqDone || Boolean(iqInvite) || mySchedules.some(s => s.type === 'IQ Test');
-  const asgInvite = myInvites.find(i => i.kind === 'assignment');
-  const asgDone = asgInvite?.status === 'Graded';
-  const asgReached = Boolean(asgInvite) || mySchedules.some(s => s.type === 'Assessment');
-  const interviewDone = myInterviews.some(iv => iv.status === 'Completed');
-  const interviewReached = myInterviews.length > 0 || mySchedules.some(s => s.type === 'Interview');
-  const rejected = candidate.status === 'Rejected';
-  const selected = candidate.status === 'Selected';
-  const decided = rejected || selected;
+  const asgInvite = myInvites.find(i => i.kind === 'assessment');
+  const {
+    hrCallReached,
+    hrCallDone,
+    iqReached,
+    iqDone,
+    asgReached,
+    asgDone,
+    interviewReached,
+    interviewDone,
+    offerShortlisted,
+    rejected,
+    selected,
+    decided,
+  } = pipelineFlags(candidate, {
+    schedules,
+    interviews,
+    iqTests,
+    invites: invites as TestInvite[],
+  });
 
   const stages = [
     { label: 'Applied', Icon: FileText, reached: true, done: true, desc: fmtDate(candidate.appliedDate) },
@@ -289,19 +259,17 @@ export default function CandidateDetailPage() {
           : 'Pending',
     },
     {
-      label: 'Assignment',
+      label: 'Assessment',
       Icon: ClipboardList,
       reached: asgReached,
       done: asgDone,
       desc: asgDone
         ? asgInvite!.passed
-          ? 'Cleared'
+          ? `Cleared · ${asgInvite!.score}%`
           : 'Not selected'
-        : asgInvite?.submissionFileName
-          ? 'Submitted'
-          : asgReached
-            ? 'Assigned'
-            : 'Pending',
+        : asgReached
+          ? 'Scheduled'
+          : 'Pending',
     },
     {
       label: 'Interview',
@@ -313,9 +281,15 @@ export default function CandidateDetailPage() {
     {
       label: 'Decision',
       Icon: Flag,
-      reached: decided,
+      reached: decided || offerShortlisted,
       done: decided,
-      desc: selected ? 'Selected for role' : rejected ? 'Rejected' : 'Pending',
+      desc: selected
+        ? 'Selected for role'
+        : rejected
+          ? 'Rejected'
+          : offerShortlisted
+            ? 'Shortlisted'
+            : 'Pending',
     },
   ];
   let currentIndex = 0;
@@ -359,22 +333,22 @@ export default function CandidateDetailPage() {
     }),
   );
   myInvites
-    .filter(i => i.kind === 'assignment')
+    .filter(i => i.kind === 'assessment')
     .forEach(i => {
-      if (i.status === 'Graded')
+      if (['Completed', 'Auto-Submitted'].includes(i.status))
         events.push({
           date: i.completedAt ?? i.createdAt,
-          title: `Assignment graded — ${i.passed ? 'cleared' : 'not selected'}`,
-          detail: i.score != null ? `${i.score}/100` : undefined,
+          title: `Assessment — ${i.passed ? 'cleared' : 'not selected'}`,
+          detail: i.score != null ? `${i.score}%${i.correct != null ? ` · ${i.correct}/${i.total}` : ''}` : undefined,
           tone: i.passed ? 'green' : 'red',
         });
-      else if (i.submissionFileName)
-        events.push({ date: i.completedAt ?? i.createdAt, title: 'Assignment submitted', detail: i.submissionFileName, tone: 'accent' });
-      else events.push({ date: i.createdAt, title: 'Assignment sent', tone: 'gray' });
+      else events.push({ date: i.createdAt, title: 'Assessment sent', tone: 'gray' });
     });
   myInterviews.forEach(iv =>
     events.push({ date: iv.dateTime, title: `${iv.interviewRound} interview`, detail: iv.interviewerName, tone: 'gray' }),
   );
+  if (offerShortlisted)
+    events.push({ date: candidate.appliedDate, title: 'Shortlisted for the offer', detail: 'Confirmation email sent', tone: 'green' });
   if (selected)
     events.push({ date: candidate.appliedDate, title: 'Selected for the role', detail: 'Availability email sent', tone: 'green' });
   if (rejected) events.push({ date: candidate.appliedDate, title: 'Rejected', tone: 'red' });
@@ -501,37 +475,34 @@ export default function CandidateDetailPage() {
       return empty(s ? `Scheduled for ${fmtDateTime(s.dateTime)}.` : 'IQ test not started.');
     }
 
-    if (label === 'Assignment') {
-      if (asgInvite)
+    if (label === 'Assessment') {
+      if (asgDone && asgInvite)
         return (
           <div className="space-y-2.5">
-            <KV k="Status" v={asgInvite.status} />
-            {asgInvite.submissionFileName && (
-              <div>
-                <p className="text-[10px] uppercase text-gray-400">Submission</p>
-                <button
-                  onClick={() => asgInvite.submissionDocId && openDocument(asgInvite.submissionDocId)}
-                  className="inline-flex items-center gap-1 text-[12px] font-medium text-accent-600 hover:underline"
-                >
-                  <Download size={12} /> {asgInvite.submissionFileName}
-                </button>
-              </div>
+            <KV k="Role" v={`${asgInvite.position} MCQ`} />
+            <KV k="Result" v={asgInvite.passed ? 'Cleared' : 'Not selected'} />
+            <KV k="Score" v={asgInvite.score != null ? `${asgInvite.score}%` : '—'} />
+            {asgInvite.correct != null && asgInvite.total != null && (
+              <KV k="Correct" v={`${asgInvite.correct} / ${asgInvite.total}`} />
             )}
-            {asgInvite.status === 'Graded' && (
-              <>
-                <KV k="Score" v={asgInvite.score != null ? `${asgInvite.score}/100` : '—'} />
-                <KV k="Outcome" v={asgInvite.passed ? 'Cleared' : 'Not selected'} />
-                {asgInvite.gradeComments && (
-                  <p className="rounded-lg bg-[#ECE6DA] p-2.5 text-[11px] italic text-gray-600">
-                    “{asgInvite.gradeComments}”
-                  </p>
-                )}
-              </>
+            {asgInvite.disqualified && (
+              <p className="rounded-lg bg-red-50 p-2.5 text-[11px] font-medium text-red-600">
+                Disqualified — {asgInvite.violations ?? 0} rule violation(s).
+              </p>
             )}
           </div>
         );
+      if (asgInvite)
+        return (
+          <div className="space-y-2.5">
+            <KV k="Role" v={`${asgInvite.position} MCQ`} />
+            <KV k="Status" v={asgInvite.status} />
+            <KV k="Duration" v={`${asgInvite.durationMin} min`} />
+            {empty('Role-specific MCQ sent — awaiting the candidate to take it.')}
+          </div>
+        );
       const s = schedOf('Assessment')[0];
-      return empty(s ? `Scheduled for ${fmtDateTime(s.dateTime)}.` : 'Assignment not assigned yet.');
+      return empty(s ? `Scheduled for ${fmtDateTime(s.dateTime)}.` : 'Assessment not sent yet.');
     }
 
     if (label === 'Interview') {
@@ -565,37 +536,23 @@ export default function CandidateDetailPage() {
         ? 'Selected for the role — an availability-to-join email was sent to the candidate.'
         : rejected
           ? 'The candidate was not moved forward.'
-          : 'No final decision yet.',
+          : offerShortlisted
+            ? 'Shortlisted for the offer — a confirmation email was sent asking the candidate to confirm their availability. Finalize with “Select for role” when ready.'
+            : 'No final decision yet.',
     );
   };
 
   // ---- the next round to schedule from this candidate's flow ----
-  // The next round to schedule — only suggested once the prior round is actually
-  // done (a scheduled-but-incomplete round shows "in progress" instead).
-  const nextRound: ScheduleType | null = decided
-    ? null
-    : !hrCallReached
-      ? 'HR Call'
-      : !iqReached
-        ? 'IQ Test'
-        : iqDone && !asgReached
-          ? 'Assessment'
-          : asgDone && asgInvite?.passed && !interviewReached
-            ? 'Interview'
-            : null;
-  const roundLabel: Record<ScheduleType, string> = {
-    'HR Call': 'Schedule HR call',
-    'IQ Test': 'Schedule IQ test',
-    Assessment: 'Send assignment',
-    Interview: 'Schedule interview',
-  };
-
   const schedule = (type: ScheduleType) => openSchedule(candidate.id, candidate.fullName, type);
 
   const selectForRole = () => {
     move.mutate({ id: candidate.id, status: 'Selected' });
+    // Selecting confirms the hire — move them into onboarding regardless of email delivery.
+    ensureOnboarding.mutate(candidate, {
+      onError: () => toast.error('Selected, but could not start onboarding — try again.'),
+    });
     if (!candidate.email) {
-      toast.info('Selected, but no email on file — candidate not notified.');
+      toast.info('Selected & moved to onboarding, but no email on file — candidate not notified.');
       return;
     }
     sendTestEmail({
@@ -605,12 +562,35 @@ export default function CandidateDetailPage() {
       position: candidate.appliedRole || candidate.department,
     })
       .then(res => {
-        if (res.sent) toast.success('Selected — availability email sent.');
+        if (res.sent) toast.success('Selected — onboarding started, availability email sent.');
         else if (res.reason === 'not_configured')
-          toast.info('Selected. Email not sent — SMTP is not configured yet.');
-        else toast.info('Selected, but the candidate was not emailed.');
+          toast.info('Selected & moved to onboarding. Email not sent — SMTP is not configured yet.');
+        else toast.info('Selected & moved to onboarding, but the candidate was not emailed.');
       })
-      .catch(() => toast.error('Selected, but sending the email failed.'));
+      .catch(() => toast.error('Selected & moved to onboarding, but sending the email failed.'));
+  };
+
+  // First positive decision after the interview: shortlist for the offer and send
+  // a confirmation email. "Select for role" then finalizes it.
+  const shortlistForOffer = () => {
+    move.mutate({ id: candidate.id, status: 'Offer Shortlisted' });
+    if (!candidate.email) {
+      toast.info('Shortlisted, but no email on file — candidate not notified.');
+      return;
+    }
+    sendTestEmail({
+      to: candidate.email,
+      candidateName: candidate.fullName,
+      template: 'offer_shortlisted',
+      position: candidate.appliedRole || candidate.department,
+    })
+      .then(res => {
+        if (res.sent) toast.success('Shortlisted — confirmation email sent.');
+        else if (res.reason === 'not_configured')
+          toast.info('Shortlisted. Email not sent — SMTP is not configured yet.');
+        else toast.info('Shortlisted, but the candidate was not emailed.');
+      })
+      .catch(() => toast.error('Shortlisted, but sending the email failed.'));
   };
 
   const rejectCandidate = () => {
@@ -636,22 +616,6 @@ export default function CandidateDetailPage() {
   };
   const updateHc = <K extends keyof HRCallRecord>(key: K, value: HRCallRecord[K]) =>
     setHc(prev => ({ ...prev, [key]: value }));
-
-  const openGrade = () => {
-    if (!asgInvite) return;
-    setGradeScore(asgInvite.score != null ? String(asgInvite.score) : '');
-    setGradeComments(asgInvite.gradeComments ?? '');
-    setOpenForm('grade');
-  };
-  const submitGrade = () => {
-    if (!asgInvite) return;
-    const value = Number(gradeScore);
-    if (Number.isNaN(value) || value < 0 || value > ASSIGNMENT_MAX_MARKS) {
-      toast.error(`Enter a score between 0 and ${ASSIGNMENT_MAX_MARKS}.`);
-      return;
-    }
-    gradeAssignment.mutate({ invite: asgInvite, value, notes: gradeComments });
-  };
 
   const openFeedback = (iv: Interview) => {
     setFbInterview(iv);
@@ -710,24 +674,12 @@ export default function CandidateDetailPage() {
 
     if (label === 'IQ Test') {
       if (!iqReached) btns.push(scheduleBtn('IQ Test', 'Schedule IQ test'));
-      else if (!decided && iqDone && !asgReached) btns.push(scheduleBtn('Assessment', 'Send assignment'));
+      else if (!decided && iqDone && !asgReached) btns.push(scheduleBtn('Assessment', 'Send assessment'));
     }
 
-    if (label === 'Assignment') {
-      if (!asgReached) btns.push(scheduleBtn('Assessment', 'Send assignment'));
-      if (asgInvite?.status === 'Submitted')
-        btns.push(
-          <Button key="grade" size="sm" onClick={openGrade}>
-            <Star size={13} /> Grade submission
-          </Button>,
-        );
-      if (asgInvite?.status === 'Graded')
-        btns.push(
-          <Button key="review" size="sm" variant="outline" onClick={openGrade}>
-            <CheckCircle2 size={13} /> Review grade
-          </Button>,
-        );
-      if (asgInvite?.status === 'Graded' && asgInvite.passed && !interviewReached && !decided)
+    if (label === 'Assessment') {
+      if (!asgReached) btns.push(scheduleBtn('Assessment', 'Send assessment'));
+      if (asgDone && asgInvite?.passed && !interviewReached && !decided)
         btns.push(scheduleBtn('Interview', 'Schedule interview'));
     }
 
@@ -740,14 +692,45 @@ export default function CandidateDetailPage() {
           </Button>,
         );
       if (latestInterview && !decided) {
-        btns.push(
-          <Button key="select" size="sm" onClick={selectForRole}>
-            <Award size={13} /> Select for role
-          </Button>,
-        );
+        // Shortlist first (confirmation email), then finalize with "Select for role".
+        if (!offerShortlisted) {
+          btns.push(
+            <Button key="shortlist" size="sm" onClick={shortlistForOffer}>
+              <UserCheck size={13} /> Shortlist for offer
+            </Button>,
+          );
+        } else {
+          btns.push(
+            <Button key="select" size="sm" onClick={selectForRole}>
+              <Award size={13} /> Select for role
+            </Button>,
+          );
+        }
         btns.push(scheduleBtn('Interview', 'Another round', false));
         btns.push(
           <Button key="reject" size="sm" variant="outline" onClick={rejectCandidate}>
+            <ThumbsDown size={13} /> Reject
+          </Button>,
+        );
+      }
+    }
+
+    if (label === 'Decision' && !decided) {
+      // Reached only once shortlisted — let HR finalize the offer or step back.
+      if (!offerShortlisted && interviewDone)
+        btns.push(
+          <Button key="d-shortlist" size="sm" onClick={shortlistForOffer}>
+            <UserCheck size={13} /> Shortlist for offer
+          </Button>,
+        );
+      if (offerShortlisted) {
+        btns.push(
+          <Button key="d-select" size="sm" onClick={selectForRole}>
+            <Award size={13} /> Select for role
+          </Button>,
+        );
+        btns.push(
+          <Button key="d-reject" size="sm" variant="outline" onClick={rejectCandidate}>
             <ThumbsDown size={13} /> Reject
           </Button>,
         );
@@ -792,23 +775,13 @@ export default function CandidateDetailPage() {
             </div>
           </div>
         </div>
-        {nextRound ? (
-          <button
-            onClick={() => schedule(nextRound)}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent-600 px-3 py-2 font-semibold text-white transition hover:bg-accent-700"
-          >
-            <CalendarPlus size={14} /> {roundLabel[nextRound]}
-          </button>
-        ) : (
-          <span
-            className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 font-semibold ${
-              selected ? 'bg-emerald-50 text-emerald-700' : rejected ? 'bg-red-50 text-red-600' : 'bg-[#ECE6DA] text-gray-500'
-            }`}
-          >
-            {selected ? <Award size={14} /> : rejected ? <Flag size={14} /> : <Clock4 size={14} />}
-            {selected ? 'Selected for role' : rejected ? 'Rejected' : 'Round in progress'}
-          </span>
-        )}
+        <button
+          onClick={() => resumeDoc && openDocument(resumeDoc.id)}
+          disabled={!resumeDoc}
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent-600 px-3 py-2 font-semibold text-white transition hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Eye size={14} /> {resumeDoc ? 'View resume' : 'No resume'}
+        </button>
       </div>
 
       {/* Vertical pipeline stepper (ReUI) + per-stage detail panel */}
@@ -925,7 +898,7 @@ export default function CandidateDetailPage() {
           </div>
         </div>
 
-        {/* Right: details + documents */}
+        {/* Right: details */}
         <div className="space-y-5">
           <div className="rounded-xl border border-[#DAD4C8] bg-[#F7F4EE] p-5 shadow-2xs">
             <h3 className="mb-3 text-sm font-bold text-gray-900">Candidate details</h3>
@@ -939,14 +912,6 @@ export default function CandidateDetailPage() {
               <Detail icon={<CalendarDays size={13} />} value={`Applied ${fmtDate(candidate.appliedDate)} · via ${candidate.sourceOfApplication}`} />
             </div>
           </div>
-
-          <DocumentsPanel
-            entityType="candidate"
-            entityId={candidate.id}
-            category="resume"
-            title="Resume & documents"
-            previewOnly
-          />
         </div>
       </div>
 
@@ -957,17 +922,14 @@ export default function CandidateDetailPage() {
             <SheetTitle className="flex items-center gap-2">
               {openForm === 'screening' && <ShieldCheck size={15} className="text-accent-600" />}
               {openForm === 'hrcall' && <Phone size={15} className="text-accent-600" />}
-              {openForm === 'grade' && <Star size={15} className="text-accent-600" />}
               {openForm === 'feedback' && <MessageSquarePlus size={15} className="text-accent-600" />}
               {openForm === 'screening'
                 ? 'Screening review'
                 : openForm === 'hrcall'
                   ? 'HR introductory call'
-                  : openForm === 'grade'
-                    ? 'Grade assignment'
-                    : openForm === 'feedback'
-                      ? `Interview feedback${fbInterview ? ` — ${fbInterview.interviewRound}` : ''}`
-                      : ''}
+                  : openForm === 'feedback'
+                    ? `Interview feedback${fbInterview ? ` — ${fbInterview.interviewRound}` : ''}`
+                    : ''}
             </SheetTitle>
             <SheetDescription>
               {candidate.fullName} · {candidate.appliedRole}
@@ -1201,52 +1163,6 @@ export default function CandidateDetailPage() {
               </div>
             )}
 
-            {/* Assignment grade form */}
-            {openForm === 'grade' && (
-              <>
-                {asgInvite?.submissionDocId && (
-                  <button
-                    onClick={() => openDocument(asgInvite.submissionDocId!)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-secondary cursor-pointer"
-                  >
-                    <Download size={14} /> {asgInvite.submissionFileName ?? 'Download submission'}
-                  </button>
-                )}
-                <div>
-                  <Label htmlFor="grade-score" className="text-sm font-medium">
-                    Score (out of {ASSIGNMENT_MAX_MARKS}) — pass ≥ {ASSIGNMENT_PASS_MARKS}
-                  </Label>
-                  <Input
-                    id="grade-score"
-                    type="number"
-                    min={0}
-                    max={ASSIGNMENT_MAX_MARKS}
-                    value={gradeScore}
-                    onChange={e => setGradeScore(e.target.value)}
-                    placeholder="e.g. 72"
-                    className="mt-2"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="grade-comments" className="text-sm font-medium">
-                    Evaluator comments
-                  </Label>
-                  <Textarea
-                    id="grade-comments"
-                    value={gradeComments}
-                    onChange={e => setGradeComments(e.target.value)}
-                    placeholder="Strengths, gaps, overall assessment…"
-                    rows={4}
-                    className="mt-2"
-                  />
-                </div>
-                <p className="text-[11px] text-gray-500">
-                  A pass schedules the interview and notifies the candidate. A fail marks them not
-                  selected and sends the outcome email.
-                </p>
-              </>
-            )}
-
             {/* Interview feedback form */}
             {openForm === 'feedback' && (
               <>
@@ -1296,11 +1212,6 @@ export default function CandidateDetailPage() {
             {openForm === 'hrcall' && (
               <Button onClick={() => saveHrCall.mutate(hc)} disabled={saveHrCall.isPending}>
                 Complete HR Call
-              </Button>
-            )}
-            {openForm === 'grade' && (
-              <Button onClick={submitGrade} disabled={gradeAssignment.isPending}>
-                Save grade
               </Button>
             )}
             {openForm === 'feedback' && (
