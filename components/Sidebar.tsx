@@ -8,7 +8,6 @@ import { BRAND } from '@/lib/brand';
 import {
   LayoutDashboard,
   Users,
-  CalendarRange,
   ListTodo,
   LogOut,
   BarChart3,
@@ -88,7 +87,6 @@ export function Sidebar({ userRole, setUserRole, collapsed: isCollapsed }: Sideb
         <div className="space-y-0.5">
           {navItem('/', 'Dashboard', <LayoutDashboard size={14} />)}
           {navItem('/jobs', 'Job Postings', <Briefcase size={14} />)}
-          {navItem('/calendar', 'Recruitment Calendar', <CalendarRange size={14} />)}
           {navItem('/candidates', 'Candidates', <UserSearch size={14} />)}
         </div>
 
