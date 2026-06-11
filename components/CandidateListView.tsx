@@ -24,6 +24,8 @@ import {
   UserSearch,
   ShieldCheck,
   X,
+  Check,
+  Minus,
 } from 'lucide-react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
@@ -33,6 +35,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { FileDropzone, PickedFile } from '@/components/ui/file-dropzone';
 import { importDriveDocument, uploadDocument } from '@/lib/api/documents';
+import { effectiveFit, fitStyle } from '@/lib/screening';
+import { FitRating } from '@/types';
 import {
   Dialog,
   DialogContent,
@@ -47,6 +51,7 @@ interface CandidateListViewProps {
   onAddCandidate: (cand: Candidate) => void;
   onDeleteCandidate?: (id: string) => void;
   onShortlistCandidate?: (id: string, name: string) => void;
+  onSetFit?: (id: string, rating: FitRating) => void;
 }
 
 export function CandidateListView({
@@ -55,6 +60,7 @@ export function CandidateListView({
   onAddCandidate,
   onDeleteCandidate,
   onShortlistCandidate,
+  onSetFit,
 }: CandidateListViewProps) {
   const toast = useToast();
   const qc = useQueryClient();
@@ -63,7 +69,7 @@ export function CandidateListView({
   const [selectedDept, setSelectedDept] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [selectedSource, setSelectedSource] = useState('All');
-  const [maxNoticePeriod, setMaxNoticePeriod] = useState<number>(90);
+  const [maxNoticePeriod, setMaxNoticePeriod] = useState<number>(9999);
   const [minExperience, setMinExperience] = useState<number>(0);
 
   // New Candidate Modal Form state
@@ -78,8 +84,8 @@ export function CandidateListView({
     currentDesignation: '',
     totalExperienceYears: 4,
     relevantExperienceYears: 3,
-    currentCtc: '$120,000',
-    expectedCtc: '$140,000',
+    currentCtc: '',
+    expectedCtc: '',
     noticePeriodDays: 30,
     appliedRole: 'Senior React Engineer',
     department: 'Engineering',
@@ -183,8 +189,8 @@ export function CandidateListView({
       currentDesignation: '',
       totalExperienceYears: 4,
       relevantExperienceYears: 3,
-      currentCtc: '$120,000',
-      expectedCtc: '$140,000',
+      currentCtc: '',
+      expectedCtc: '',
       noticePeriodDays: 30,
       appliedRole: 'Senior React Engineer',
       department: 'Engineering',
@@ -265,7 +271,7 @@ export function CandidateListView({
               onChange={e => setMaxNoticePeriod(Number(e.target.value))}
               className="w-full px-2 py-1.5 bg-[#E6E1D8] border border-[#DAD4C8] rounded font-mono"
             >
-              <option value={90}>Any Notice</option>
+              <option value={9999}>Any Notice</option>
               <option value={30}>≤ 30 Days</option>
               <option value={15}>≤ 15 Days</option>
               <option value={0}>Immediate</option>
@@ -317,6 +323,7 @@ export function CandidateListView({
               <th className="p-3 text-center">Expected CTC</th>
               <th className="p-3 text-center">Notice period</th>
               <th className="p-3">Stage status</th>
+              <th className="p-3 text-center">Fit</th>
               <th className="p-3">Source</th>
               <th className="p-3 text-right">Actions</th>
             </tr>
@@ -324,7 +331,7 @@ export function CandidateListView({
           <tbody className="divide-y divide-[#DAD4C8]">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={10} className="bg-[#F7F4EE] p-3">
+                <td colSpan={11} className="bg-[#F7F4EE] p-3">
                   <EmptyState
                     icon={UserSearch}
                     title={candidates.length === 0 ? 'No candidates yet' : 'No matches'}
@@ -340,7 +347,14 @@ export function CandidateListView({
             ) : (
               filtered.map(cand => (
                 <tr key={cand.id} className="hover:bg-[#F2EEE7] group transition duration-150">
-                  <td className="p-3 font-semibold text-gray-900">{cand.fullName}</td>
+                  <td className="p-3">
+                    <button
+                      onClick={() => onSelectCandidate(cand.id)}
+                      className="cursor-pointer text-left font-semibold text-gray-900 hover:text-accent-600 hover:underline"
+                    >
+                      {cand.fullName}
+                    </button>
+                  </td>
                   <td className="p-3 font-medium text-gray-855 truncate max-w-[150px]">{cand.appliedRole}</td>
                   <td className="p-3 text-gray-600">{cand.department}</td>
                   <td className="p-3 text-center font-mono text-gray-750">{cand.totalExperienceYears} Yrs</td>
@@ -352,19 +366,36 @@ export function CandidateListView({
                   <td className="p-3">
                     <span
                       className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold select-none ${
-                        cand.status === 'Shortlisted'
-                          ? 'bg-purple-50 text-purple-600'
-                          : cand.status === 'Moved to HR Call'
-                            ? 'bg-teal-50 text-teal-600'
-                            : cand.status === 'Rejected'
-                              ? 'bg-red-50 text-red-600'
-                              : cand.status === 'On Hold'
-                                ? 'bg-yellow-50 text-yellow-600'
-                                : 'bg-accent-50 text-accent-600'
+                        cand.status === 'Selected'
+                          ? 'bg-green-50 text-green-600'
+                          : cand.status === 'Shortlisted'
+                            ? 'bg-purple-50 text-purple-600'
+                            : cand.status === 'Moved to HR Call'
+                              ? 'bg-teal-50 text-teal-600'
+                              : cand.status === 'Rejected'
+                                ? 'bg-red-50 text-red-600'
+                                : cand.status === 'On Hold'
+                                  ? 'bg-yellow-50 text-yellow-600'
+                                  : 'bg-accent-50 text-accent-600'
                       }`}
                     >
                       {cand.status}
                     </span>
+                  </td>
+                  <td className="p-3 text-center">
+                    {(() => {
+                      const fit = effectiveFit(cand);
+                      if (!fit) return <span className="text-[10px] text-gray-400">—</span>;
+                      return (
+                        <span
+                          title={cand.fitRatingOverride ? 'Set by HR' : 'Auto from screening'}
+                          className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${fitStyle(fit)}`}
+                        >
+                          {fit}
+                          {cand.fitRatingOverride && <span className="ml-0.5 opacity-60">*</span>}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="p-3 text-gray-500 font-mono text-[10px]">{cand.sourceOfApplication}</td>
                   <td className="p-3 text-right">
@@ -391,6 +422,28 @@ export function CandidateListView({
                             icon: <ShieldCheck size={13} />,
                             onClick: () => openCandidate(cand.id, 'bgv'),
                           },
+                          ...(onSetFit
+                            ? ([
+                                {
+                                  key: 'fit-fit',
+                                  label: 'Mark Fit',
+                                  icon: <Check size={13} />,
+                                  onClick: () => onSetFit(cand.id, 'Fit'),
+                                },
+                                {
+                                  key: 'fit-border',
+                                  label: 'Mark Borderline',
+                                  icon: <Minus size={13} />,
+                                  onClick: () => onSetFit(cand.id, 'Borderline'),
+                                },
+                                {
+                                  key: 'fit-unfit',
+                                  label: 'Mark Unfit',
+                                  icon: <X size={13} />,
+                                  onClick: () => onSetFit(cand.id, 'Unfit'),
+                                },
+                              ] as const)
+                            : []),
                           {
                             key: 'delete',
                             label: 'Delete',
@@ -580,11 +633,11 @@ export function CandidateListView({
                     </div>
                     <div>
                       <Label htmlFor="cand-ctc" className="text-sm font-medium">
-                        Expected CTC
+                        Expected CTC (LPA)
                       </Label>
                       <Input
                         id="cand-ctc"
-                        placeholder="$140,000"
+                        placeholder="e.g. 15 LPA"
                         value={newCand.expectedCtc}
                         onChange={e => setNewCand({ ...newCand, expectedCtc: e.target.value })}
                         className="mt-2"

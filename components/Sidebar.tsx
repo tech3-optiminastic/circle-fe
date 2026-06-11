@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from './Logo';
+import { BRAND } from '@/lib/brand';
 import {
   Clock,
   LayoutDashboard,
@@ -15,21 +16,21 @@ import {
   LogOut,
   BarChart3,
   Settings,
-  ChevronLeft,
-  ChevronRight,
   ShieldCheck,
   FileText,
   Briefcase,
+  UserSearch,
 } from 'lucide-react';
 
 interface SidebarProps {
   userRole: 'HR' | 'Admin';
   setUserRole: (role: 'HR' | 'Admin') => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
-export function Sidebar({ userRole, setUserRole }: SidebarProps) {
+export function Sidebar({ userRole, setUserRole, collapsed: isCollapsed }: SidebarProps) {
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     recruitment: true,
     employees: true,
@@ -75,7 +76,7 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
           <div className="flex items-center gap-2">
             <Logo size={28} className="shrink-0" />
             <div>
-              <h1 className="text-sm font-bold text-gray-900 tracking-tight font-display">Curcle</h1>
+              <h1 className="text-sm font-bold text-gray-900 tracking-tight font-display">{BRAND.name}</h1>
               <p className="text-[10px] text-gray-500 uppercase font-mono font-semibold tracking-wider">
                 HR Operating System
               </p>
@@ -84,15 +85,6 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
         ) : (
           <Logo size={28} className="mx-auto shrink-0" />
         )}
-
-        <button
-          id="btn-sidebar-collapse"
-        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1 hover:bg-[#E6E1D8] rounded text-gray-500 hover:text-gray-600 shrink-0"
-        >
-          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-        </button>
       </div>
 
       {/* Navigation Stack */}
@@ -102,6 +94,7 @@ export function Sidebar({ userRole, setUserRole }: SidebarProps) {
           {navItem('/', 'Dashboard', <LayoutDashboard size={14} />)}
           {navItem('/jobs', 'Job Postings', <Briefcase size={14} />)}
           {navItem('/calendar', 'Recruitment Calendar', <CalendarRange size={14} />)}
+          {navItem('/candidates', 'Candidates', <UserSearch size={14} />)}
         </div>
 
         {/* RECRUITMENT DIVISION */}

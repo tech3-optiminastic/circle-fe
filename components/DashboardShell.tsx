@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from './Sidebar';
@@ -18,6 +18,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, ready } = useAuth();
   const { userRole, setUserRole, setSearchQuery, setSelectedCandidateId } = useUiStore();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const toggleSidebar = () => setSidebarCollapsed(v => !v);
 
   // Access gate: bounce unauthenticated visitors to the login screen.
   useEffect(() => {
@@ -79,7 +81,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       id="master-viewport"
       className="flex h-screen overflow-hidden bg-[#ECE8E0] font-sans antialiased text-gray-950"
     >
-      <Sidebar userRole={userRole} setUserRole={setUserRole} />
+      <Sidebar
+        userRole={userRole}
+        setUserRole={setUserRole}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={toggleSidebar}
+      />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <Header
@@ -88,6 +95,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           userRole={userRole}
           candidatesList={candidates.data ?? []}
           onQuickSelectCandidate={onQuickSelectCandidate}
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={toggleSidebar}
         />
 
         <main className="flex-1 overflow-y-auto px-6 py-6 min-h-0 bg-[#ECE8E0]">

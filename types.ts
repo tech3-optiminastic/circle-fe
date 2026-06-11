@@ -13,7 +13,7 @@ export interface Candidate {
   currentDesignation: string;
   totalExperienceYears: number;
   relevantExperienceYears: number;
-  currentCtc: string; // e.g. "$120,000" or "₹15,00,000"
+  currentCtc: string; // e.g. "12 LPA"
   expectedCtc: string;
   noticePeriodDays: number;
   resumeUrl?: string;
@@ -30,8 +30,50 @@ export interface Candidate {
   // Set when the candidate applied through a public job posting link.
   jobId?: string;
 
+  // Screening questionnaire answered at apply time (from the job's questions).
+  screeningAnswers?: ScreeningAnswer[];
+  /** Auto-computed from the answers (must-have fail = Unfit, etc.). */
+  fitRating?: FitRating;
+  /** HR's manual override of the computed rating, if any. */
+  fitRatingOverride?: FitRating;
+
   // HR introductory call info (if completed or moved to HR Call)
   hrCall?: HRCallRecord;
+}
+
+export type QuestionCategory = 'Field' | 'Cultural Fit';
+export type QuestionImportance = 'Must Have' | 'Good to Have';
+export type FitRating = 'Fit' | 'Borderline' | 'Unfit';
+/** 'yesno' = Yes/No · 'choice' = pick one option · 'text' = short free text. */
+export type QuestionType = 'yesno' | 'choice' | 'text';
+
+/** A screening question attached to a job posting. */
+export interface ScreeningQuestion {
+  id: string;
+  text: string;
+  category: QuestionCategory;
+  importance: QuestionImportance;
+  /** Answer format. Missing = legacy yes/no. */
+  type?: QuestionType;
+  /** yes/no: the answer (Yes=true / No=false) that counts as a pass. */
+  expectedAnswer?: boolean;
+  /** choice: the options to pick from. */
+  options?: string[];
+  /** choice: the option that counts as a pass. */
+  expectedOption?: string;
+}
+
+/** A candidate's answer to one screening question, with the pass result. */
+export interface ScreeningAnswer {
+  questionId: string;
+  text: string;
+  category: QuestionCategory;
+  importance: QuestionImportance;
+  type: QuestionType;
+  /** Normalised answer: 'Yes'/'No', the chosen option, or the typed text. */
+  answer: string;
+  /** Whether it counts as a pass (text questions are informational → always true). */
+  passed: boolean;
 }
 
 /** A planned recruitment event (call/test/assessment/interview) shown on the calendar. */
@@ -112,13 +154,15 @@ export interface Job {
   employmentType: EmploymentType;
   workMode: WorkMode;
   minExperienceYears: number;
-  salaryMin: string; // e.g. "$120,000" / "₹15,00,000"
+  salaryMin: string; // e.g. "12 LPA"
   salaryMax: string;
   description: string; // detailed role description
   requirements: string; // skills / must-haves, one per line
   status: JobStatus;
   postedBy: string;
   postedDate: string;
+  /** Yes/No screening questions candidates answer when applying. */
+  screeningQuestions?: ScreeningQuestion[];
 }
 
 export type EmploymentType = 'Full-time' | 'Part-time' | 'Contract' | 'Internship' | 'Temporary';
@@ -134,6 +178,7 @@ export type CandidateStatus =
   | 'Rejected'
   | 'On Hold'
   | 'Moved to HR Call'
+  | 'Selected'
   | 'Duplicate Profile';
 
 export interface HRCallRecord {

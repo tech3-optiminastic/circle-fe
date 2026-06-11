@@ -1,23 +1,24 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { CandidateListView } from '@/components/CandidateListView';
-import { useUiStore } from '@/store/ui-store';
 import { useScheduler } from '@/store/schedule-store';
 import { useCandidates, useCandidateMutations } from '@/features/candidates/hooks';
 
 export default function CandidatesPage() {
-  const { setSelectedCandidateId } = useUiStore();
+  const router = useRouter();
   const { openSchedule } = useScheduler();
   const { data: candidates = [] } = useCandidates();
-  const { create, remove } = useCandidateMutations();
+  const { create, remove, setFit } = useCandidateMutations();
 
   return (
     <CandidateListView
       candidates={candidates}
-      onSelectCandidate={setSelectedCandidateId}
+      onSelectCandidate={id => router.push(`/candidates/${id}`)}
       onAddCandidate={candidate => create.mutate(candidate)}
       onDeleteCandidate={id => remove.mutate(id)}
       onShortlistCandidate={(id, name) => openSchedule(id, name, 'HR Call')}
+      onSetFit={(id, rating) => setFit.mutate({ id, rating })}
     />
   );
 }

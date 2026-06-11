@@ -1,5 +1,5 @@
 /**
- * Low-level HTTP boundary. Single responsibility: talk to the Curcle API and
+ * Low-level HTTP boundary. Single responsibility: talk to the backend API and
  * surface typed errors. Nothing above this layer knows about `fetch`.
  */
 

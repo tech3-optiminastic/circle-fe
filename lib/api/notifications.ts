@@ -29,7 +29,8 @@ export type TestEmailTemplate =
   | 'assignment_invite'
   | 'assessment_invite'
   | 'assessment_passed'
-  | 'assessment_failed';
+  | 'assessment_failed'
+  | 'offer_selected';
 
 /** Send one of the online-test pipeline emails (invite links, pass/fail results). */
 export function sendTestEmail(input: {

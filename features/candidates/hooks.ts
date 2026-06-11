@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BGVRequirement, Candidate, CandidateStatus, OnboardingChecklist } from '@/types';
+import { BGVRequirement, Candidate, CandidateStatus, FitRating, OnboardingChecklist } from '@/types';
 import { repositories } from '@/lib/api/repositories';
 import { qk } from '@/lib/query/keys';
 import { listOps } from '@/lib/query/optimistic';
@@ -69,7 +69,18 @@ export function useCandidateMutations() {
     ...optimisticOptions<string, Candidate>(qc, qk.candidates.all, id => listOps.removeBy(c => c.id === id)),
   });
 
-  return { create, update, move, remove };
+  // HR override of the auto-computed screening fit rating.
+  const setFit = useMutation({
+    mutationFn: ({ id, rating }: { id: string; rating: FitRating }) =>
+      repositories.candidates.patch(id, { fitRatingOverride: rating }),
+    ...optimisticOptions<{ id: string; rating: FitRating }, Candidate>(
+      qc,
+      qk.candidates.all,
+      ({ id, rating }) => listOps.mergeBy<Candidate>(c => c.id === id, { fitRatingOverride: rating }),
+    ),
+  });
+
+  return { create, update, move, remove, setFit };
 }
 
 export function useUpdateBgv() {

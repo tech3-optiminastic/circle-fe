@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { AuthUser } from '@/types';
 import { repositories } from '@/lib/api/repositories';
 import { ApiError } from '@/lib/http/client';
+import { BRAND } from '@/lib/brand';
 
 /**
  * Access control for the HR dashboard. Accounts live in the backend `auth-users`
@@ -91,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             account = await repositories.authUsers.get(e);
           } catch (retryErr) {
             if (retryErr instanceof ApiError && retryErr.status === 404) {
-              return { ok: false, error: 'This email is not authorized to access Curcle.' };
+              return { ok: false, error: `This email is not authorized to access ${BRAND.short}.` };
             }
             throw retryErr;
           }

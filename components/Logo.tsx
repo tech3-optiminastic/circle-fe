@@ -1,34 +1,34 @@
 import React from 'react';
 
 /**
- * Curcle brand mark — a "C" formed by four indigo/cream ring segments (gap on the
- * right) around a soft gray center dot. Fixed brand colors (kept in step with
- * the app accent palette).
+ * Optiminastic brand mark — the CMYK overlapping-circles motif (cyan / magenta /
+ * yellow blended with multiply) that forms the "O" in the Optiminastic logo.
+ * Sits on a rounded white tile so the colour blend renders consistently on any
+ * background (light surfaces and the crimson brand chips alike).
+ *
+ * To use the exact brand asset instead, drop it in `public/logo.svg` and swap
+ * this for an <img src="/logo.svg" />.
  */
 export function Logo({ size = 32, className = '' }: { size?: number; className?: string }) {
+  const multiply: React.CSSProperties = { mixBlendMode: 'multiply' };
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 48 48"
-      fill="none"
       role="img"
-      aria-label="Curcle"
+      aria-label="Optiminastic × Circle"
       className={className}
     >
-      {/* ring segments (clockwise from the bottom of the right-side gap) */}
-      <g fill="none" strokeWidth="8" strokeLinecap="butt">
-        {/* bottom-right — darkest (midnight indigo) */}
-        <path d="M36.29 32.60 A15 15 0 0 1 19.48 38.30" stroke="#5F0F16" />
-        {/* bottom-left — midnight indigo */}
-        <path d="M19.48 38.30 A15 15 0 0 1 9 24" stroke="#A51C30" />
-        {/* upper-left — slate indigo */}
-        <path d="M9 24 A15 15 0 0 1 19.48 9.70" stroke="#C9545E" />
-        {/* top-right — pale cream */}
-        <path d="M19.48 9.70 A15 15 0 0 1 36.29 15.40" stroke="#ECE8E0" />
+      {/* Isolate so the multiply blend mixes the circles against the white tile,
+          not against whatever is behind the logo. */}
+      <g style={{ isolation: 'isolate' }}>
+        <rect x="0" y="0" width="48" height="48" rx="12" fill="#ffffff" />
+        {/* Centres separated by ~one radius → each pair overlaps by about half. */}
+        <circle cx="18.5" cy="20" r="10.5" fill="#00AEEF" style={multiply} />
+        <circle cx="29.5" cy="20" r="10.5" fill="#EC008C" style={multiply} />
+        <circle cx="24" cy="29.5" r="10.5" fill="#FFF200" style={multiply} />
       </g>
-      {/* center dot */}
-      <circle cx="24" cy="24" r="5.5" fill="#D8DBDE" />
     </svg>
   );
 }

@@ -19,7 +19,7 @@ export function useAssets() {
 export function useEmployeeMutations() {
   const qc = useQueryClient();
 
-  // Directly register an existing employee (e.g. staff hired before Curcle).
+  // Directly register an existing employee (e.g. staff hired before onboarding).
   const create = useMutation({
     mutationFn: (employee: Employee) => repositories.employees.create(employee),
     ...optimisticOptions<Employee, Employee>(qc, qk.employees.all, e => listOps.prepend(e)),

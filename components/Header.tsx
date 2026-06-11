@@ -18,6 +18,8 @@ import {
   Mail,
   LogOut,
   ShieldCheck,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { DropdownMenu, Popover } from 'radix-ui';
 import { Candidate, SentEmailLog } from '../types';
@@ -49,6 +51,8 @@ interface HeaderProps {
   userRole: 'HR' | 'Admin';
   candidatesList: Candidate[];
   onQuickSelectCandidate: (candidateId: string) => void;
+  sidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
 }
 
 export function Header({
@@ -57,6 +61,8 @@ export function Header({
   userRole,
   candidatesList,
   onQuickSelectCandidate,
+  sidebarCollapsed,
+  onToggleSidebar,
 }: HeaderProps) {
   const router = useRouter();
   const { user, isAdmin, logout } = useAuth();
@@ -108,8 +114,19 @@ export function Header({
       id="app-header"
       className="bg-[#F7F4EE] border-b border-[#DAD4C8] h-14 px-6 flex items-center justify-between sticky top-0 z-50 select-none"
     >
-      {/* Global Search Bar */}
-      <div className="relative w-80">
+      <div className="flex items-center gap-2">
+        {/* Sidebar collapse toggle */}
+        <button
+          id="btn-sidebar-collapse"
+          onClick={onToggleSidebar}
+          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="shrink-0 rounded-md p-1.5 text-gray-500 hover:bg-[#E6E1D8] hover:text-gray-700 cursor-pointer transition"
+        >
+          {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+        </button>
+
+        {/* Global Search Bar */}
+        <div className="relative w-80">
         <span className="absolute left-3 top-2.5 text-gray-500">
           <Search size={14} />
         </span>
@@ -163,6 +180,7 @@ export function Header({
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {/* Right Actions & Profile */}

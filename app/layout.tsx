@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
+import { BRAND } from '@/lib/brand';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -11,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Curcle HRMS',
+  title: BRAND.product,
   description:
     'Enterprise-grade HR Operating System and Applicant Tracking System for the complete employee lifecycle.',
 };

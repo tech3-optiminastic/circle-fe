@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/Logo';
+import { BRAND } from '@/lib/brand';
 import { useAuth } from '@/store/auth-store';
 import { Mail, Lock, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,7 +50,7 @@ export default function LoginPage() {
           <div className="flex flex-col items-center text-center mb-7">
             <Logo size={44} />
             <h1 className="text-xl font-bold text-gray-900 tracking-tight font-display mt-3">
-              Curcle
+              {BRAND.name}
             </h1>
             <p className="text-[11px] text-gray-500 uppercase font-mono font-semibold tracking-wider">
               HR Operating System
@@ -141,7 +142,7 @@ export default function LoginPage() {
           </Card>
 
           <p className="text-center text-[11px] text-gray-500 mt-5">
-            Trouble signing in? Contact your Curcle administrator.
+            Trouble signing in? Contact your {BRAND.short} administrator.
           </p>
         </div>
       </div>

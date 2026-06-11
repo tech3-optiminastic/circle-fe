@@ -2,6 +2,7 @@
 
 import { HiringFunnelChart } from '@/components/HiringFunnelChart';
 import { PageLoading } from '@/components/PageLoading';
+import { BRAND } from '@/lib/brand';
 import { useCandidates } from '@/features/candidates/hooks';
 import { useInterviews } from '@/features/interviews/hooks';
 
@@ -14,7 +15,7 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
-        Opti Circle Enterprise Reports Dashboard
+        {BRAND.name} Enterprise Reports Dashboard
       </h2>
       <p className="text-xs text-gray-500">
         Yield convert charts, time-to-hire averages, promotion trends, and offboarding completion scorecards.

@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Logo } from '@/components/Logo';
+import { BRAND } from '@/lib/brand';
 import { TestInvite, IQTest } from '@/types';
 import { repositories } from '@/lib/api/repositories';
 import { qk } from '@/lib/query/keys';
@@ -805,7 +806,7 @@ function Shell({ children }: { children: React.ReactNode }) {
             <Logo size={20} />
           </span>
           <div>
-            <p className="text-sm font-bold leading-tight text-gray-900">Curcle</p>
+            <p className="text-sm font-bold leading-tight text-gray-900">{BRAND.name}</p>
             <p className="text-[9px] font-mono uppercase tracking-[0.15em] text-gray-500">
               Recruitment Test Portal
             </p>
@@ -821,7 +822,7 @@ function Shell({ children }: { children: React.ReactNode }) {
       </main>
 
       <footer className="relative z-10 text-center text-[10px] text-gray-500 py-5 font-mono">
-        Proctored online test · Curcle HRMS
+        Proctored online test · {BRAND.product}
       </footer>
     </div>
   );

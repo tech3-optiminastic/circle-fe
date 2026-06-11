@@ -13,6 +13,7 @@ import {
   type CalendarStatus,
 } from '@/lib/api/calendar';
 import { workspace } from '@/lib/config';
+import { BRAND } from '@/lib/brand';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { EmptyState } from '@/components/ui/empty-state';
 /**
@@ -56,6 +57,7 @@ import {
   BookOpen,
   MapPin,
   Video,
+  Award,
 } from 'lucide-react';
 import {
   Candidate,
@@ -223,6 +225,7 @@ interface InterviewsViewProps {
   onSelectCandidate?: (id: string) => void;
   onShortlistCandidate?: (id: string, name: string) => void;
   onDeleteInterview?: (id: string) => void;
+  onSelectForRole?: (candidateId: string, candidateName: string) => void;
 }
 
 export function InterviewsView({
@@ -232,6 +235,7 @@ export function InterviewsView({
   onSelectCandidate,
   onShortlistCandidate,
   onDeleteInterview,
+  onSelectForRole,
 }: InterviewsViewProps) {
   const toast = useToast();
   const { openCandidate } = useUiStore();
@@ -475,8 +479,22 @@ export function InterviewsView({
                             onClick: () => onSelectCandidate?.(i.candidateId),
                           },
                           {
+                            key: 'select',
+                            label: 'Select for role',
+                            icon: <Award size={13} />,
+                            disabled: !onSelectForRole,
+                            onClick: () =>
+                              toast.confirm({
+                                title: `Select ${i.candidateName} for the role?`,
+                                description:
+                                  'Marks them selected and emails them to confirm their availability to join.',
+                                confirmLabel: 'Select & email',
+                                onConfirm: () => onSelectForRole?.(i.candidateId, i.candidateName),
+                              }),
+                          },
+                          {
                             key: 'shortlist',
-                            label: 'Shortlist & Schedule',
+                            label: 'Schedule another round',
                             icon: <UserCheck size={13} />,
                             disabled: !onShortlistCandidate,
                             onClick: () => onShortlistCandidate?.(i.candidateId, i.candidateName),
@@ -1024,7 +1042,7 @@ export function EmployeeDirectoryView({
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
         <div>
           <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
-            Opti Circle Active Employee Directory
+            {BRAND.name} Active Employee Directory
           </h2>
           <p className="text-gray-500 text-[11px]">
             Browse employee records, issued system logins, assigned hardware, and historic review scorecards.
@@ -1552,7 +1570,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
     hrFeedback: 'Highly collaborative team mate.',
     strengths: 'Peerless technical architecture.',
     improvementAreas: 'Document custom legacy configurations more frequently.',
-    recommendedSalaryRevision: '$180,000',
+    recommendedSalaryRevision: '',
     recommendedPromotion: 'Lead Full-stack Architect',
   });
 
@@ -1568,7 +1586,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
       employeeName: targetEmp.fullName,
       department: targetEmp.department,
       currentRole: targetEmp.role,
-      currentSalary: '$150,000',
+      currentSalary: '',
       reviewPeriod: reviewForm.reviewPeriod,
       reportingManager: targetEmp.reportingManager,
       performanceScore: Number(reviewForm.performanceScore),
@@ -1677,11 +1695,12 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
               />
             </div>
             <div className="space-y-1">
-              <label className="font-semibold text-gray-700">Proposed New Salary Bracket</label>
+              <label className="font-semibold text-gray-700">Proposed New CTC (LPA)</label>
               <input
                 type="text"
                 value={reviewForm.recommendedSalaryRevision}
                 onChange={e => setReviewForm({ ...reviewForm, recommendedSalaryRevision: e.target.value })}
+                placeholder="e.g. 22 LPA"
                 className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
               />
             </div>
@@ -1939,7 +1958,7 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
     onTriggerEmail(selectedTemplate?.id || activeTemplateId, recipientName, recipientEmail, {
       '{{CANDIDATE_NAME}}': recipientName,
       '{{ROLE}}': roleField,
-      '{{COMPANY_NAME}}': 'Curcle',
+      '{{COMPANY_NAME}}': BRAND.name,
       '{{DATE_TIME}}': 'June 15, 2026, 14:30 PM EST',
       '{{MEETING_LINK}}': 'https://meet.google.com/xyz',
       '{{EXPIRE_DATE}}': 'June 18, 2026',
@@ -2035,7 +2054,7 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
                   {selectedTemplate.bodyTemplate
                     .replace('{{CANDIDATE_NAME}}', recipientName)
                     .replace('{{ROLE}}', roleField)
-                    .replace('{{COMPANY_NAME}}', 'Curcle')
+                    .replace('{{COMPANY_NAME}}', BRAND.name)
                     .replace('{{DATE_TIME}}', 'June 15, 2026, 14:30 PM')
                     .replace('{{MEETING_LINK}}', 'https://meet.google.com/xyz')
                     .replace('{{EXPIRE_DATE}}', 'June 18, 2026')
@@ -2182,7 +2201,7 @@ export function SettingsView() {
     <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-6 text-xs select-none space-y-5">
       <div>
         <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
-          Circle HR Workspace Settings
+          {BRAND.name} Workspace Settings
         </h2>
         <p className="text-gray-500 text-[11px]">
           Manage security guidelines, background validation rules, and template variables.

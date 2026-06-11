@@ -6,6 +6,8 @@ import { Logo } from '@/components/Logo';
 import { Candidate } from '@/types';
 import { useJob, useApplyToJob } from '@/features/jobs/hooks';
 import { uploadDocument } from '@/lib/api/documents';
+import { buildAnswers, computeFit } from '@/lib/screening';
+import { BRAND } from '@/lib/brand';
 import { useToast } from '@/components/Toaster';
 import { Tip } from '@/components/ui/tooltip';
 import {
@@ -57,6 +59,8 @@ export default function PublicJobPage() {
 
   const [form, setForm] = useState(EMPTY);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [responses, setResponses] = useState<Record<string, string>>({});
+  const [step, setStep] = useState(0); // 0 = your details, 1 = screening questions
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,7 +89,21 @@ export default function PublicJobPage() {
       toast.error('Please provide your full name and email.');
       return;
     }
+    const questions = job.screeningQuestions ?? [];
+    // On the details step (e.g. Enter key) advance to the questions, don't submit.
+    if (step === 0 && questions.length > 0) {
+      setStep(1);
+      return;
+    }
+    // Yes/No and choice questions are required; short-text is optional.
+    if (questions.filter(q => (q.type ?? 'yesno') !== 'text').some(q => !responses[q.id])) {
+      toast.error('Please answer all the screening questions.');
+      return;
+    }
     setError(null);
+
+    const screeningAnswers = questions.length ? buildAnswers(questions, responses) : undefined;
+    const fitRating = screeningAnswers ? computeFit(screeningAnswers) : undefined;
 
     const id = `CAN-${Math.floor(1000 + Math.random() * 9000)}`;
     const candidate: Candidate = {
@@ -113,6 +131,8 @@ export default function PublicJobPage() {
       status: 'New Application',
       appliedDate: new Date().toISOString().split('T')[0],
       jobId: job.id,
+      screeningAnswers,
+      fitRating,
     };
 
     try {
@@ -138,6 +158,17 @@ export default function PublicJobPage() {
   };
 
   const busy = apply.isPending;
+  const hasQuestions = (job?.screeningQuestions ?? []).length > 0;
+
+  // Step 1 (details) → next: validate the basics, then move to the questions.
+  const goNext = () => {
+    if (!form.fullName.trim() || !form.email.trim()) {
+      toast.error('Please provide your full name and email.');
+      return;
+    }
+    setError(null);
+    setStep(1);
+  };
 
   // --- States -------------------------------------------------------------
   if (isLoading) {
@@ -186,7 +217,7 @@ export default function PublicJobPage() {
           <Logo size={26} />
           <div>
             <h1 className="text-sm font-bold text-gray-900 tracking-tight font-display leading-none">
-              Curcle
+              {BRAND.name}
             </h1>
             <p className="text-[10px] text-gray-500 uppercase font-mono font-semibold tracking-wider">
               Careers
@@ -278,6 +309,19 @@ export default function PublicJobPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-3">
+                {hasQuestions && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent-600">
+                      Step {step + 1} of 2
+                    </span>
+                    <span className="text-[11px] text-gray-500">
+                      · {step === 0 ? 'Your details' : 'A few quick questions'}
+                    </span>
+                  </div>
+                )}
+
+                {step === 0 && (
+                  <>
                 <Field label="Full name *">
                   <input
                     className={inputCls}
@@ -326,20 +370,20 @@ export default function PublicJobPage() {
                   </Field>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Field label="Current salary">
+                  <Field label="Current CTC (LPA)">
                     <input
                       className={inputCls}
                       value={form.currentCtc}
                       onChange={e => set({ currentCtc: e.target.value })}
-                      placeholder="$120,000"
+                      placeholder="e.g. 12 LPA"
                     />
                   </Field>
-                  <Field label="Expected salary">
+                  <Field label="Expected CTC (LPA)">
                     <input
                       className={inputCls}
                       value={form.expectedCtc}
                       onChange={e => set({ expectedCtc: e.target.value })}
-                      placeholder="$140,000"
+                      placeholder="e.g. 15 LPA"
                     />
                   </Field>
                 </div>
@@ -431,22 +475,108 @@ export default function PublicJobPage() {
                     placeholder="Why are you a great fit?"
                   />
                 </Field>
+                  </>
+                )}
+
+                {step === 1 && (
+                  <div className="space-y-4 rounded-lg border border-[#DAD4C8] bg-[#ECE8E0]/60 p-3">
+                    <p className="text-[11px] font-semibold text-gray-700">A few quick questions</p>
+                    {(
+                      [
+                        { key: 'Must Have', label: 'Must-have' },
+                        { key: 'Good to Have', label: 'Good to have' },
+                      ] as const
+                    ).map(group => {
+                      const items = (job.screeningQuestions ?? []).filter(
+                        q => q.importance === group.key,
+                      );
+                      if (!items.length) return null;
+                      return (
+                        <div key={group.key} className="space-y-2.5">
+                          <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent-600">
+                            {group.label}
+                          </p>
+                          {items.map(q => {
+                            const qType = q.type ?? 'yesno';
+                            return (
+                              <div key={q.id} className="space-y-1.5">
+                                <p className="text-xs text-gray-700">{q.text}</p>
+                                {qType === 'text' ? (
+                                  <input
+                                    className={inputCls}
+                                    value={responses[q.id] ?? ''}
+                                    onChange={e => setResponses(r => ({ ...r, [q.id]: e.target.value }))}
+                                    placeholder="Your answer…"
+                                  />
+                                ) : (
+                                  <div className="flex flex-wrap gap-2">
+                                    {(qType === 'choice'
+                                      ? (q.options ?? []).filter(Boolean)
+                                      : ['Yes', 'No']
+                                    ).map(opt => {
+                                      const active = responses[q.id] === opt;
+                                      return (
+                                        <button
+                                          key={opt}
+                                          type="button"
+                                          onClick={() => setResponses(r => ({ ...r, [q.id]: opt }))}
+                                          className={`min-w-[6rem] flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                                            active
+                                              ? 'border-accent-500 bg-accent-50 text-accent-700'
+                                              : 'border-[#DAD4C8] bg-[#F7F4EE] text-gray-600 hover:border-accent-300'
+                                          }`}
+                                        >
+                                          {opt}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {error && <p className="text-xs text-red-600">{error}</p>}
 
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="w-full bg-accent-600 hover:bg-accent-700 disabled:opacity-60 text-white px-4 py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer transition"
-                >
-                  {busy ? (
-                    <>
-                      <Loader2 size={15} className="animate-spin" /> Submitting…
-                    </>
-                  ) : (
-                    'Submit application'
-                  )}
-                </button>
+                {step === 0 && hasQuestions ? (
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    className="w-full bg-accent-600 hover:bg-accent-700 text-white px-4 py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer transition"
+                  >
+                    Next: a few questions
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    {step === 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setStep(0)}
+                        className="rounded-lg border border-[#DAD4C8] bg-[#F7F4EE] px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-[#E6E1D8] cursor-pointer transition"
+                      >
+                        Previous
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={busy}
+                      className="flex-1 bg-accent-600 hover:bg-accent-700 disabled:opacity-60 text-white px-4 py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer transition"
+                    >
+                      {busy ? (
+                        <>
+                          <Loader2 size={15} className="animate-spin" /> Submitting…
+                        </>
+                      ) : (
+                        'Submit application'
+                      )}
+                    </button>
+                  </div>
+                )}
               </form>
             )}
           </div>
@@ -454,7 +584,7 @@ export default function PublicJobPage() {
       </main>
 
       <footer className="max-w-5xl mx-auto px-4 sm:px-6 py-6 text-center text-[11px] text-gray-500">
-        Powered by Curcle HR · {job.department}
+        Powered by {BRAND.name} HR · {job.department}
       </footer>
     </div>
   );

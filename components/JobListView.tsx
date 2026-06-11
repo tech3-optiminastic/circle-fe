@@ -18,7 +18,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from './Toaster';
 import { cn } from '@/lib/utils';
-import { Job, JobStatus } from '../types';
+import {
+  Job,
+  JobStatus,
+  ScreeningQuestion,
+  QuestionCategory,
+  QuestionImportance,
+  QuestionType,
+} from '../types';
 import {
   Briefcase,
   Plus,
@@ -34,7 +41,18 @@ import {
   ChevronUp,
   ChevronDown,
   ChevronsUpDown,
+  ListChecks,
 } from 'lucide-react';
+
+let qSeq = 0;
+const newQuestion = (importance: QuestionImportance): ScreeningQuestion => ({
+  id: `Q${Date.now().toString(36)}${qSeq++}`,
+  text: '',
+  category: 'Field',
+  importance,
+  type: 'yesno',
+  expectedAnswer: true,
+});
 
 type SortKey = 'title' | 'exp' | 'salary' | 'status' | 'applicants';
 
@@ -49,7 +67,7 @@ interface JobListViewProps {
 const EMPTY_FORM = {
   title: '',
   department: 'Engineering',
-  location: 'Remote',
+  location: 'Mumbai',
   employmentType: 'Full-time' as Job['employmentType'],
   workMode: 'Hybrid' as Job['workMode'],
   minExperienceYears: 3,
@@ -57,6 +75,7 @@ const EMPTY_FORM = {
   salaryMax: '',
   description: '',
   requirements: '',
+  screeningQuestions: [] as ScreeningQuestion[],
 };
 
 function statusBadge(status: JobStatus): string {
@@ -127,6 +146,9 @@ export function JobListView({
       salaryMax: form.salaryMax,
       description: form.description,
       requirements: form.requirements,
+      screeningQuestions: form.screeningQuestions
+        .map(q => ({ ...q, text: q.text.trim() }))
+        .filter(q => q.text),
       status: 'Open',
       postedBy: 'HR Specialist',
       postedDate: new Date().toISOString().split('T')[0],
@@ -136,6 +158,145 @@ export function JobListView({
     setForm(EMPTY_FORM);
     toast.success(`"${created.title}" published — copy its public link from the card.`);
   };
+
+  const addQuestion = (importance: QuestionImportance) =>
+    setForm(f => ({ ...f, screeningQuestions: [...f.screeningQuestions, newQuestion(importance)] }));
+  const updateQuestion = (id: string, patch: Partial<ScreeningQuestion>) =>
+    setForm(f => ({
+      ...f,
+      screeningQuestions: f.screeningQuestions.map(q => (q.id === id ? { ...q, ...patch } : q)),
+    }));
+  const removeQuestion = (id: string) =>
+    setForm(f => ({ ...f, screeningQuestions: f.screeningQuestions.filter(q => q.id !== id) }));
+
+  // One question editor row (importance is set by the group it lives in).
+  const renderQuestion = (q: ScreeningQuestion, idx: number) => (
+    <div key={q.id} className="space-y-2.5 rounded-xl border border-border bg-secondary/30 p-3">
+      <div className="flex items-start gap-2">
+        <span className="mt-2.5 font-mono text-[11px] text-muted-foreground">{idx + 1}.</span>
+        <Input
+          value={q.text}
+          onChange={e => updateQuestion(q.id, { text: e.target.value })}
+          placeholder="e.g. Do you have 3+ years of React experience?"
+          className="flex-1"
+        />
+        <button
+          type="button"
+          onClick={() => removeQuestion(q.id)}
+          aria-label="Remove question"
+          className="mt-1.5 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-red-600"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+      <div className="grid grid-cols-1 gap-2 pl-5 sm:grid-cols-2">
+        <label className="block">
+          <span className="font-mono text-[9px] uppercase tracking-wide text-muted-foreground">Category</span>
+          <Select
+            value={q.category}
+            onChange={e => updateQuestion(q.id, { category: e.target.value as QuestionCategory })}
+            className="mt-1 h-8 w-full rounded-md border border-input bg-secondary/50 px-2 text-xs"
+          >
+            <option value="Field">Field / skills</option>
+            <option value="Cultural Fit">Cultural fit</option>
+          </Select>
+        </label>
+        <label className="block">
+          <span className="font-mono text-[9px] uppercase tracking-wide text-muted-foreground">Answer type</span>
+          <Select
+            value={q.type ?? 'yesno'}
+            onChange={e => {
+              const type = e.target.value as QuestionType;
+              const patch: Partial<ScreeningQuestion> = { type };
+              if (type === 'choice' && !(q.options && q.options.length)) patch.options = ['', ''];
+              updateQuestion(q.id, patch);
+            }}
+            className="mt-1 h-8 w-full rounded-md border border-input bg-secondary/50 px-2 text-xs"
+          >
+            <option value="yesno">Yes / No</option>
+            <option value="choice">Multiple choice</option>
+            <option value="text">Short text</option>
+          </Select>
+        </label>
+      </div>
+
+      {/* per-type answer config */}
+      <div className="pl-5">
+        {(q.type ?? 'yesno') === 'yesno' && (
+          <label className="block max-w-[10rem]">
+            <span className="font-mono text-[9px] uppercase tracking-wide text-muted-foreground">Passing answer</span>
+            <Select
+              value={q.expectedAnswer ? 'yes' : 'no'}
+              onChange={e => updateQuestion(q.id, { expectedAnswer: e.target.value === 'yes' })}
+              className="mt-1 h-8 w-full rounded-md border border-input bg-secondary/50 px-2 text-xs"
+            >
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </Select>
+          </label>
+        )}
+
+        {q.type === 'choice' && (
+          <div className="space-y-1.5">
+            <span className="font-mono text-[9px] uppercase tracking-wide text-muted-foreground">Options</span>
+            {(q.options ?? []).map((opt, oi) => (
+              <div key={oi} className="flex items-center gap-2">
+                <Input
+                  value={opt}
+                  onChange={e =>
+                    updateQuestion(q.id, {
+                      options: (q.options ?? []).map((o, j) => (j === oi ? e.target.value : o)),
+                      expectedOption: q.expectedOption === opt ? e.target.value : q.expectedOption,
+                    })
+                  }
+                  placeholder={`Option ${oi + 1}`}
+                  className="h-8 flex-1 text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateQuestion(q.id, { options: (q.options ?? []).filter((_, j) => j !== oi) })
+                  }
+                  aria-label="Remove option"
+                  className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-red-600"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => updateQuestion(q.id, { options: [...(q.options ?? []), ''] })}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent-600 hover:text-accent-700"
+            >
+              <Plus size={12} /> Add option
+            </button>
+            <label className="block pt-1">
+              <span className="font-mono text-[9px] uppercase tracking-wide text-muted-foreground">Passing option</span>
+              <Select
+                value={q.expectedOption ?? ''}
+                onChange={e => updateQuestion(q.id, { expectedOption: e.target.value })}
+                className="mt-1 h-8 w-full rounded-md border border-input bg-secondary/50 px-2 text-xs"
+              >
+                <option value="">— select the correct option —</option>
+                {(q.options ?? []).filter(Boolean).map((opt, i) => (
+                  <option key={i} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </Select>
+            </label>
+          </div>
+        )}
+
+        {q.type === 'text' && (
+          <p className="text-[11px] text-muted-foreground">
+            Open text — the candidate types a short answer that HR reviews (not auto-scored).
+          </p>
+        )}
+      </div>
+    </div>
+  );
 
   const openCount = jobs.filter(j => j.status === 'Open').length;
   const closedCount = jobs.filter(j => j.status === 'Closed' || j.status === 'On Hold').length;
@@ -264,7 +425,7 @@ export function JobListView({
                   <th scope="col" className="font-semibold px-4 py-2.5">Location</th>
                   <th scope="col" className="font-semibold px-4 py-2.5">Type</th>
                   <SortTh k="exp" label="Exp." className="text-center" />
-                  <SortTh k="salary" label="Salary" />
+                  <SortTh k="salary" label="CTC" />
                   <SortTh k="status" label="Status" />
                   <SortTh k="applicants" label="Applicants" className="text-center" />
                   <th scope="col" className="font-semibold px-4 py-2.5 text-right">Actions</th>
@@ -408,7 +569,7 @@ export function JobListView({
 
       {/* Create job modal */}
       <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-        <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
+        <DialogContent className="flex max-h-[90vh] w-[min(96vw,72rem)] max-w-[72rem] flex-col gap-0 overflow-hidden p-0">
           <DialogHeader className="shrink-0 border-b border-border px-6 py-4 text-left">
             <DialogTitle className="font-mono text-xs font-bold uppercase tracking-wider text-gray-900">
               Publish a New Job Opening
@@ -460,11 +621,14 @@ export function JobListView({
                       </Label>
                       <Input
                         id="job-location"
-                        placeholder="e.g. San Francisco / Remote"
-                        value={form.location}
-                        onChange={e => setForm({ ...form, location: e.target.value })}
+                        value="Mumbai"
+                        readOnly
+                        disabled
                         className="mt-2"
                       />
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        All roles are based at the Mumbai office.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -527,11 +691,11 @@ export function JobListView({
                     </div>
                     <div>
                       <Label htmlFor="job-smin" className="text-sm font-medium">
-                        Salary — min
+                        CTC — min
                       </Label>
                       <Input
                         id="job-smin"
-                        placeholder="$120,000"
+                        placeholder="e.g. 12 LPA"
                         value={form.salaryMin}
                         onChange={e => setForm({ ...form, salaryMin: e.target.value })}
                         className="mt-2"
@@ -539,11 +703,11 @@ export function JobListView({
                     </div>
                     <div>
                       <Label htmlFor="job-smax" className="text-sm font-medium">
-                        Salary — max
+                        CTC — max
                       </Label>
                       <Input
                         id="job-smax"
-                        placeholder="$160,000"
+                        placeholder="e.g. 18 LPA"
                         value={form.salaryMax}
                         onChange={e => setForm({ ...form, salaryMax: e.target.value })}
                         className="mt-2"
@@ -555,27 +719,31 @@ export function JobListView({
 
               <Separator />
 
-              {/* Description */}
+              {/* Job description */}
               <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <div>
-                  <h2 className="font-semibold text-foreground">Description</h2>
+                  <h2 className="font-semibold text-foreground">Job Description</h2>
                   <p className="mt-1 text-xs leading-6 text-muted-foreground">
-                    Role overview and requirements.
+                    The full JD — role overview, responsibilities, and what success looks like.
                   </p>
                 </div>
                 <div className="space-y-4 md:col-span-2">
                   <div>
                     <Label htmlFor="job-desc" className="text-sm font-medium">
-                      Detailed description
+                      Job description (JD)
                     </Label>
                     <Textarea
                       id="job-desc"
-                      placeholder="Describe the role, responsibilities, team and impact…"
+                      placeholder="Paste or write the full job description — about the role, responsibilities, team, impact, and who you're looking for…"
                       value={form.description}
-                      onChange={e => setForm({ ...form, description: e.target.value })}
-                      rows={4}
+                      onChange={e => setForm({ ...form, description: e.target.value.slice(0, 2000) })}
+                      rows={10}
+                      maxLength={2000}
                       className="mt-2"
                     />
+                    <p className="mt-1 text-right text-[11px] font-mono text-muted-foreground">
+                      {form.description.length}/2000
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="job-req" className="text-sm font-medium">
@@ -590,6 +758,55 @@ export function JobListView({
                       className="mt-2"
                     />
                   </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Screening questions */}
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div>
+                  <h2 className="font-semibold text-foreground">Screening questions</h2>
+                  <p className="mt-1 text-xs leading-6 text-muted-foreground">
+                    Add as many <span className="font-medium">must-have</span> and{' '}
+                    <span className="font-medium">good-to-have</span> questions as you like. Each
+                    candidate is auto-rated <span className="font-medium">Fit / Borderline / Unfit</span>{' '}
+                    — a failed must-have means Unfit.
+                  </p>
+                </div>
+                <div className="space-y-5 md:col-span-2">
+                  {(
+                    [
+                      { key: 'Must Have', label: 'Must-have' },
+                      { key: 'Good to Have', label: 'Good to have' },
+                    ] as const
+                  ).map(group => {
+                    const items = form.screeningQuestions.filter(q => q.importance === group.key);
+                    return (
+                      <div key={group.key} className="space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent-600">
+                            {group.label} questions
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addQuestion(group.key)}
+                          >
+                            <Plus size={14} /> Add
+                          </Button>
+                        </div>
+                        {items.length === 0 ? (
+                          <p className="rounded-lg border border-dashed border-border bg-secondary/20 px-3 py-3 text-center text-xs text-muted-foreground">
+                            No {group.label.toLowerCase()} questions yet.
+                          </p>
+                        ) : (
+                          items.map((q, idx) => renderQuestion(q, idx))
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
