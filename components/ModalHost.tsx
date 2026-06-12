@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { CandidateProfileModal } from './CandidateProfileModal';
-import { EmployeeProfileModal } from './EmployeeProfileModal';
 import { useUiStore } from '@/store/ui-store';
 import {
   useCandidates,
@@ -11,23 +10,18 @@ import {
   useUpdateBgv,
   useStartBgv,
 } from '@/features/candidates/hooks';
-import { useEmployees } from '@/features/employees/hooks';
 import { useInterviews, useInterviewMutations } from '@/features/interviews/hooks';
 import { useIqTests, useAssignments } from '@/features/assessments/hooks';
-import { useInitiateOffboarding } from '@/features/offboarding/hooks';
 
 export function ModalHost() {
   const {
     userRole,
     selectedCandidateId,
     selectedCandidateTab,
-    selectedEmployeeId,
     setSelectedCandidateId,
-    setSelectedEmployeeId,
   } = useUiStore();
 
   const { data: candidates = [] } = useCandidates();
-  const { data: employees = [] } = useEmployees();
   const { data: interviews = [] } = useInterviews();
   const { data: iqTests = [] } = useIqTests();
   const { data: assignments = [] } = useAssignments();
@@ -37,11 +31,9 @@ export function ModalHost() {
   const updateBgv = useUpdateBgv();
   const startBgv = useStartBgv();
   const { grade, schedule } = useInterviewMutations();
-  const initiateOffboarding = useInitiateOffboarding();
 
   const candidate = selectedCandidateId ? candidates.find(c => c.id === selectedCandidateId) : null;
   const candidateBgv = selectedCandidateId ? bgvs.find(b => b.candidateId === selectedCandidateId) : null;
-  const employee = selectedEmployeeId ? employees.find(e => e.id === selectedEmployeeId) : null;
 
   return (
     <>
@@ -65,14 +57,6 @@ export function ModalHost() {
             schedule.mutate({ candidate, input: { round, interviewer, dateTime, mode } })
           }
           userRole={userRole}
-        />
-      )}
-
-      {selectedEmployeeId && employee && (
-        <EmployeeProfileModal
-          employee={employee}
-          onClose={() => setSelectedEmployeeId(null)}
-          onInitiateOffboarding={(empId, reason) => initiateOffboarding.mutate({ empId, reason })}
         />
       )}
     </>

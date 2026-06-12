@@ -18,8 +18,7 @@ import {
   IQ_PASS_SCORE,
   IQ_TOTAL_MARKS,
   ASSESSMENT_PASS_PERCENT,
-  ASSIGNMENT_DEADLINE_DAYS,
-  assignmentBriefFor,
+  ASSESSMENT_DURATION_MIN,
 } from '@/data/test-banks';
 import {
   BrainCircuit,
@@ -268,29 +267,26 @@ function TestFlow({ invite }: { invite: TestInvite }) {
           await repositories.iqTests.create(iqRecord).catch(() => {});
 
           if (passed) {
-            // Auto-chain: assign the take-home ASSIGNMENT and email its link.
-            const deadline = new Date(Date.now() + ASSIGNMENT_DEADLINE_DAYS * 86_400_000).toISOString();
-            const assignment: TestInvite = {
+            // Auto-chain: assign the role-specific MCQ ASSESSMENT and email its link.
+            const assessment: TestInvite = {
               id: randomToken('TIV'),
-              kind: 'assignment',
+              kind: 'assessment',
               candidateId: invite.candidateId,
               candidateName: invite.candidateName,
               email: invite.email,
               position: invite.position,
               department: invite.department,
               jobId: invite.jobId,
-              durationMin: 0, // take-home, not timed
+              durationMin: ASSESSMENT_DURATION_MIN,
               status: 'Pending',
-              instructions: assignmentBriefFor(invite.position, invite.department),
-              deadlineIso: deadline,
               createdAt: nowISO(),
             };
-            await repositories.testInvites.create(assignment).catch(() => {});
+            await repositories.testInvites.create(assessment).catch(() => {});
             sendTestEmail({
               to: invite.email,
               candidateName: invite.candidateName,
               template: 'iq_passed',
-              testUrl: `${window.location.origin}/assignment/${assignment.id}`,
+              testUrl: `${window.location.origin}/test/${assessment.id}`,
               position: invite.position,
               score: String(score),
             }).catch(() => {});

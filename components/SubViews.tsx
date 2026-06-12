@@ -1,6 +1,8 @@
 'use client';
 import { Select } from './Select';
 import { DocumentsPanel } from './DocumentsPanel';
+import { DocRequestPanel } from './DocRequestPanel';
+import { OnboardingStepper } from './OnboardingStepper';
 import { ActionMenu } from './ActionMenu';
 import { useToast } from './Toaster';
 import { useUiStore } from '@/store/ui-store';
@@ -931,6 +933,15 @@ export function OnboardingChecklistView({
               ))}
             </div>
           </div>
+
+          {/* Where the candidate is in the onboarding journey */}
+          <OnboardingStepper checklist={activeChecklist} />
+
+          {/* Joining document collection + verification */}
+          <DocRequestPanel
+            candidateId={activeChecklist.candidateId}
+            candidateName={activeChecklist.candidateName}
+          />
         </div>
       ) : (
         <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-6 text-center text-gray-500">

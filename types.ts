@@ -206,6 +206,7 @@ export type CandidateStatus =
   | 'Rejected'
   | 'On Hold'
   | 'Moved to HR Call'
+  | 'Offer Shortlisted'
   | 'Selected'
   | 'Duplicate Profile';
 
@@ -303,6 +304,60 @@ export interface IQTest {
   timeTakenMinutes: number;
   qualificationStatus: 'Passed' | 'Failed' | 'Borderline' | 'Retest Required';
   remarks?: string;
+}
+
+/* ----------------------------------------------------------------------- */
+/*  Onboarding document collection (public 24h upload portal)              */
+/* ----------------------------------------------------------------------- */
+
+export type RequiredDocType =
+  | 'Aadhaar card'
+  | 'PAN card'
+  | 'Address proof'
+  | 'Education certificates'
+  | 'Experience letter'
+  | 'Cancelled cheque'
+  | 'Passport photo';
+
+export interface BankDetails {
+  accountHolderName?: string;
+  bankName?: string;
+  accountNumber: string;
+  ifscCode: string;
+}
+
+export type DocSubmissionStatus = 'Submitted' | 'Verified' | 'Rejected';
+
+export interface DocSubmission {
+  docType: string; // RequiredDocType (kept loose so custom items don't break)
+  documentId: string; // id in the documents table — used for presigned download
+  fileName: string;
+  size?: number;
+  uploadedAt: string;
+  status: DocSubmissionStatus;
+  /** HR's note when rejecting (or any review remark). */
+  reviewReason?: string;
+  reviewedAt?: string;
+}
+
+/**
+ * A secure, time-boxed link sent to a hired candidate to collect joining
+ * documents + bank details. The `id` doubles as the unguessable token in the
+ * public URL (/onboarding-docs/[id]) and expires 24h after creation.
+ */
+export interface DocRequest {
+  id: string;
+  candidateId: string;
+  candidateName: string;
+  email: string;
+  role?: string;
+  requiredDocs: string[];
+  submissions: DocSubmission[];
+  bankDetails?: BankDetails;
+  status: 'Pending' | 'Submitted' | 'Verified';
+  createdAt: string;
+  expiresAt: string;
+  updatedAt?: string;
 }
 
 export interface Assignment {
@@ -413,6 +468,16 @@ export interface OnboardingChecklist {
     isChecked: boolean;
     category: 'Documentation' | 'IT Setup' | 'Admin & Assets' | 'HR & Induction' | 'Manager & Team';
   }[];
+
+  // Post-verification email sequence (ISO timestamps; undefined = not yet done).
+  /** Offer letter emailed to the candidate. */
+  offerLetterSentAt?: string;
+  /** HR marked the signed offer as received back. */
+  offerSignedReceivedAt?: string;
+  /** Invite-to-office email sent. */
+  officeInviteSentAt?: string;
+  /** Letter of appointment email sent. */
+  appointmentLetterSentAt?: string;
 }
 
 export type OnboardingStatus =
@@ -440,6 +505,20 @@ export interface Employee {
     address: string;
     emergencyContact: string;
     bankAccount: string;
+  };
+
+  // Link back to the source candidate so the employee file can surface their
+  // BGV, joining documents and offer history (set when promoted from onboarding).
+  candidateId?: string;
+  /** Agreed annual compensation, carried over from the accepted offer (e.g. "12 LPA"). */
+  annualCtc?: string;
+  /** Snapshot of the onboarding email milestones (the onboarding record is removed on conversion). */
+  joining?: {
+    offerLetterSentAt?: string;
+    offerSignedReceivedAt?: string;
+    officeInviteSentAt?: string;
+    appointmentLetterSentAt?: string;
+    docRequestToken?: string;
   };
 
   // Performance: how well the employee communicates (1-5), rated by HR/managers.

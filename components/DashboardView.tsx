@@ -17,7 +17,6 @@ interface DashboardViewProps {
   iqTests: IQTest[];
   assignments: Assignment[];
   onSelectCandidate: (id: string) => void;
-  onMoveCandidate: (id: string, stage: any) => void;
 }
 
 export function DashboardView({
@@ -26,7 +25,6 @@ export function DashboardView({
   iqTests,
   assignments,
   onSelectCandidate,
-  onMoveCandidate,
 }: DashboardViewProps) {
   // Stats derivations
   const openPositionsCount = 8;
@@ -71,11 +69,7 @@ export function DashboardView({
 
       {/* 2nd row: Candidate Pipeline Board (Kanban Segment) */}
       <div className="p-4 bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl space-y-4">
-        <KanbanPipeline
-          candidates={candidates}
-          onMoveCandidate={onMoveCandidate}
-          onSelectCandidate={onSelectCandidate}
-        />
+        <KanbanPipeline candidates={candidates} />
       </div>
 
       {/* 3rd row: Conversion Metrics Charts block & action queues */}

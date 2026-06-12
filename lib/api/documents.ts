@@ -3,7 +3,7 @@
  * HttpClient), so these talk to the API directly but stay isolated here.
  */
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { apiBase } from '@/lib/api-base';
 
 export interface DocumentMeta {
   id: string;
@@ -19,7 +19,7 @@ export interface DocumentMeta {
 
 export async function listDocuments(entityType: string, entityId: string): Promise<DocumentMeta[]> {
   const qs = `entityType=${encodeURIComponent(entityType)}&entityId=${encodeURIComponent(entityId)}`;
-  const res = await fetch(`${BASE}/api/documents?${qs}`, { cache: 'no-store' });
+  const res = await fetch(`${apiBase()}/api/documents?${qs}`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to load documents');
   return res.json();
 }
@@ -35,7 +35,7 @@ export async function uploadDocument(params: {
   fd.append('entityId', params.entityId);
   fd.append('category', params.category);
   fd.append('file', params.file);
-  const res = await fetch(`${BASE}/api/documents`, { method: 'POST', body: fd });
+  const res = await fetch(`${apiBase()}/api/documents`, { method: 'POST', body: fd });
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
     throw new Error(detail || `Upload failed (${res.status})`);
@@ -52,7 +52,7 @@ export async function importDriveDocument(params: {
   mimeType: string;
   accessToken: string;
 }): Promise<DocumentMeta> {
-  const res = await fetch(`${BASE}/api/documents/from-drive`, {
+  const res = await fetch(`${apiBase()}/api/documents/from-drive`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -70,12 +70,12 @@ export function documentPreviewUrl(id: string): string {
 }
 
 export async function getDocumentUrl(id: string): Promise<{ url: string; fileName: string }> {
-  const res = await fetch(`${BASE}/api/documents/${id}/url`, { cache: 'no-store' });
+  const res = await fetch(`${apiBase()}/api/documents/${id}/url`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to get download link');
   return res.json();
 }
 
 export async function deleteDocument(id: string): Promise<void> {
-  const res = await fetch(`${BASE}/api/documents/${id}`, { method: 'DELETE' });
+  const res = await fetch(`${apiBase()}/api/documents/${id}`, { method: 'DELETE' });
   if (!res.ok && res.status !== 204) throw new Error('Delete failed');
 }

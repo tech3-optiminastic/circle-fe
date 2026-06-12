@@ -7,6 +7,10 @@ export const qk = {
     all: ['test-invites'] as const,
     detail: (id: string) => ['test-invites', id] as const,
   },
+  docRequests: {
+    all: ['doc-requests'] as const,
+    detail: (id: string) => ['doc-requests', id] as const,
+  },
   interviews: { all: ['interviews'] as const },
   iqTests: { all: ['iq-tests'] as const },
   assignments: { all: ['assignments'] as const },

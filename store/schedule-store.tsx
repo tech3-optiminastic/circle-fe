@@ -10,7 +10,7 @@ import { useToast } from '@/components/Toaster';
 import { sendScheduleEmail, sendTestEmail } from '@/lib/api/notifications';
 import { pushCalendarEvent } from '@/lib/api/calendar';
 import { repositories } from '@/lib/api/repositories';
-import { IQ_DURATION_MIN, ASSIGNMENT_DEADLINE_DAYS, assignmentBriefFor } from '@/data/test-banks';
+import { IQ_DURATION_MIN, ASSESSMENT_DURATION_MIN } from '@/data/test-banks';
 import { randomId, randomToken, nowISO } from '@/lib/utils';
 
 interface Pending {
@@ -137,20 +137,17 @@ export function ScheduleProvider({ children }: { children: React.ReactNode }) {
     const position = candidate?.appliedRole || candidate?.department || 'the role';
     const department = candidate?.department || 'General';
 
-    // The Assignment round is a take-home (the candidate uploads work remotely),
-    // so it gets the assignment email instead of an in-office appointment email.
-    // HR Call / IQ Test / Interview are at the office (HR Call is a phone call).
-    if (type !== 'Assessment') {
-      sendScheduleEmail({
-        to: email,
-        candidateName: p.candidateName,
-        type,
-        dateTimeIso: dateTime,
-        notes: notes || undefined,
-      })
-        .then(res => emailToast(res, `Appointment emailed to ${p.candidateName}.`))
-        .catch(() => toast.error('Scheduled, but sending the appointment email failed.'));
-    }
+    // Every round is an in-office appointment (HR Call is a phone call; IQ Test
+    // and the role Assessment are online MCQ sessions taken at the office).
+    sendScheduleEmail({
+      to: email,
+      candidateName: p.candidateName,
+      type,
+      dateTimeIso: dateTime,
+      notes: notes || undefined,
+    })
+      .then(res => emailToast(res, `Appointment emailed to ${p.candidateName}.`))
+      .catch(() => toast.error('Scheduled, but sending the appointment email failed.'));
 
     // IQ Test: the candidate takes the online MCQ test at the office during the
     // scheduled session (preceded by the in-office appointment email above).
@@ -188,41 +185,40 @@ export function ScheduleProvider({ children }: { children: React.ReactNode }) {
         .catch(() => toast.error('Scheduled, but sending the test link failed.'));
     }
 
-    // Assignment round: a take-home task the candidate uploads work for, then HR
-    // grades it (see the Role Assignments view). No MCQ.
+    // Assessment round: a role/position-specific online MCQ the candidate takes
+    // at the scheduled session — auto-scored, no take-home upload.
     if (type === 'Assessment') {
-      const deadline = new Date(Date.now() + ASSIGNMENT_DEADLINE_DAYS * 86_400_000).toISOString();
       const invite: TestInvite = {
         id: randomToken('TIV'),
-        kind: 'assignment',
+        kind: 'assessment',
         candidateId: p.candidateId,
         candidateName: p.candidateName,
         email,
         position,
         department,
         jobId: candidate?.jobId,
-        durationMin: 0,
-        status: 'Pending',
-        instructions: assignmentBriefFor(position, department),
-        deadlineIso: deadline,
+        durationMin: ASSESSMENT_DURATION_MIN,
         scheduledFor: dateTime,
+        status: 'Pending',
         createdAt: nowISO(),
       };
       try {
         await repositories.testInvites.create(invite);
       } catch {
-        toast.error('Scheduled, but creating the assignment failed — try again.');
+        toast.error('Scheduled, but creating the assessment failed — try again.');
         return;
       }
       sendTestEmail({
         to: email,
         candidateName: p.candidateName,
-        template: 'assignment_invite',
-        testUrl: `${window.location.origin}/assignment/${invite.id}`,
+        template: 'assessment_invite',
+        testUrl: `${window.location.origin}/test/${invite.id}`,
         position,
+        durationMin: ASSESSMENT_DURATION_MIN,
+        dateTimeIso: dateTime,
       })
-        .then(res => emailToast(res, `Assignment emailed to ${p.candidateName}.`))
-        .catch(() => toast.error('Scheduled, but sending the assignment failed.'));
+        .then(res => emailToast(res, `Assessment link emailed to ${p.candidateName}.`))
+        .catch(() => toast.error('Scheduled, but sending the assessment failed.'));
     }
   };
 
