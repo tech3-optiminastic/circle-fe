@@ -66,7 +66,7 @@ export async function importDriveDocument(params: {
 
 /** Direct URL that streams a document inline (opens in a tab, no download). */
 export function documentPreviewUrl(id: string): string {
-  return `${BASE}/api/documents/${id}/preview`;
+  return `${apiBase()}/api/documents/${id}/preview`;
 }
 
 export async function getDocumentUrl(id: string): Promise<{ url: string; fileName: string }> {
