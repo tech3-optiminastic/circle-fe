@@ -75,6 +75,32 @@ import {
   EmailTemplate,
   SentEmailLog,
 } from '../types';
+import {
+  Table,
+  THead,
+  Th,
+  TBody,
+  Tr,
+  Td,
+  TagPill,
+  StatusPill,
+  SelectionBar,
+  useTableSelection,
+  type DotColor,
+} from '@/components/ui/table';
+
+// Shared dot colours for department/status chips across the SubViews tables.
+const DEPT_DOT: Record<string, DotColor> = {
+  Engineering: 'blue',
+  Product: 'purple',
+  Design: 'pink',
+  Sales: 'amber',
+  Marketing: 'pink',
+  'Human Resources': 'green',
+  Finance: 'green',
+  Operations: 'amber',
+};
+const deptDot = (d?: string): DotColor => (d && DEPT_DOT[d]) || 'gray';
 
 // ==========================================
 // 1. INTRODUCTORY CALLS VIEW
@@ -106,6 +132,7 @@ export function IntroductoryCallsView({
   const hrCallCandidates = candidates.filter(
     c => c.status === 'Moved to HR Call' || c.hrCall?.completed || scheduledForHrCall.has(c.id),
   );
+  const sel = useTableSelection(hrCallCandidates.map(c => c.id));
 
   return (
     <div className="space-y-4 text-xs select-none">
@@ -119,53 +146,44 @@ export function IntroductoryCallsView({
         </p>
       </div>
 
-      <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden shadow-2xs">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-[#F2EEE7] border-b border-[#DAD4C8] text-gray-500 font-mono text-[9px] uppercase font-bold">
-              <th className="p-3">Candidate</th>
-              <th className="p-3">Applied Position</th>
-              <th className="p-3 text-center font-semibold">Comm Rating</th>
-              <th className="p-3">Expected CTC</th>
-              <th className="p-3">Status</th>
-              <th className="p-3 text-right">Operational Action</th>
+      <SelectionBar count={sel.count} onClear={sel.clear} />
+      <Table minWidth={760}>
+        <THead>
+          <Th select checked={sel.allSelected} indeterminate={sel.someSelected} onToggle={sel.toggleAll} />
+          <Th icon={<UserCheck size={11} />}>Candidate</Th>
+          <Th icon={<Briefcase size={11} />}>Applied Position</Th>
+          <Th icon={<Award size={11} />} align="center">Comm Rating</Th>
+          <Th icon={<Clock size={11} />}>Expected CTC</Th>
+          <Th icon={<CheckCircle size={11} />}>Status</Th>
+          <Th align="right">Operational Action</Th>
+        </THead>
+        <TBody>
+          {hrCallCandidates.length === 0 ? (
+            <tr>
+              <Td colSpan={7} className="py-8 text-center text-gray-500">
+                No candidates are currently scheduled or completed for introductory HR calls.
+              </Td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-[#DAD4C8]">
-            {hrCallCandidates.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center py-8 text-gray-500">
-                  No candidates are currently scheduled or completed for introductory HR calls.
-                </td>
-              </tr>
-            ) : (
-              hrCallCandidates.map(c => (
-                <tr
-                  key={c.id}
-                  onClick={() => onSelectCandidate(c.id)}
-                  className="hover:bg-[#F2EEE7] transition cursor-pointer"
-                >
-                  <td className="p-3 font-semibold text-gray-900">{c.fullName}</td>
-                  <td className="p-3">
-                    {c.appliedRole} ({c.department})
-                  </td>
-                  <td className="p-3 text-center font-bold">
-                    {c.hrCall?.completed ? `⭐ ${c.hrCall.communicationRating}/5` : 'Pending Call'}
-                  </td>
-                  <td className="p-3 font-mono">
-                    {c.hrCall?.completed ? c.hrCall.expectedCtc : c.expectedCtc}
-                  </td>
-                  <td className="p-3">
-                    <span
-                      className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${
-                        c.hrCall?.completed ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'
-                      }`}
-                    >
-                      {c.hrCall?.completed ? 'Summary Filed' : 'Action Required'}
-                    </span>
-                  </td>
-                  <td className="p-3" onClick={e => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-2">
+          ) : (
+            hrCallCandidates.map(c => (
+              <Tr key={c.id} selected={sel.isSelected(c.id)} onClick={() => onSelectCandidate(c.id)}>
+                <Td select checked={sel.isSelected(c.id)} onToggle={() => sel.toggle(c.id)} />
+                <Td className="font-semibold text-gray-900">{c.fullName}</Td>
+                <Td>
+                  {c.appliedRole} ({c.department})
+                </Td>
+                <Td align="center" className="font-bold">
+                  {c.hrCall?.completed ? `⭐ ${c.hrCall.communicationRating}/5` : 'Pending Call'}
+                </Td>
+                <Td className="font-mono">{c.hrCall?.completed ? c.hrCall.expectedCtc : c.expectedCtc}</Td>
+                <Td>
+                  <StatusPill
+                    tone={c.hrCall?.completed ? 'green' : 'amber'}
+                    label={c.hrCall?.completed ? 'Summary Filed' : 'Action Required'}
+                  />
+                </Td>
+                <Td align="right">
+                  <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
                       <ActionMenu
                         items={[
                           {
@@ -198,13 +216,12 @@ export function IntroductoryCallsView({
                         ]}
                       />
                     </div>
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+        </TBody>
+      </Table>
     </div>
   );
 }
@@ -292,6 +309,7 @@ export function InterviewsView({
       } satisfies Interview;
     });
   const allInterviews = [...interviews, ...scheduledInterviews];
+  const sel = useTableSelection(allInterviews.map(i => i.id));
 
   return (
     <div className="space-y-4 text-xs select-none">
@@ -316,7 +334,7 @@ export function InterviewsView({
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs flex items-center justify-center z-50">
           <form
             onSubmit={handleSubmit}
-            className="bg-[#F7F4EE] p-5 rounded-xl border border-[#DAD4C8] shadow-lg w-96 space-y-3.5"
+            className="bg-[#FFFFFF] p-5 rounded-xl border border-[#E4E6EA] shadow-lg w-96 space-y-3.5"
           >
             <h3 className="font-bold text-gray-900 text-xs uppercase tracking-wider font-mono">
               Schedule Candidate Panel
@@ -327,7 +345,7 @@ export function InterviewsView({
               <Select
                 value={form.candidateId}
                 onChange={e => setForm({ ...form, candidateId: e.target.value })}
-                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
+                className="w-full px-2 py-1.5 border border-[#E4E6EA] bg-[#EDEEF1] rounded"
               >
                 {candidates.map(c => (
                   <option key={c.id} value={c.id}>
@@ -343,7 +361,7 @@ export function InterviewsView({
                 type="text"
                 value={form.round}
                 onChange={e => setForm({ ...form, round: e.target.value })}
-                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
+                className="w-full px-2 py-1.5 border border-[#E4E6EA] bg-[#EDEEF1] rounded"
                 required
               />
             </div>
@@ -354,7 +372,7 @@ export function InterviewsView({
                 type="text"
                 value={form.interviewer}
                 onChange={e => setForm({ ...form, interviewer: e.target.value })}
-                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
+                className="w-full px-2 py-1.5 border border-[#E4E6EA] bg-[#EDEEF1] rounded"
                 required
               />
             </div>
@@ -365,7 +383,7 @@ export function InterviewsView({
                 type="datetime-local"
                 value={form.dateTime}
                 onChange={e => setForm({ ...form, dateTime: e.target.value })}
-                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
+                className="w-full px-2 py-1.5 border border-[#E4E6EA] bg-[#EDEEF1] rounded"
                 required
               />
             </div>
@@ -375,7 +393,7 @@ export function InterviewsView({
               <Select
                 value={form.mode}
                 onChange={e => setForm({ ...form, mode: e.target.value as any })}
-                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
+                className="w-full px-2 py-1.5 border border-[#E4E6EA] bg-[#EDEEF1] rounded"
               >
                 <option value="Google Meet">Google Meet</option>
                 <option value="Zoom">Zoom Video</option>
@@ -387,7 +405,7 @@ export function InterviewsView({
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
-                className="px-3 py-1.5 border border-[#DAD4C8] hover:bg-[#E6E1D8] rounded text-gray-600 font-semibold cursor-pointer"
+                className="px-3 py-1.5 border border-[#E4E6EA] hover:bg-[#EDEEF1] rounded text-gray-600 font-semibold cursor-pointer"
               >
                 Cancel
               </button>
@@ -403,70 +421,64 @@ export function InterviewsView({
       )}
 
       {/* Scheduled interviews table */}
-      <div className="overflow-hidden rounded-xl border border-[#DAD4C8] bg-[#F7F4EE] shadow-2xs">
-        <table className="w-full border-collapse text-left">
-          <thead>
-            <tr className="border-b border-[#DAD4C8] bg-[#F2EEE7] font-mono text-[9px] font-bold uppercase text-gray-500">
-              <th className="p-3">Candidate</th>
-              <th className="p-3">Role</th>
-              <th className="p-3">Round</th>
-              <th className="p-3">Panel evaluator</th>
-              <th className="p-3">Slot time</th>
-              <th className="p-3">Access mode</th>
-              <th className="p-3">Status</th>
-              <th className="p-3 text-right">Actions</th>
+      <SelectionBar count={sel.count} onClear={sel.clear} />
+      <Table minWidth={900}>
+        <THead>
+          <Th select checked={sel.allSelected} indeterminate={sel.someSelected} onToggle={sel.toggleAll} />
+          <Th icon={<UserCheck size={11} />}>Candidate</Th>
+          <Th icon={<Briefcase size={11} />}>Role</Th>
+          <Th icon={<Award size={11} />}>Round</Th>
+          <Th icon={<Users size={11} />}>Panel evaluator</Th>
+          <Th icon={<Clock size={11} />}>Slot time</Th>
+          <Th icon={<Video size={11} />}>Access mode</Th>
+          <Th icon={<CheckCircle size={11} />}>Status</Th>
+          <Th align="right">Actions</Th>
+        </THead>
+        <TBody>
+          {allInterviews.length === 0 ? (
+            <tr>
+              <Td colSpan={9}>
+                <EmptyState
+                  icon={UserCheck}
+                  title="No interviews scheduled"
+                  description="Scheduled interviews appear here. Use “Schedule Interview”, or schedule one from a candidate / assignment grade."
+                  className="border-0 bg-transparent py-10"
+                />
+              </Td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-[#DAD4C8]">
-            {allInterviews.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="bg-[#F7F4EE] p-3">
-                  <EmptyState
-                    icon={UserCheck}
-                    title="No interviews scheduled"
-                    description="Scheduled interviews appear here. Use “Schedule Interview”, or schedule one from a candidate / assignment grade."
-                    className="border-0 bg-transparent py-10"
-                  />
-                </td>
-              </tr>
-            ) : (
-              allInterviews.map(i => (
-                <tr
-                  key={i.id}
-                  onClick={onSelectCandidate ? () => onSelectCandidate(i.candidateId) : undefined}
-                  className={`transition hover:bg-[#F2EEE7] ${onSelectCandidate ? 'cursor-pointer' : ''}`}
-                >
-                  <td className="p-3 font-semibold text-gray-900">{i.candidateName}</td>
-                  <td className="p-3 text-gray-600">
-                    {i.appliedRole} <span className="text-gray-400">• {i.department}</span>
-                  </td>
-                  <td className="p-3">
-                    <span className="rounded bg-accent-50 px-2 py-0.5 font-mono text-[10px] font-bold text-accent-600">
-                      {i.interviewRound}
-                    </span>
-                  </td>
-                  <td className="p-3 text-gray-700">{i.interviewerName}</td>
-                  <td className="p-3 font-mono text-[11px] text-gray-700">
-                    {new Date(i.dateTime).toLocaleDateString()}{' '}
-                    {new Date(i.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </td>
-                  <td className="p-3">
-                    <span className="flex items-center gap-1 text-accent-600">
-                      {i.meetingMode === 'In-Person' ? <MapPin size={12} /> : <Video size={12} />}
-                      {i.meetingMode}
-                    </span>
-                  </td>
-                  <td className="p-3">
-                    <span
-                      className={`rounded-full px-2 py-0.5 font-mono text-[9px] font-bold ${
-                        i.status === 'Completed' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'
-                      }`}
-                    >
-                      {i.status}
-                    </span>
-                  </td>
-                  <td className="p-3 text-right" onClick={e => e.stopPropagation()}>
-                    <div className="flex items-center justify-end">
+          ) : (
+            allInterviews.map(i => (
+              <Tr
+                key={i.id}
+                selected={sel.isSelected(i.id)}
+                onClick={onSelectCandidate ? () => onSelectCandidate(i.candidateId) : undefined}
+              >
+                <Td select checked={sel.isSelected(i.id)} onToggle={() => sel.toggle(i.id)} />
+                <Td className="font-semibold text-gray-900">{i.candidateName}</Td>
+                <Td className="text-gray-600">
+                  {i.appliedRole} <span className="text-gray-400">• {i.department}</span>
+                </Td>
+                <Td>
+                  <span className="rounded bg-accent-50 px-2 py-0.5 font-mono text-[10px] font-bold text-accent-600">
+                    {i.interviewRound}
+                  </span>
+                </Td>
+                <Td className="text-gray-700">{i.interviewerName}</Td>
+                <Td className="font-mono text-[11px] text-gray-700">
+                  {new Date(i.dateTime).toLocaleDateString()}{' '}
+                  {new Date(i.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Td>
+                <Td>
+                  <span className="flex items-center gap-1 text-accent-600">
+                    {i.meetingMode === 'In-Person' ? <MapPin size={12} /> : <Video size={12} />}
+                    {i.meetingMode}
+                  </span>
+                </Td>
+                <Td>
+                  <StatusPill tone={i.status === 'Completed' ? 'green' : 'amber'} label={i.status} />
+                </Td>
+                <Td align="right">
+                  <div className="flex items-center justify-end" onClick={e => e.stopPropagation()}>
                       <ActionMenu
                         items={[
                           {
@@ -513,13 +525,12 @@ export function InterviewsView({
                         ]}
                       />
                     </div>
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+        </TBody>
+      </Table>
     </div>
   );
 }
@@ -561,6 +572,8 @@ export function IQTestAssignmentsView({
   const awaitingIq = candidates.filter(
     c => !completedIqIds.has(c.id) && (scheduledIq.has(c.id) || c.status === 'Shortlisted'),
   );
+  const selAwait = useTableSelection(awaitingIq.map(c => c.id));
+  const selIq = useTableSelection(iqTests.map(t => t.id));
 
   return (
     <div className="space-y-4 text-xs select-none">
@@ -573,16 +586,16 @@ export function IQTestAssignmentsView({
             Role-based question building, IQ metrics automatic scoring, and trial repo reviews.
           </p>
         </div>
-        <div className="border border-[#DAD4C8] rounded-lg bg-[#F7F4EE] overflow-hidden flex font-semibold text-xs">
+        <div className="border border-[#E4E6EA] rounded-lg bg-[#FFFFFF] overflow-hidden flex font-semibold text-xs">
           <button
             onClick={() => setActiveTab('iq')}
-            className={`px-3 py-1.5 transition ${activeTab === 'iq' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#E6E1D8]'}`}
+            className={`px-3 py-1.5 transition ${activeTab === 'iq' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#EDEEF1]'}`}
           >
             IQ Test Logs
           </button>
           <button
             onClick={() => setActiveTab('assignments')}
-            className={`px-3 py-1.5 transition ${activeTab === 'assignments' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#E6E1D8]'}`}
+            className={`px-3 py-1.5 transition ${activeTab === 'assignments' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#EDEEF1]'}`}
           >
             Submissions Queue
           </button>
@@ -594,47 +607,42 @@ export function IQTestAssignmentsView({
           {/* Shortlisted candidates flow into the IQ round here, even before a
               result exists, so the next step is always visible to HR. */}
           {awaitingIq.length > 0 && (
-            <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden">
-              <div className="flex items-center gap-1.5 bg-[#F2EEE7] border-b border-[#DAD4C8] px-3 py-2 text-gray-700 font-semibold">
+            <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl overflow-hidden">
+              <div className="flex items-center gap-1.5 bg-[#F7F8FA] border-b border-[#E4E6EA] px-3 py-2 text-gray-700 font-semibold">
                 <UserCheck size={13} className="text-accent-600" />
                 <span>Awaiting IQ Test</span>
                 <span className="text-[10px] font-mono text-gray-500">({awaitingIq.length})</span>
               </div>
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-[#F2EEE7] border-b border-[#DAD4C8] text-gray-500 font-mono text-[9px] uppercase font-bold">
-                    <th className="p-3">Candidate</th>
-                    <th className="p-3">Applied position</th>
-                    <th className="p-3">Stage</th>
-                    <th className="p-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#DAD4C8]">
+              <table className="w-full text-left text-xs">
+                <THead>
+                  <Th select checked={selAwait.allSelected} indeterminate={selAwait.someSelected} onToggle={selAwait.toggleAll} />
+                  <Th icon={<UserCheck size={11} />}>Candidate</Th>
+                  <Th icon={<Briefcase size={11} />}>Applied position</Th>
+                  <Th icon={<Clock size={11} />}>Stage</Th>
+                  <Th align="right">Actions</Th>
+                </THead>
+                <TBody>
                   {awaitingIq.map(c => {
                     const sched = scheduledIq.get(c.id);
                     return (
-                      <tr
+                      <Tr
                         key={c.id}
+                        selected={selAwait.isSelected(c.id)}
                         onClick={onSelectCandidate ? () => onSelectCandidate(c.id) : undefined}
-                        className={`hover:bg-[#F2EEE7] transition ${onSelectCandidate ? 'cursor-pointer' : ''}`}
                       >
-                        <td className="p-3 font-semibold text-gray-900">{c.fullName}</td>
-                        <td className="p-3">
+                        <Td select checked={selAwait.isSelected(c.id)} onToggle={() => selAwait.toggle(c.id)} />
+                        <Td className="font-semibold text-gray-900">{c.fullName}</Td>
+                        <Td>
                           {c.appliedRole} ({c.department})
-                        </td>
-                        <td className="p-3">
-                          <span
-                            className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${
-                              sched ? 'bg-amber-50 text-amber-600' : 'bg-accent-50 text-accent-600'
-                            }`}
-                          >
-                            {sched
-                              ? `Scheduled · ${new Date(sched.dateTime).toLocaleDateString()}`
-                              : 'Ready to schedule'}
-                          </span>
-                        </td>
-                        <td className="p-3" onClick={e => e.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-2">
+                        </Td>
+                        <Td>
+                          <StatusPill
+                            tone={sched ? 'amber' : 'blue'}
+                            label={sched ? `Scheduled · ${new Date(sched.dateTime).toLocaleDateString()}` : 'Ready to schedule'}
+                          />
+                        </Td>
+                        <Td align="right">
+                          <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
                             <button
                               onClick={() => openSchedule(c.id, c.fullName, 'IQ Test')}
                               className="text-[10px] bg-accent-600 hover:bg-accent-700 text-white px-3 py-1 rounded-md font-semibold cursor-pointer transition"
@@ -652,55 +660,51 @@ export function IQTestAssignmentsView({
                               ]}
                             />
                           </div>
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     );
                   })}
-                </tbody>
+                </TBody>
               </table>
             </div>
           )}
 
-          <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#F2EEE7] border-b border-[#DAD4C8] text-gray-500 font-mono text-[9px] uppercase font-bold">
-                <th className="p-3">Candidate</th>
-                <th className="p-3">Test Date</th>
-                <th className="p-3">Attempted questions</th>
-                <th className="p-3">Succeeded percentage</th>
-                <th className="p-3">Qualification</th>
-                <th className="p-3">Remarks</th>
-                <th className="p-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#DAD4C8]">
+          <SelectionBar count={selIq.count} onClear={selIq.clear} />
+          <Table minWidth={820}>
+            <THead>
+              <Th select checked={selIq.allSelected} indeterminate={selIq.someSelected} onToggle={selIq.toggleAll} />
+              <Th icon={<UserCheck size={11} />}>Candidate</Th>
+              <Th icon={<CalendarDays size={11} />}>Test Date</Th>
+              <Th icon={<BrainCircuit size={11} />}>Attempted questions</Th>
+              <Th icon={<TrendingUp size={11} />}>Succeeded percentage</Th>
+              <Th icon={<CheckCircle size={11} />}>Qualification</Th>
+              <Th icon={<FileText size={11} />}>Remarks</Th>
+              <Th align="right">Actions</Th>
+            </THead>
+            <TBody>
               {iqTests.map(idx => (
-                <tr
+                <Tr
                   key={idx.id}
+                  selected={selIq.isSelected(idx.id)}
                   onClick={onSelectCandidate ? () => onSelectCandidate(idx.candidateId) : undefined}
-                  className={`hover:bg-[#F2EEE7] transition ${onSelectCandidate ? 'cursor-pointer' : ''}`}
                 >
-                  <td className="p-3 font-semibold text-gray-900">{idx.candidateName}</td>
-                  <td className="p-3 font-mono">{idx.testDate}</td>
-                  <td className="p-3 font-mono">
+                  <Td select checked={selIq.isSelected(idx.id)} onToggle={() => selIq.toggle(idx.id)} />
+                  <Td className="font-semibold text-gray-900">{idx.candidateName}</Td>
+                  <Td className="font-mono">{idx.testDate}</Td>
+                  <Td className="font-mono">
                     {idx.questionsAttempted} / {idx.totalQuestions}
-                  </td>
-                  <td className="p-3 font-bold text-accent-600">{idx.scorePercentage}%</td>
-                  <td className="p-3">
-                    <span
-                      className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${
-                        idx.qualificationStatus === 'Passed'
-                          ? 'bg-green-50 text-green-600'
-                          : 'bg-red-50 text-red-600'
-                      }`}
-                    >
-                      {idx.qualificationStatus}
-                    </span>
-                  </td>
-                  <td className="p-3 text-gray-500">{idx.remarks}</td>
-                  <td className="p-3" onClick={e => e.stopPropagation()}>
-                    <div className="flex items-center justify-end">
+                  </Td>
+                  <Td className="font-bold text-accent-600">{idx.scorePercentage}%</Td>
+                  <Td>
+                    <StatusPill
+                      active={idx.qualificationStatus === 'Passed'}
+                      activeLabel={idx.qualificationStatus}
+                      inactiveLabel={idx.qualificationStatus}
+                    />
+                  </Td>
+                  <Td className="text-gray-500">{idx.remarks}</Td>
+                  <Td align="right">
+                    <div className="flex items-center justify-end" onClick={e => e.stopPropagation()}>
                       <ActionMenu
                         items={[
                           {
@@ -733,18 +737,17 @@ export function IQTestAssignmentsView({
                         ]}
                       />
                     </div>
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               ))}
-            </tbody>
-          </table>
-          </div>
+            </TBody>
+          </Table>
         </div>
       ) : (
         <div className="space-y-4">
           {assignments.map(asm => (
-            <div key={asm.id} className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-4 space-y-3">
-              <div className="flex justify-between items-start border-b border-[#E6E1D8] pb-2">
+            <div key={asm.id} className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-4 space-y-3">
+              <div className="flex justify-between items-start border-b border-[#EDEEF1] pb-2">
                 <div>
                   <h4 className="font-bold text-gray-900">{asm.assignmentTitle}</h4>
                   <p className="text-[10px] text-gray-500 font-mono mt-0.5">
@@ -758,7 +761,7 @@ export function IQTestAssignmentsView({
                 </span>
               </div>
 
-              <p className="text-gray-600 bg-[#E6E1D8] p-3 rounded-lg">{asm.instructions}</p>
+              <p className="text-gray-600 bg-[#EDEEF1] p-3 rounded-lg">{asm.instructions}</p>
 
               <div>
                 <h5 className="font-bold text-[10px] uppercase font-mono text-gray-500 mb-2">
@@ -768,7 +771,7 @@ export function IQTestAssignmentsView({
                   {asm.submissions.map(sub => (
                     <div
                       key={sub.id}
-                      className="border border-[#E2DDD2] rounded-lg p-3 flex justify-between items-center text-xs bg-[#F2EEE7]"
+                      className="border border-[#ECEDF0] rounded-lg p-3 flex justify-between items-center text-xs bg-[#F7F8FA]"
                     >
                       <div>
                         <span className="font-semibold text-gray-900">{sub.candidateName}</span>
@@ -838,7 +841,7 @@ export function OnboardingChecklistView({
         <Select
           value={selectedCandidate}
           onChange={e => setSelectedCandidate(e.target.value)}
-          className="px-2.5 py-1 text-xs border border-[#DAD4C8] bg-[#F7F4EE] rounded font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+          className="px-2.5 py-1 text-xs border border-[#E4E6EA] bg-[#FFFFFF] rounded font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
         >
           {onboarding.map(o => (
             <option key={o.candidateId} value={o.candidateName}>
@@ -851,7 +854,7 @@ export function OnboardingChecklistView({
       {activeChecklist ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Progress Circular indicators */}
-          <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 flex flex-col justify-between space-y-4">
+          <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-5 flex flex-col justify-between space-y-4">
             <div className="space-y-1.5">
               <span className="text-[11px] text-gray-500 font-mono font-semibold uppercase tracking-wider">
                 Candidate Progress
@@ -864,7 +867,7 @@ export function OnboardingChecklistView({
               </p>
             </div>
 
-            <div className="flex flex-col items-center justify-center py-4 bg-[#E6E1D8]/50 rounded-lg">
+            <div className="flex flex-col items-center justify-center py-4 bg-[#EDEEF1]/50 rounded-lg">
               <div className="text-3xl font-extrabold text-accent-600 font-display">
                 {activeChecklist.progressPercentage}%
               </div>
@@ -889,7 +892,7 @@ export function OnboardingChecklistView({
             ) : (
               <button
                 disabled
-                className="w-full bg-[#E6E1D8] text-gray-500 font-medium rounded py-2 text-center text-[10px] font-mono cursor-not-allowed"
+                className="w-full bg-[#EDEEF1] text-gray-500 font-medium rounded py-2 text-center text-[10px] font-mono cursor-not-allowed"
               >
                 Clear all tasks to active EMP conversion
               </button>
@@ -897,8 +900,8 @@ export function OnboardingChecklistView({
           </div>
 
           {/* Checklist Tasks List (Linear style) (Col-span-2) */}
-          <div className="md:col-span-2 bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-4">
-            <div className="border-b border-[#E6E1D8] pb-2">
+          <div className="md:col-span-2 bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-5 space-y-4">
+            <div className="border-b border-[#EDEEF1] pb-2">
               <h4 className="font-bold text-gray-900">Pre-joining & Induction Checklist Items</h4>
               <p className="text-[10px] text-gray-500">Click checkboxes to log finalized state:</p>
             </div>
@@ -908,13 +911,13 @@ export function OnboardingChecklistView({
                 <div
                   key={t.id}
                   onClick={() => onToggleTask(activeChecklist.candidateName, t.id)}
-                  className="flex items-center gap-3 p-2.5 border border-[#DAD4C8] hover:bg-[#E6E1D8] rounded-lg cursor-pointer transition"
+                  className="flex items-center gap-3 p-2.5 border border-[#E4E6EA] hover:bg-[#EDEEF1] rounded-lg cursor-pointer transition"
                 >
                   <div
                     className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition ${
                       t.isChecked
                         ? 'bg-accent-600 border-accent-600 text-white'
-                        : 'border-gray-300 bg-[#F7F4EE]'
+                        : 'border-gray-300 bg-[#FFFFFF]'
                     }`}
                   >
                     {t.isChecked && <Check size={10} />}
@@ -944,7 +947,7 @@ export function OnboardingChecklistView({
           />
         </div>
       ) : (
-        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-6 text-center text-gray-500">
+        <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-6 text-center text-gray-500">
           No candidates in the onboarding pipeline presently.
         </div>
       )}
@@ -968,13 +971,21 @@ const EMPTY_EMPLOYEE_FORM = {
   phone: '',
   department: 'Engineering',
   role: '',
+  employmentType: 'Full-time' as NonNullable<Employee['employmentType']>,
   reportingManager: '',
   joiningDate: new Date().toISOString().split('T')[0],
   workLocation: 'Mumbai, India',
   status: 'Active' as Employee['status'],
+  annualCtc: '',
+  dateOfBirth: '',
+  gender: '',
   address: '',
   emergencyContact: '',
-  bankAccount: '',
+  panNumber: '',
+  aadhaarNumber: '',
+  bankName: '',
+  accountNumber: '',
+  ifsc: '',
 };
 
 export function EmployeeDirectoryView({
@@ -997,6 +1008,8 @@ export function EmployeeDirectoryView({
       toast.error('Full name and role are required.');
       return;
     }
+    const acct = empForm.accountNumber.trim();
+    const ifsc = empForm.ifsc.trim();
     const created: Employee = {
       id: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
       fullName: empForm.fullName.trim(),
@@ -1004,14 +1017,24 @@ export function EmployeeDirectoryView({
       phone: empForm.phone.trim(),
       department: empForm.department,
       role: empForm.role.trim(),
+      employmentType: empForm.employmentType,
       reportingManager: empForm.reportingManager.trim() || '—',
       joiningDate: empForm.joiningDate,
       workLocation: empForm.workLocation.trim(),
       status: empForm.status,
+      annualCtc: empForm.annualCtc.trim() || undefined,
       personalDetails: {
         address: empForm.address.trim(),
         emergencyContact: empForm.emergencyContact.trim(),
-        bankAccount: empForm.bankAccount.trim(),
+        // Keep the combined field populated for older views that read it.
+        bankAccount: [acct, ifsc].filter(Boolean).join(' · '),
+        dateOfBirth: empForm.dateOfBirth || undefined,
+        gender: empForm.gender.trim() || undefined,
+        panNumber: empForm.panNumber.trim().toUpperCase() || undefined,
+        aadhaarNumber: empForm.aadhaarNumber.trim() || undefined,
+        bankName: empForm.bankName.trim() || undefined,
+        accountNumber: acct || undefined,
+        ifsc: ifsc.toUpperCase() || undefined,
       },
       credentials: [],
       assets: [],
@@ -1030,6 +1053,10 @@ export function EmployeeDirectoryView({
     const matchesDept = selectedDept === 'All' || e.department === selectedDept;
     return matchesSearch && matchesDept;
   });
+
+  const sel = useTableSelection(filtered.map(e => e.id));
+  const empStatusTone = (s: Employee['status']): 'green' | 'amber' | 'gray' | 'red' =>
+    s === 'Active' ? 'green' : s === 'On Leave' ? 'amber' : s === 'Offboarded' ? 'gray' : 'red';
 
   return (
     <div className="space-y-4 text-xs select-none">
@@ -1054,14 +1081,14 @@ export function EmployeeDirectoryView({
               placeholder="Filter names..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-7 pr-3 py-1 bg-[#F7F4EE] border border-[#DAD4C8] rounded text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+              className="pl-7 pr-3 py-1 bg-[#FFFFFF] border border-[#E4E6EA] rounded text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
             />
           </div>
 
           <Select
             value={selectedDept}
             onChange={e => setSelectedDept(e.target.value)}
-            className="px-2 py-1 bg-[#F7F4EE] border border-[#DAD4C8] rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 font-medium"
+            className="px-2 py-1 bg-[#FFFFFF] border border-[#E4E6EA] rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 font-medium"
           >
             {departments.map(d => (
               <option key={d} value={d}>
@@ -1083,95 +1110,78 @@ export function EmployeeDirectoryView({
       </div>
 
       {/* Employee table */}
-      <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-2xl shadow-2xs overflow-x-auto">
-        <table id="employees-table" className="w-full text-left min-w-[820px]">
-          <thead>
-            <tr className="border-b border-[#E6E1D8] text-[10px] font-mono uppercase tracking-wider text-gray-500">
-              <th className="p-3">Employee</th>
-              <th className="p-3">ID</th>
-              <th className="p-3">Role</th>
-              <th className="p-3">Department</th>
-              <th className="p-3">Location</th>
-              <th className="p-3">Joined</th>
-              <th className="p-3">Status</th>
+      <SelectionBar count={sel.count} onClear={sel.clear} />
+      <Table minWidth={860}>
+        <THead>
+          <Th select checked={sel.allSelected} indeterminate={sel.someSelected} onToggle={sel.toggleAll} />
+          <Th icon={<Users size={11} />}>Employee</Th>
+          <Th icon={<KeyRound size={11} />}>ID</Th>
+          <Th icon={<Briefcase size={11} />}>Role</Th>
+          <Th icon={<Boxes size={11} />}>Department</Th>
+          <Th icon={<MapPin size={11} />}>Location</Th>
+          <Th icon={<CalendarDays size={11} />}>Joined</Th>
+          <Th icon={<CheckCircle size={11} />}>Status</Th>
+        </THead>
+        <TBody>
+          {filtered.length === 0 ? (
+            <tr>
+              <Td colSpan={8}>
+                <EmptyState
+                  icon={Users}
+                  title={employees.length === 0 ? 'No employees yet' : 'No matches'}
+                  description={
+                    employees.length === 0
+                      ? 'Active employees will appear here once added.'
+                      : 'No employees match the current filters.'
+                  }
+                  className="border-0 bg-transparent py-10"
+                />
+              </Td>
             </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="p-3">
-                  <EmptyState
-                    icon={Users}
-                    title={employees.length === 0 ? 'No employees yet' : 'No matches'}
-                    description={
-                      employees.length === 0
-                        ? 'Active employees will appear here once added.'
-                        : 'No employees match the current filters.'
-                    }
-                    className="border-0 bg-transparent py-10"
-                  />
-                </td>
-              </tr>
-            ) : (
-              filtered.map(emp => (
-                <tr
-                  key={emp.id}
-                  onClick={() => onSelectEmployee(emp.id)}
-                  className="border-b border-[#E6E1D8] last:border-0 hover:bg-[#F2EEE7] cursor-pointer transition"
-                >
-                  <td className="p-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-[10px] shrink-0">
-                        {emp.fullName
-                          .split(' ')
-                          .map(n => n[0])
-                          .slice(0, 2)
-                          .join('')
-                          .toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-gray-900 text-[12px] truncate">{emp.fullName}</p>
-                        {emp.email && (
-                          <p className="text-[10px] text-gray-500 font-mono truncate">{emp.email}</p>
-                        )}
-                      </div>
+          ) : (
+            filtered.map(emp => (
+              <Tr key={emp.id} selected={sel.isSelected(emp.id)} onClick={() => onSelectEmployee(emp.id)}>
+                <Td select checked={sel.isSelected(emp.id)} onToggle={() => sel.toggle(emp.id)} />
+                <Td>
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-purple-50 text-[10px] font-bold text-purple-600">
+                      {emp.fullName
+                        .split(' ')
+                        .map(n => n[0])
+                        .slice(0, 2)
+                        .join('')
+                        .toUpperCase()}
                     </div>
-                  </td>
-                  <td className="p-3 font-mono text-[11px] text-gray-500">{emp.id}</td>
-                  <td className="p-3 font-semibold text-gray-700">{emp.role}</td>
-                  <td className="p-3 text-gray-600">{emp.department}</td>
-                  <td className="p-3 text-gray-500">{emp.workLocation}</td>
-                  <td className="p-3 font-mono text-[11px] text-gray-500">{emp.joiningDate}</td>
-                  <td className="p-3">
-                    <span
-                      className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${
-                        emp.status === 'Active'
-                          ? 'bg-green-50 text-green-600'
-                          : emp.status === 'On Leave'
-                            ? 'bg-yellow-50 text-yellow-600'
-                            : emp.status === 'Offboarded'
-                              ? 'bg-[#E6E1D8] text-gray-500'
-                              : 'bg-red-50 text-red-600'
-                      }`}
-                    >
-                      {emp.status}
-                    </span>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-[12px] font-bold text-gray-900">{emp.fullName}</p>
+                      {emp.email && <p className="truncate font-mono text-[10px] text-gray-500">{emp.email}</p>}
+                    </div>
+                  </div>
+                </Td>
+                <Td className="font-mono text-[11px] text-gray-500">{emp.id}</Td>
+                <Td className="font-semibold text-gray-700">{emp.role}</Td>
+                <Td>
+                  <TagPill color={deptDot(emp.department)}>{emp.department}</TagPill>
+                </Td>
+                <Td className="text-gray-500">{emp.workLocation}</Td>
+                <Td className="font-mono text-[11px] text-gray-500">{emp.joiningDate}</Td>
+                <Td>
+                  <StatusPill tone={empStatusTone(emp.status)} label={emp.status} />
+                </Td>
+              </Tr>
+            ))
+          )}
+        </TBody>
+      </Table>
 
       {/* Add Employee modal — register existing staff with full details */}
       {showAddForm && (
         <div className="fixed inset-0 bg-gray-900/45 backdrop-blur-xs flex items-center justify-center z-[110] p-4">
           <form
             onSubmit={handleAddEmployee}
-            className="bg-[#F7F4EE] p-5 rounded-xl border border-[#DAD4C8] shadow-2xl w-full max-w-2xl space-y-3.5 max-h-[90vh] overflow-y-auto"
+            className="bg-[#FFFFFF] p-5 rounded-xl border border-[#E4E6EA] shadow-2xl w-full max-w-2xl space-y-3.5 max-h-[90vh] overflow-y-auto"
           >
-            <div className="flex justify-between items-center border-b border-[#E2DDD2] pb-2">
+            <div className="flex justify-between items-center border-b border-[#ECEDF0] pb-2">
               <h3 className="font-bold text-gray-900 text-xs font-mono uppercase tracking-wider">
                 Add Employee to Directory
               </h3>
@@ -1192,7 +1202,7 @@ export function EmployeeDirectoryView({
                   placeholder="e.g. Priya Sharma"
                   value={empForm.fullName}
                   onChange={e => setEmpForm({ ...empForm, fullName: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                  className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                   required
                 />
               </div>
@@ -1203,7 +1213,7 @@ export function EmployeeDirectoryView({
                   placeholder="e.g. Senior React Engineer"
                   value={empForm.role}
                   onChange={e => setEmpForm({ ...empForm, role: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                  className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                   required
                 />
               </div>
@@ -1217,7 +1227,7 @@ export function EmployeeDirectoryView({
                   placeholder="name@optiminastic.com"
                   value={empForm.email}
                   onChange={e => setEmpForm({ ...empForm, email: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                  className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                 />
               </div>
               <div className="space-y-1">
@@ -1227,7 +1237,7 @@ export function EmployeeDirectoryView({
                   placeholder="+91 ..."
                   value={empForm.phone}
                   onChange={e => setEmpForm({ ...empForm, phone: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                  className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                 />
               </div>
             </div>
@@ -1238,7 +1248,7 @@ export function EmployeeDirectoryView({
                 <Select
                   value={empForm.department}
                   onChange={e => setEmpForm({ ...empForm, department: e.target.value })}
-                  className="w-full px-2 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8]"
+                  className="w-full px-2 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1]"
                 >
                   <option value="Engineering">Engineering</option>
                   <option value="Product">Product</option>
@@ -1254,7 +1264,7 @@ export function EmployeeDirectoryView({
                   onChange={e =>
                     setEmpForm({ ...empForm, status: e.target.value as Employee['status'] })
                   }
-                  className="w-full px-2 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8]"
+                  className="w-full px-2 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1]"
                 >
                   <option value="Active">Active</option>
                   <option value="On Leave">On Leave</option>
@@ -1267,7 +1277,7 @@ export function EmployeeDirectoryView({
                   type="date"
                   value={empForm.joiningDate}
                   onChange={e => setEmpForm({ ...empForm, joiningDate: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] font-mono"
+                  className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] font-mono"
                 />
               </div>
               <div className="space-y-1">
@@ -1277,7 +1287,38 @@ export function EmployeeDirectoryView({
                   placeholder="Mumbai, India"
                   value={empForm.workLocation}
                   onChange={e => setEmpForm({ ...empForm, workLocation: e.target.value })}
-                  className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                  className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div className="space-y-1">
+                <label className="font-semibold text-gray-700">Employment Type</label>
+                <Select
+                  value={empForm.employmentType}
+                  onChange={e =>
+                    setEmpForm({
+                      ...empForm,
+                      employmentType: e.target.value as NonNullable<Employee['employmentType']>,
+                    })
+                  }
+                  className="w-full px-2 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1]"
+                >
+                  <option value="Full-time">Full-time</option>
+                  <option value="Part-time">Part-time</option>
+                  <option value="Intern">Intern</option>
+                  <option value="Contract">Contract</option>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="font-semibold text-gray-700">Annual CTC</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 12 LPA"
+                  value={empForm.annualCtc}
+                  onChange={e => setEmpForm({ ...empForm, annualCtc: e.target.value })}
+                  className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                 />
               </div>
             </div>
@@ -1289,43 +1330,117 @@ export function EmployeeDirectoryView({
                 placeholder="e.g. Akshae (Director)"
                 value={empForm.reportingManager}
                 onChange={e => setEmpForm({ ...empForm, reportingManager: e.target.value })}
-                className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
               />
             </div>
 
-            <div className="pt-1 border-t border-[#E2DDD2]">
+            <div className="pt-1 border-t border-[#ECEDF0]">
               <p className="font-bold text-gray-500 font-mono text-[9px] uppercase tracking-wider mb-2">
                 Personal records (optional)
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
                 <div className="space-y-1">
-                  <label className="font-semibold text-gray-700">Address</label>
+                  <label className="font-semibold text-gray-700">Date of Birth</label>
                   <input
-                    type="text"
-                    placeholder="Mailing address"
-                    value={empForm.address}
-                    onChange={e => setEmpForm({ ...empForm, address: e.target.value })}
-                    className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                    type="date"
+                    value={empForm.dateOfBirth}
+                    onChange={e => setEmpForm({ ...empForm, dateOfBirth: e.target.value })}
+                    className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] font-mono focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                   />
                 </div>
                 <div className="space-y-1">
+                  <label className="font-semibold text-gray-700">Gender</label>
+                  <Select
+                    value={empForm.gender}
+                    onChange={e => setEmpForm({ ...empForm, gender: e.target.value })}
+                    className="w-full px-2 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1]"
+                  >
+                    <option value="">—</option>
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Non-binary">Non-binary</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </Select>
+                </div>
+                <div className="space-y-1 col-span-2">
                   <label className="font-semibold text-gray-700">Emergency Contact</label>
                   <input
                     type="text"
                     placeholder="Name · +91 ..."
                     value={empForm.emergencyContact}
                     onChange={e => setEmpForm({ ...empForm, emergencyContact: e.target.value })}
-                    className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                    className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1 mt-3.5">
+                <label className="font-semibold text-gray-700">Address</label>
+                <input
+                  type="text"
+                  placeholder="Mailing address"
+                  value={empForm.address}
+                  onChange={e => setEmpForm({ ...empForm, address: e.target.value })}
+                  className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                />
+              </div>
+
+              <p className="font-bold text-gray-500 font-mono text-[9px] uppercase tracking-wider mb-2 mt-4">
+                Statutory &amp; bank (optional)
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
+                <div className="space-y-1">
+                  <label className="font-semibold text-gray-700">PAN</label>
+                  <input
+                    type="text"
+                    placeholder="ABCDE1234F"
+                    value={empForm.panNumber}
+                    onChange={e => setEmpForm({ ...empForm, panNumber: e.target.value.toUpperCase() })}
+                    maxLength={10}
+                    className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] font-mono uppercase focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-semibold text-gray-700">Bank Account</label>
+                  <label className="font-semibold text-gray-700">Aadhaar</label>
                   <input
                     type="text"
-                    placeholder="Account / IFSC"
-                    value={empForm.bankAccount}
-                    onChange={e => setEmpForm({ ...empForm, bankAccount: e.target.value })}
-                    className="w-full px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                    inputMode="numeric"
+                    placeholder="1234 5678 9012"
+                    value={empForm.aadhaarNumber}
+                    onChange={e => setEmpForm({ ...empForm, aadhaarNumber: e.target.value.replace(/[^0-9 ]/g, '').slice(0, 14) })}
+                    className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] font-mono focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-semibold text-gray-700">Bank Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. HDFC Bank"
+                    value={empForm.bankName}
+                    onChange={e => setEmpForm({ ...empForm, bankName: e.target.value })}
+                    className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                  />
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <label className="font-semibold text-gray-700">Account Number</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Bank account number"
+                    value={empForm.accountNumber}
+                    onChange={e => setEmpForm({ ...empForm, accountNumber: e.target.value.replace(/[^0-9]/g, '') })}
+                    className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] font-mono focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-semibold text-gray-700">IFSC</label>
+                  <input
+                    type="text"
+                    placeholder="HDFC0001234"
+                    value={empForm.ifsc}
+                    onChange={e => setEmpForm({ ...empForm, ifsc: e.target.value.toUpperCase() })}
+                    maxLength={11}
+                    className="w-full px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] font-mono uppercase focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                   />
                 </div>
               </div>
@@ -1335,7 +1450,7 @@ export function EmployeeDirectoryView({
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="px-4 py-1.5 border border-[#DAD4C8] hover:bg-[#E6E1D8] rounded text-gray-650 cursor-pointer font-semibold"
+                className="px-4 py-1.5 border border-[#E4E6EA] hover:bg-[#EDEEF1] rounded text-gray-650 cursor-pointer font-semibold"
               >
                 Cancel
               </button>
@@ -1387,6 +1502,13 @@ export function CredentialsAssetsView({
     toast.success(`Asset status updated to "${value}".`);
   };
 
+  const selCreds = useTableSelection(employees.flatMap(emp => (emp.credentials || []).map(c => c.id)));
+  const selAssets = useTableSelection(assets.map(a => a.id));
+  const credTone = (s: string): 'green' | 'red' | 'gray' =>
+    s === 'Active' ? 'green' : s === 'Suspended' ? 'red' : 'gray';
+  const assetTone = (s: string): 'green' | 'blue' | 'red' =>
+    s === 'Available' ? 'green' : s === 'Assigned' ? 'blue' : 'red';
+
   return (
     <div className="space-y-4 text-xs select-none">
       <div className="flex justify-between items-center">
@@ -1399,16 +1521,16 @@ export function CredentialsAssetsView({
           </p>
         </div>
 
-        <div className="border border-[#DAD4C8] rounded-lg bg-[#F7F4EE] overflow-hidden flex font-semibold text-xs shrink-0">
+        <div className="border border-[#E4E6EA] rounded-lg bg-[#FFFFFF] overflow-hidden flex font-semibold text-xs shrink-0">
           <button
             onClick={() => setActiveTab('creds')}
-            className={`px-3 py-1.5 transition ${activeTab === 'creds' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#E6E1D8]'}`}
+            className={`px-3 py-1.5 transition ${activeTab === 'creds' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#EDEEF1]'}`}
           >
             System Credentials
           </button>
           <button
             onClick={() => setActiveTab('assets')}
-            className={`px-3 py-1.5 transition ${activeTab === 'assets' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#E6E1D8]'}`}
+            className={`px-3 py-1.5 transition ${activeTab === 'assets' ? 'bg-accent-50 text-accent-600' : 'text-gray-600 hover:bg-[#EDEEF1]'}`}
           >
             Hardware Inventory
           </button>
@@ -1416,102 +1538,84 @@ export function CredentialsAssetsView({
       </div>
 
       {activeTab === 'creds' ? (
-        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden shadow-2xs">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#F2EEE7] border-b border-[#DAD4C8] text-gray-500 font-mono text-[9px] uppercase font-bold">
-                <th className="p-3">Employee</th>
-                <th className="p-3">Target System</th>
-                <th className="p-3">Assigned Identity</th>
-                <th className="p-3 text-center">Perm Match</th>
-                <th className="p-3 text-center">Security PIN</th>
-                <th className="p-3">State</th>
-                <th className="p-3 text-right">Moderator Control</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#DAD4C8]">
+        <>
+          <SelectionBar count={selCreds.count} onClear={selCreds.clear} />
+          <Table minWidth={860}>
+            <THead>
+              <Th select checked={selCreds.allSelected} indeterminate={selCreds.someSelected} onToggle={selCreds.toggleAll} />
+              <Th icon={<Users size={11} />}>Employee</Th>
+              <Th icon={<Terminal size={11} />}>Target System</Th>
+              <Th icon={<Mail size={11} />}>Assigned Identity</Th>
+              <Th icon={<ShieldCheck size={11} />} align="center">Perm Match</Th>
+              <Th icon={<KeyRound size={11} />} align="center">Security PIN</Th>
+              <Th icon={<CheckCircle size={11} />}>State</Th>
+              <Th align="right">Moderator Control</Th>
+            </THead>
+            <TBody>
               {employees.flatMap(emp =>
                 (emp.credentials || []).map(cred => (
-                  <tr key={cred.id} className="hover:bg-[#F2EEE7] transition">
-                    <td className="p-3 font-semibold text-gray-900">{emp.fullName}</td>
-                    <td className="p-3 font-medium text-gray-800">{cred.systemName}</td>
-                    <td className="p-3 font-mono">{cred.assignedEmail}</td>
-                    <td className="p-3 text-center font-semibold">{cred.accessLevel}</td>
-                    <td className="p-3 text-center font-mono text-gray-500 select-all">••••••••••</td>
-                    <td className="p-3">
-                      <span
-                        className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${
-                          cred.status === 'Active'
-                            ? 'bg-green-50 text-green-600'
-                            : cred.status === 'Suspended'
-                              ? 'bg-red-50 text-red-600'
-                              : 'bg-[#E6E1D8] text-gray-500'
-                        }`}
-                      >
-                        {cred.status}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right">
+                  <Tr key={cred.id} selected={selCreds.isSelected(cred.id)}>
+                    <Td select checked={selCreds.isSelected(cred.id)} onToggle={() => selCreds.toggle(cred.id)} />
+                    <Td className="font-semibold text-gray-900">{emp.fullName}</Td>
+                    <Td className="font-medium text-gray-800">{cred.systemName}</Td>
+                    <Td className="font-mono">{cred.assignedEmail}</Td>
+                    <Td align="center" className="font-semibold">{cred.accessLevel}</Td>
+                    <Td align="center" className="select-all font-mono text-gray-500">••••••••••</Td>
+                    <Td>
+                      <StatusPill tone={credTone(cred.status)} label={cred.status} />
+                    </Td>
+                    <Td align="right">
                       <Select
                         value={cred.status}
                         onChange={e => onUpdateCredential(emp.id, cred.id, e.target.value)}
-                        className="text-[10px] bg-[#F7F4EE] border border-[#DAD4C8] px-1.5 py-1 rounded cursor-pointer text-gray-600 focus:ring-1 focus:ring-accent-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                        className="text-[10px] bg-[#FFFFFF] border border-[#E4E6EA] px-1.5 py-1 rounded cursor-pointer text-gray-600 focus:ring-1 focus:ring-accent-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                       >
                         <option value="Active">Grant Active</option>
                         <option value="Suspended">Suspend Access</option>
                         <option value="Revoked">Revoke Key</option>
                       </Select>
-                    </td>
-                  </tr>
+                    </Td>
+                  </Tr>
                 )),
               )}
-            </tbody>
-          </table>
-        </div>
+            </TBody>
+          </Table>
+        </>
       ) : (
-        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden shadow-2xs">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#F2EEE7] border-b border-[#DAD4C8] text-gray-500 font-mono text-[9px] uppercase font-bold">
-                <th className="p-3">Asset ID</th>
-                <th className="p-3">Specification</th>
-                <th className="p-3">Item Category</th>
-                <th className="p-3">Assigned To</th>
-                <th className="p-3">Status</th>
-                <th className="p-3 text-right">Condition / Modification</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#DAD4C8]">
+        <>
+          <SelectionBar count={selAssets.count} onClear={selAssets.clear} />
+          <Table minWidth={820}>
+            <THead>
+              <Th select checked={selAssets.allSelected} indeterminate={selAssets.someSelected} onToggle={selAssets.toggleAll} />
+              <Th icon={<KeyRound size={11} />}>Asset ID</Th>
+              <Th icon={<Laptop size={11} />}>Specification</Th>
+              <Th icon={<Boxes size={11} />}>Item Category</Th>
+              <Th icon={<Users size={11} />}>Assigned To</Th>
+              <Th icon={<CheckCircle size={11} />}>Status</Th>
+              <Th align="right">Condition / Modification</Th>
+            </THead>
+            <TBody>
               {assets.map(ast => (
-                <tr key={ast.id} className="hover:bg-[#F2EEE7] transition">
-                  <td className="p-3 font-mono font-bold text-gray-700">{ast.id}</td>
-                  <td className="p-3 font-semibold text-gray-900">{ast.assetName}</td>
-                  <td className="p-3">{ast.assetType}</td>
-                  <td className="p-3">
+                <Tr key={ast.id} selected={selAssets.isSelected(ast.id)}>
+                  <Td select checked={selAssets.isSelected(ast.id)} onToggle={() => selAssets.toggle(ast.id)} />
+                  <Td className="font-mono font-bold text-gray-700">{ast.id}</Td>
+                  <Td className="font-semibold text-gray-900">{ast.assetName}</Td>
+                  <Td>{ast.assetType}</Td>
+                  <Td>
                     {ast.assignedToEmployeeName ? (
                       <span className="font-medium text-gray-800">{ast.assignedToEmployeeName}</span>
                     ) : (
-                      <span className="text-gray-500 italic">Available in IT Depot</span>
+                      <span className="italic text-gray-500">Available in IT Depot</span>
                     )}
-                  </td>
-                  <td className="p-3">
-                    <span
-                      className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${
-                        ast.status === 'Assigned'
-                          ? 'bg-accent-50 text-accent-600'
-                          : ast.status === 'Available'
-                            ? 'bg-green-50 text-green-600'
-                            : 'bg-red-50 text-red-600'
-                      }`}
-                    >
-                      {ast.status}
-                    </span>
-                  </td>
-                  <td className="p-3 text-right">
+                  </Td>
+                  <Td>
+                    <StatusPill tone={assetTone(ast.status)} label={ast.status} />
+                  </Td>
+                  <Td align="right">
                     <Select
                       value={ast.status}
                       onChange={e => handleAssetStatusChange(ast.id, e.target.value)}
-                      className="text-[10px] bg-[#F7F4EE] border border-[#DAD4C8] px-1.5 py-1 rounded cursor-pointer text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                      className="text-[10px] bg-[#FFFFFF] border border-[#E4E6EA] px-1.5 py-1 rounded cursor-pointer text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                     >
                       <option value="Available">Available</option>
                       <option value="Assigned">Assigned</option>
@@ -1520,12 +1624,12 @@ export function CredentialsAssetsView({
                       <option value="Damaged">Damaged</option>
                       <option value="Retired">Retired</option>
                     </Select>
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TBody>
+          </Table>
+        </>
       )}
     </div>
   );
@@ -1589,7 +1693,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
 
   return (
     <div className="space-y-4 text-xs select-none">
-      <div className="flex justify-between items-center bg-[#F2EEE7] border-b border-[#DAD4C8] pb-3">
+      <div className="flex justify-between items-center bg-[#F7F8FA] border-b border-[#E4E6EA] pb-3">
         <div>
           <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
             Appraisals & Growth Scorecards
@@ -1602,7 +1706,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
         <Select
           value={selectedEmp}
           onChange={e => setSelectedEmp(e.target.value)}
-          className="px-2.5 py-1 text-xs border border-[#DAD4C8] bg-[#F7F4EE] rounded font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+          className="px-2.5 py-1 text-xs border border-[#E4E6EA] bg-[#FFFFFF] rounded font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
         >
           {employees.map(e => (
             <option key={e.id} value={e.fullName}>
@@ -1615,7 +1719,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <form
           onSubmit={handleSubmit}
-          className="md:col-span-2 bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-4"
+          className="md:col-span-2 bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-5 space-y-4"
         >
           <h3 className="font-bold text-gray-900">Conduct Annual Appraisal Cycle Review</h3>
 
@@ -1626,7 +1730,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
                 type="text"
                 value={reviewForm.reviewPeriod}
                 onChange={e => setReviewForm({ ...reviewForm, reviewPeriod: e.target.value })}
-                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
+                className="w-full px-2 py-1.5 border border-[#E4E6EA] bg-[#EDEEF1] rounded"
               />
             </div>
             <div className="space-y-1">
@@ -1637,7 +1741,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
                 max="5"
                 value={reviewForm.performanceScore}
                 onChange={e => setReviewForm({ ...reviewForm, performanceScore: Number(e.target.value) })}
-                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
+                className="w-full px-2 py-1.5 border border-[#E4E6EA] bg-[#EDEEF1] rounded"
               />
             </div>
           </div>
@@ -1648,7 +1752,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
               value={reviewForm.targetAchievement}
               onChange={e => setReviewForm({ ...reviewForm, targetAchievement: e.target.value })}
               rows={2}
-              className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
+              className="w-full px-2 py-1.5 border border-[#E4E6EA] bg-[#EDEEF1] rounded"
               required
             />
           </div>
@@ -1659,7 +1763,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
               value={reviewForm.managerFeedback}
               onChange={e => setReviewForm({ ...reviewForm, managerFeedback: e.target.value })}
               rows={2}
-              className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
+              className="w-full px-2 py-1.5 border border-[#E4E6EA] bg-[#EDEEF1] rounded"
               required
             />
           </div>
@@ -1671,7 +1775,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
                 type="text"
                 value={reviewForm.recommendedPromotion}
                 onChange={e => setReviewForm({ ...reviewForm, recommendedPromotion: e.target.value })}
-                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
+                className="w-full px-2 py-1.5 border border-[#E4E6EA] bg-[#EDEEF1] rounded"
               />
             </div>
             <div className="space-y-1">
@@ -1681,7 +1785,7 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
                 value={reviewForm.recommendedSalaryRevision}
                 onChange={e => setReviewForm({ ...reviewForm, recommendedSalaryRevision: e.target.value })}
                 placeholder="e.g. 22 LPA"
-                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
+                className="w-full px-2 py-1.5 border border-[#E4E6EA] bg-[#EDEEF1] rounded"
               />
             </div>
           </div>
@@ -1697,14 +1801,14 @@ export function AppraisalsView({ employees, onSaveReview }: AppraisalsViewProps)
         </form>
 
         {/* Existing Appraisal track lists */}
-        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-4">
+        <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-5 space-y-4">
           <h3 className="font-bold text-gray-900 uppercase font-mono text-[10px] text-gray-500">
             Historic Logs
           </h3>
 
           {targetEmp?.appraisalHistory && targetEmp.appraisalHistory.length > 0 ? (
             targetEmp.appraisalHistory.map(hist => (
-              <div key={hist.id} className="p-3 border border-[#E2DDD2] rounded-lg space-y-2 bg-[#F2EEE7]">
+              <div key={hist.id} className="p-3 border border-[#ECEDF0] rounded-lg space-y-2 bg-[#F7F8FA]">
                 <div className="flex justify-between items-center font-mono text-[9px]">
                   <span className="font-semibold text-accent-600">{hist.reviewPeriod}</span>
                   <span className="bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">
@@ -1768,7 +1872,7 @@ export function OffboardingChecklistView({
         <Select
           value={selectedCase}
           onChange={e => setSelectedCase(e.target.value)}
-          className="px-2.5 py-1 text-xs border border-[#DAD4C8] bg-[#F7F4EE] rounded font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+          className="px-2.5 py-1 text-xs border border-[#E4E6EA] bg-[#FFFFFF] rounded font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
         >
           {offboarding.map(o => (
             <option key={o.employeeId} value={o.employeeName}>
@@ -1782,7 +1886,7 @@ export function OffboardingChecklistView({
         <div className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* KT & Notice Summary Card */}
-          <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 flex flex-col justify-between space-y-4">
+          <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-5 flex flex-col justify-between space-y-4">
             <div className="space-y-2">
               <span className="text-[10px] text-red-650 bg-red-50 font-bold px-2 py-0.5 rounded">
                 Resignation Triggered
@@ -1794,7 +1898,7 @@ export function OffboardingChecklistView({
                 Notice end:{' '}
                 <span className="font-mono font-bold text-gray-800">{activeCase.lastWorkingDay}</span>
               </p>
-              <div className="bg-[#E6E1D8] p-2.5 rounded-lg text-[10px] border border-[#DAD4C8] space-y-1.5 font-mono">
+              <div className="bg-[#EDEEF1] p-2.5 rounded-lg text-[10px] border border-[#E4E6EA] space-y-1.5 font-mono">
                 <p className="text-gray-500 uppercase font-bold text-[9px]">Knowledge Transfer Summary:</p>
                 <p className="text-gray-700 font-sans">{activeCase.ktRecord?.currentProjects}</p>
                 <div className="flex justify-between mt-2 font-bold py-1 border-t border-gray-150">
@@ -1816,8 +1920,8 @@ export function OffboardingChecklistView({
           </div>
 
           {/* Checkout clearances list */}
-          <div className="md:col-span-2 bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-3">
-            <h4 className="font-bold text-gray-900 border-b border-[#E6E1D8] pb-1.5">
+          <div className="md:col-span-2 bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-5 space-y-3">
+            <h4 className="font-bold text-gray-900 border-b border-[#EDEEF1] pb-1.5">
               Compliance Clearance Checkpoints
             </h4>
             <div className="space-y-2 max-h-[320px] overflow-y-auto">
@@ -1825,11 +1929,11 @@ export function OffboardingChecklistView({
                 <div
                   key={t.id}
                   onClick={() => onToggleExitTask(activeCase.employeeId, t.id)}
-                  className="flex items-center gap-3 p-2.5 border border-[#DAD4C8] hover:bg-gray-55 rounded-lg cursor-pointer transition"
+                  className="flex items-center gap-3 p-2.5 border border-[#E4E6EA] hover:bg-gray-55 rounded-lg cursor-pointer transition"
                 >
                   <div
                     className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition ${
-                      t.isChecked ? 'bg-red-600 border-red-600 text-white' : 'border-gray-300 bg-[#F7F4EE]'
+                      t.isChecked ? 'bg-red-600 border-red-600 text-white' : 'border-gray-300 bg-[#FFFFFF]'
                     }`}
                   >
                     {t.isChecked && <Check size={10} />}
@@ -1851,8 +1955,8 @@ export function OffboardingChecklistView({
           </div>
 
           {/* Exit Deliverables & Handover */}
-          <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-3">
-            <div className="flex items-center justify-between border-b border-[#E6E1D8] pb-1.5">
+          <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-5 space-y-3">
+            <div className="flex items-center justify-between border-b border-[#EDEEF1] pb-1.5">
               <h4 className="font-bold text-gray-900">Exit Deliverables &amp; Handover</h4>
               <span className="text-[10px] font-mono text-gray-500">
                 {(activeCase.deliverables || []).filter(d => d.isSubmitted).length}/
@@ -1869,13 +1973,13 @@ export function OffboardingChecklistView({
                   <div
                     key={d.id}
                     onClick={() => onToggleDeliverable(activeCase.employeeId, d.id)}
-                    className="flex items-center gap-3 p-2.5 border border-[#DAD4C8] hover:bg-gray-55 rounded-lg cursor-pointer transition"
+                    className="flex items-center gap-3 p-2.5 border border-[#E4E6EA] hover:bg-gray-55 rounded-lg cursor-pointer transition"
                   >
                     <div
                       className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition ${
                         d.isSubmitted
                           ? 'bg-accent-600 border-accent-600 text-white'
-                          : 'border-gray-300 bg-[#F7F4EE]'
+                          : 'border-gray-300 bg-[#FFFFFF]'
                       }`}
                     >
                       {d.isSubmitted && <Check size={10} />}
@@ -1907,7 +2011,7 @@ export function OffboardingChecklistView({
           />
         </div>
       ) : (
-        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-6 text-center text-gray-500">
+        <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-6 text-center text-gray-500">
           No live employee offboarding case in notice cycle currently.
         </div>
       )}
@@ -1960,7 +2064,7 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {/* Template selector & trigger */}
-        <form onSubmit={handleSend} className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-4">
+        <form onSubmit={handleSend} className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-5 space-y-4">
           <h3 className="font-bold text-gray-900">Email Draft Trigger Creator</h3>
 
           <div className="space-y-1">
@@ -1968,7 +2072,7 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
             <Select
               value={activeTemplateId}
               onChange={e => setActiveTemplateId(e.target.value)}
-              className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
+              className="w-full px-2 py-1.5 border border-[#E4E6EA] bg-[#EDEEF1] rounded"
             >
               {emailTemplates.map(t => (
                 <option key={t.id} value={t.id}>
@@ -1978,14 +2082,14 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
             </Select>
           </div>
 
-          <div className="space-y-2 pt-2 border-t border-[#E6E1D8]">
+          <div className="space-y-2 pt-2 border-t border-[#EDEEF1]">
             <div className="space-y-1">
               <label className="font-semibold text-gray-700">Recipient Name</label>
               <input
                 type="text"
                 value={recipientName}
                 onChange={e => setRecipientName(e.target.value)}
-                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
+                className="w-full px-2 py-1.5 border border-[#E4E6EA] bg-[#EDEEF1] rounded"
                 required
               />
             </div>
@@ -1995,7 +2099,7 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
                 type="email"
                 value={recipientEmail}
                 onChange={e => setRecipientEmail(e.target.value)}
-                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
+                className="w-full px-2 py-1.5 border border-[#E4E6EA] bg-[#EDEEF1] rounded"
                 required
               />
             </div>
@@ -2005,7 +2109,7 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
                 type="text"
                 value={roleField}
                 onChange={e => setRoleField(e.target.value)}
-                className="w-full px-2 py-1.5 border border-[#DAD4C8] bg-[#E6E1D8] rounded"
+                className="w-full px-2 py-1.5 border border-[#E4E6EA] bg-[#EDEEF1] rounded"
                 required
               />
             </div>
@@ -2021,12 +2125,12 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
 
         {/* Live WYSIWYG Parser Preview */}
         {selectedTemplate && (
-          <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 flex flex-col justify-between">
+          <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-5 flex flex-col justify-between">
             <div className="space-y-2">
               <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider font-semibold">
                 Live Variable Compilation Parser
               </span>
-              <div className="border border-[#DAD4C8] p-3 rounded-lg bg-[#F2EEE7] font-mono text-[11px] text-gray-700 space-y-2 max-h-[300px] overflow-y-auto">
+              <div className="border border-[#E4E6EA] p-3 rounded-lg bg-[#F7F8FA] font-mono text-[11px] text-gray-700 space-y-2 max-h-[300px] overflow-y-auto">
                 <p className="font-bold text-gray-900 border-b border-gray-150 pb-1">
                   Subject: {selectedTemplate.subject.replace('{{ROLE}}', roleField)}
                 </p>
@@ -2046,13 +2150,13 @@ export function EmailCenterView({ emailTemplates, sentMails, onTriggerEmail }: E
         )}
 
         {/* Sent Mails Ledger */}
-        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-3 overflow-y-auto max-h-[380px]">
+        <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-5 space-y-3 overflow-y-auto max-h-[380px]">
           <h3 className="font-bold text-gray-900 uppercase font-mono text-[10px] text-gray-500">
             Sent Triggers Log
           </h3>
           <div className="space-y-2">
             {sentMails.map(m => (
-              <div key={m.id} className="p-2.5 border border-[#E2DDD2] bg-[#F2EEE7] rounded-lg">
+              <div key={m.id} className="p-2.5 border border-[#ECEDF0] bg-[#F7F8FA] rounded-lg">
                 <div className="flex justify-between text-[10px]">
                   <span className="font-semibold text-gray-800">{m.recipientName}</span>
                   <span className="text-green-600 font-bold">{m.status}</span>
@@ -2119,7 +2223,7 @@ function GoogleCalendarCard() {
   const configured = !!status?.configured;
 
   return (
-    <div className="border border-[#DAD4C8] rounded-lg p-4 bg-[#F2EEE7] space-y-3">
+    <div className="border border-[#E4E6EA] rounded-lg p-4 bg-[#F7F8FA] space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2.5">
           <span className="w-9 h-9 rounded-lg bg-accent-50 text-accent-600 flex items-center justify-center shrink-0">
@@ -2139,7 +2243,7 @@ function GoogleCalendarCard() {
               ? 'bg-emerald-50 text-emerald-600'
               : configured
                 ? 'bg-yellow-50 text-yellow-600'
-                : 'bg-[#E6E1D8] text-gray-500'
+                : 'bg-[#EDEEF1] text-gray-500'
           }`}
         >
           {connected ? 'Connected' : configured ? 'Not connected' : 'Not configured'}
@@ -2178,7 +2282,7 @@ export function SettingsView() {
   const [activeTab, setActiveTab] = useState<'general' | 'roles' | 'rules'>('general');
 
   return (
-    <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-6 text-xs select-none space-y-5">
+    <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-6 text-xs select-none space-y-5">
       <div>
         <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
           {BRAND.name} Workspace Settings
@@ -2205,7 +2309,7 @@ export function SettingsView() {
                 value={workspace.name}
                 readOnly
                 placeholder="Set NEXT_PUBLIC_WORKSPACE_NAME"
-                className="w-full bg-[#E6E1D8] px-2.5 py-1.5 rounded border border-[#DAD4C8]"
+                className="w-full bg-[#EDEEF1] px-2.5 py-1.5 rounded border border-[#E4E6EA]"
               />
             </div>
             <div className="space-y-1">
@@ -2215,7 +2319,7 @@ export function SettingsView() {
                 value={workspace.domain}
                 readOnly
                 placeholder="Set NEXT_PUBLIC_WORKSPACE_DOMAIN"
-                className="w-full bg-[#E6E1D8] px-2.5 py-1.5 rounded border border-[#DAD4C8]"
+                className="w-full bg-[#EDEEF1] px-2.5 py-1.5 rounded border border-[#E4E6EA]"
               />
             </div>
           </div>
@@ -2234,7 +2338,7 @@ export function SettingsView() {
         <TabsContent value="roles">
         <div className="space-y-3">
           <h4 className="font-bold text-gray-850">Regulatory Role permissions matrix</h4>
-          <div className="border border-[#DAD4C8] rounded bg-[#E6E1D8] p-3 space-y-2 font-mono text-[11px]">
+          <div className="border border-[#E4E6EA] rounded bg-[#EDEEF1] p-3 space-y-2 font-mono text-[11px]">
             <div className="flex justify-between">
               <span className="font-semibold">HR Specialist Role:</span>
               <span>Reads CRM, Uploads CVs, Schedules slots, triggers email templates drafts.</span>
@@ -2252,7 +2356,7 @@ export function SettingsView() {
         <TabsContent value="rules">
         <div className="space-y-3">
           <h4 className="font-bold text-gray-850">Corporate BGV Dependency Checklist Rules</h4>
-          <div className="space-y-2 bg-[#F2EEE7] p-3 rounded-lg border border-[#E2DDD2]">
+          <div className="space-y-2 bg-[#F7F8FA] p-3 rounded-lg border border-[#ECEDF0]">
             <div className="flex items-center gap-2">
               <div className="w-3.5 h-3.5 bg-accent-600 rounded flex items-center justify-center text-white">
                 <Check size={8} />

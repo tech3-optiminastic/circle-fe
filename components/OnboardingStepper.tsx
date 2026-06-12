@@ -273,7 +273,7 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
     action.kind === 'email' ? Send : action.kind === 'convert-employee' ? BadgeCheck : action.kind === 'verify-bgv' || action.kind === 'start-bgv' ? Fingerprint : PenLine;
 
   return (
-    <div className="md:col-span-3 rounded-xl border border-[#DAD4C8] bg-[#F7F4EE] p-5">
+    <div className="md:col-span-3 rounded-xl border border-[#E4E6EA] bg-[#FFFFFF] p-5">
       <p className="mb-4 font-mono text-[10px] font-bold uppercase tracking-wider text-gray-500">
         Onboarding progress <span className="text-gray-400">· click a stage for details</span>
       </p>
@@ -294,7 +294,7 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
                     completed={state === 'done'}
                     onClick={() => setPicked(i)}
                     className={`-mx-2 !flex-row !items-stretch !justify-start gap-3 rounded-lg px-2 transition-all cursor-pointer ${
-                      i === activeStage ? 'bg-[#ECE6DA]' : 'hover:bg-[#F2EEE7]'
+                      i === activeStage ? 'bg-[#F1F3F5]' : 'hover:bg-[#F7F8FA]'
                     }`}
                   >
                     <div className="flex flex-col items-center pt-0.5">
@@ -304,7 +304,7 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
                       {!last && (
                         <div
                           className={`my-1 w-0.5 flex-1 rounded ${
-                            i < currentIndex ? 'bg-emerald-400' : 'bg-[#DAD4C8]'
+                            i < currentIndex ? 'bg-emerald-400' : 'bg-[#E4E6EA]'
                           }`}
                         />
                       )}
@@ -333,8 +333,8 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
         </div>
 
         {/* Detail panel */}
-        <div className="min-h-[200px] flex-1 rounded-xl border border-[#E2DDD2] bg-[#F2EEE7] p-4">
-          <div className="mb-3 flex items-center gap-2 border-b border-[#E2DDD2] pb-2.5">
+        <div className="min-h-[200px] flex-1 rounded-xl border border-[#ECEDF0] bg-[#F7F8FA] p-4">
+          <div className="mb-3 flex items-center gap-2 border-b border-[#ECEDF0] pb-2.5">
             <span className="grid size-7 place-items-center rounded-lg bg-accent-50 text-accent-600">
               <ActiveIcon size={14} />
             </span>
@@ -353,7 +353,7 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
           )}
 
           {showAction && (
-            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#E2DDD2] pt-3">
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#ECEDF0] pt-3">
               <button
                 onClick={onActionClick}
                 disabled={!gateMet || pending}

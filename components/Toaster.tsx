@@ -32,7 +32,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
-      <SonnerToaster position="bottom-left" />
+      <SonnerToaster position="bottom-right" />
     </>
   );
 }

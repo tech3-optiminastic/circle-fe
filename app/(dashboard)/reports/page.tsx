@@ -20,7 +20,7 @@ export default function ReportsPage() {
       <p className="text-xs text-gray-500">
         Yield convert charts, time-to-hire averages, promotion trends, and offboarding completion scorecards.
       </p>
-      <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5">
+      <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-5">
         <HiringFunnelChart candidates={candidates} interviews={interviews} />
       </div>
     </div>

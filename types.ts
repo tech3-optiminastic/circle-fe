@@ -501,10 +501,19 @@ export interface Employee {
   joiningDate: string;
   workLocation: string;
   status: 'Active' | 'On Leave' | 'Suspended' | 'Offboarded';
+  /** Drives probation/notice rules (interns & contractors serve a shorter notice). */
+  employmentType?: 'Full-time' | 'Part-time' | 'Intern' | 'Contract';
   personalDetails: {
     address: string;
     emergencyContact: string;
     bankAccount: string;
+    dateOfBirth?: string;
+    gender?: string;
+    panNumber?: string;
+    aadhaarNumber?: string;
+    bankName?: string;
+    accountNumber?: string;
+    ifsc?: string;
   };
 
   // Link back to the source candidate so the employee file can surface their

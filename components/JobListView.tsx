@@ -42,7 +42,36 @@ import {
   ChevronDown,
   ChevronsUpDown,
   ListChecks,
+  Briefcase as BriefcaseIcon,
+  Gauge,
+  Wallet,
+  Flag,
 } from 'lucide-react';
+import {
+  Table,
+  THead,
+  Th,
+  TBody,
+  Tr,
+  Td,
+  TagPill,
+  SelectionBar,
+  useTableSelection,
+  type DotColor,
+} from '@/components/ui/table';
+
+const jobStatusColor = (s: JobStatus): DotColor => {
+  switch (s) {
+    case 'Open':
+      return 'green';
+    case 'Closed':
+      return 'gray';
+    case 'On Hold':
+      return 'amber';
+    default:
+      return 'accent';
+  }
+};
 
 let qSeq = 0;
 const newQuestion = (importance: QuestionImportance): ScreeningQuestion => ({
@@ -87,7 +116,7 @@ function statusBadge(status: JobStatus): string {
     case 'On Hold':
       return 'bg-yellow-50 text-yellow-600';
     default:
-      return 'bg-[#E6E1D8] text-gray-500';
+      return 'bg-[#EDEEF1] text-gray-500';
   }
 }
 
@@ -332,22 +361,30 @@ export function JobListView({
     }
   });
 
+  const sel = useTableSelection(sortedJobs.map(j => j.id));
+
   // Sortable column header.
   const SortTh = ({
     k,
     label,
+    icon,
     className,
   }: {
     k: SortKey;
     label: string;
+    icon?: React.ReactNode;
     className?: string;
   }) => (
-    <th scope="col" className={cn('px-4 py-2.5 font-semibold', className)}>
+    <th
+      scope="col"
+      className={cn('px-4 py-2.5 font-mono text-[9px] font-bold uppercase tracking-wider text-gray-500', className)}
+    >
       <button
         type="button"
         onClick={() => toggleSort(k)}
-        className="inline-flex cursor-pointer items-center gap-1 uppercase transition-colors hover:text-gray-800"
+        className="inline-flex cursor-pointer items-center gap-1.5 uppercase transition-colors hover:text-gray-800"
       >
+        {icon && <span className="text-gray-400">{icon}</span>}
         {label}
         {sort.key === k ? (
           sort.dir === 'asc' ? (
@@ -401,7 +438,7 @@ export function JobListView({
         {stats.map(s => (
           <div
             key={s.label}
-            className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl px-4 py-3 shadow-2xs"
+            className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl px-4 py-3 shadow-2xs"
           >
             <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-gray-500">
               <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
@@ -414,7 +451,7 @@ export function JobListView({
 
       {/* Job cards grid */}
       {jobs.length === 0 ? (
-        <div className="bg-[#F7F4EE] border border-dashed border-[#CFC8BA] rounded-2xl py-16 flex flex-col items-center gap-3 text-center px-6">
+        <div className="bg-[#FFFFFF] border border-dashed border-[#D7DAE0] rounded-2xl py-16 flex flex-col items-center gap-3 text-center px-6">
           <span className="w-14 h-14 rounded-2xl bg-accent-50 text-accent-500 flex items-center justify-center">
             <Briefcase size={26} />
           </span>
@@ -430,74 +467,69 @@ export function JobListView({
           </button>
         </div>
       ) : (
-        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-2xl shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-[#ECE8E0] border-b border-[#DAD4C8] text-[10px] font-mono uppercase tracking-wider text-gray-500">
-                  <SortTh k="title" label="Role" />
-                  <th scope="col" className="font-semibold px-4 py-2.5">Location</th>
-                  <th scope="col" className="font-semibold px-4 py-2.5">Type</th>
-                  <SortTh k="exp" label="Exp." className="text-center" />
-                  <SortTh k="salary" label="CTC" />
-                  <SortTh k="status" label="Status" />
-                  <SortTh k="applicants" label="Applicants" className="text-center" />
-                  <th scope="col" className="font-semibold px-4 py-2.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E6E1D8]">
-                {sortedJobs.map(job => {
-                  const count = applicantCounts[job.id] ?? 0;
-                  return (
-                    <tr
-                      key={job.id}
-                      onClick={() => openApplicants(job.id)}
-                      className="hover:bg-[#ECE8E0] transition cursor-pointer align-middle"
-                      title="View applicants for this role"
-                    >
-                      <td className="px-4 py-3">
-                        <div className="font-bold text-gray-900 text-[13px]">{job.title}</div>
-                        <div className="text-[10px] text-gray-500 font-mono">
-                          {job.id} · {job.department}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-[11px] text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <MapPin size={11} className="text-gray-500 shrink-0" /> {job.location}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-[11px] text-gray-600 whitespace-nowrap">
-                        {job.employmentType}
-                        <span className="text-gray-400"> · {job.workMode}</span>
-                      </td>
-                      <td className="px-4 py-3 text-[11px] text-gray-600 font-mono text-center whitespace-nowrap">
-                        {job.minExperienceYears}+ yrs
-                      </td>
-                      <td className="px-4 py-3 text-[11px] font-mono text-accent-700 font-semibold whitespace-nowrap">
-                        {job.salaryMin} – {job.salaryMax}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold whitespace-nowrap ${statusBadge(job.status)}`}
-                        >
-                          {job.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            openApplicants(job.id);
-                          }}
-                          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-700 hover:text-accent-700 cursor-pointer transition"
-                          title="View applicants for this role"
-                        >
-                          <Users size={12} className="text-accent-600" />
-                          {count}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1.5">
+        <>
+          <SelectionBar count={sel.count} onClear={sel.clear} />
+          <Table minWidth={860}>
+            <THead>
+              <Th select checked={sel.allSelected} indeterminate={sel.someSelected} onToggle={sel.toggleAll} />
+              <SortTh k="title" label="Role" icon={<BriefcaseIcon size={11} />} />
+              <Th icon={<MapPin size={11} />}>Location</Th>
+              <Th icon={<ListChecks size={11} />}>Type</Th>
+              <SortTh k="exp" label="Exp." icon={<Gauge size={11} />} className="text-center" />
+              <SortTh k="salary" label="CTC" icon={<Wallet size={11} />} />
+              <SortTh k="status" label="Status" icon={<Flag size={11} />} />
+              <SortTh k="applicants" label="Applicants" icon={<Users size={11} />} className="text-center" />
+              <Th align="right">Actions</Th>
+            </THead>
+            <TBody>
+              {sortedJobs.map(job => {
+                const count = applicantCounts[job.id] ?? 0;
+                return (
+                  <Tr
+                    key={job.id}
+                    selected={sel.isSelected(job.id)}
+                    onClick={() => openApplicants(job.id)}
+                  >
+                    <Td select checked={sel.isSelected(job.id)} onToggle={() => sel.toggle(job.id)} />
+                    <Td>
+                      <div className="text-[13px] font-bold text-gray-900">{job.title}</div>
+                      <div className="font-mono text-[10px] text-gray-500">
+                        {job.id} · {job.department}
+                      </div>
+                    </Td>
+                    <Td className="text-[11px] text-gray-600">
+                      <span className="flex items-center gap-1">
+                        <MapPin size={11} className="shrink-0 text-gray-500" /> {job.location}
+                      </span>
+                    </Td>
+                    <Td className="whitespace-nowrap text-[11px] text-gray-600">
+                      {job.employmentType}
+                      <span className="text-gray-400"> · {job.workMode}</span>
+                    </Td>
+                    <Td align="center" className="whitespace-nowrap font-mono text-[11px] text-gray-600">
+                      {job.minExperienceYears}+ yrs
+                    </Td>
+                    <Td className="whitespace-nowrap font-mono text-[11px] font-semibold text-accent-700">
+                      {job.salaryMin} – {job.salaryMax}
+                    </Td>
+                    <Td>
+                      <TagPill color={jobStatusColor(job.status)}>{job.status}</TagPill>
+                    </Td>
+                    <Td align="center">
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          openApplicants(job.id);
+                        }}
+                        className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-semibold text-gray-700 transition hover:text-accent-700"
+                        title="View applicants for this role"
+                      >
+                        <Users size={12} className="text-accent-600" />
+                        {count}
+                      </button>
+                    </Td>
+                    <Td align="right">
+                      <div className="flex items-center justify-end gap-1.5" onClick={e => e.stopPropagation()}>
                           <Button
                             type="button"
                             variant="outline"
@@ -571,14 +603,13 @@ export function JobListView({
                             </Button>
                           </Tip>
                         </div>
-                      </td>
-                    </tr>
+                    </Td>
+                  </Tr>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+            </TBody>
+          </Table>
+        </>
       )}
 
       {/* Create job modal */}

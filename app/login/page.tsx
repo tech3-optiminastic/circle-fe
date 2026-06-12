@@ -40,7 +40,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#ECE8E0] flex flex-col">
+    <div className="min-h-screen bg-[#F1F3F5] flex flex-col">
       {/* Brand strip */}
       <div className="h-1.5 bg-gradient-to-r from-accent-500 via-accent-600 to-accent-800" />
 
@@ -58,7 +58,7 @@ export default function LoginPage() {
           </div>
 
           {/* Card */}
-          <Card className="border-[#DAD4C8] bg-[#F7F4EE]">
+          <Card className="border-[#E4E6EA] bg-[#FFFFFF]">
             <CardHeader>
               <CardTitle className="text-base font-bold text-gray-900">Sign in</CardTitle>
               <p className="text-xs text-gray-500">Authorized HR team members only.</p>

@@ -97,7 +97,7 @@ export function HiringFunnelChart({ candidates, interviews, onSelectCandidate }:
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Visual Funnel Stack (Left 2 cols) */}
-      <div className="lg:col-span-2 bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-4">
+      <div className="lg:col-span-2 bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-5 space-y-4">
         <div>
           <h4 className="text-sm font-semibold text-gray-900 tracking-tight font-display">
             Hiring Yield & conversion Funnel
@@ -117,7 +117,7 @@ export function HiringFunnelChart({ candidates, interviews, onSelectCandidate }:
                   {stage.count} {stage.count === 1 ? 'candidate' : 'candidates'} ({stage.pct}%)
                 </span>
               </div>
-              <div className="w-full bg-[#E6E1D8] h-2.5 rounded-full overflow-hidden">
+              <div className="w-full bg-[#EDEEF1] h-2.5 rounded-full overflow-hidden">
                 <div
                   className={`h-full ${stage.color} rounded-full transition-all duration-500`}
                   style={{ width: `${Math.max(5, stage.pct)}%` }}
@@ -128,13 +128,13 @@ export function HiringFunnelChart({ candidates, interviews, onSelectCandidate }:
         </div>
 
         {/* Dynamic Area Trend Chart */}
-        <div className="pt-4 border-t border-[#DAD4C8]/60 h-48 select-none">
+        <div className="pt-4 border-t border-[#E4E6EA]/60 h-48 select-none">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={lineChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorCandidates" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#A51C30" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#A51C30" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#D11453" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#D11453" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorInterviews" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#9AA0A6" stopOpacity={0.2} />
@@ -144,12 +144,12 @@ export function HiringFunnelChart({ candidates, interviews, onSelectCandidate }:
               <XAxis dataKey="name" stroke="#9CA3AF" fontSize={10} tickLine={false} />
               <YAxis stroke="#9CA3AF" fontSize={10} tickLine={false} />
               <Tooltip
-                contentStyle={{ fontSize: '11px', borderRadius: '6px', border: '1px solid #DAD4C8' }}
+                contentStyle={{ fontSize: '11px', borderRadius: '6px', border: '1px solid #E4E6EA' }}
               />
               <Area
                 type="monotone"
                 dataKey="Candidates"
-                stroke="#A51C30"
+                stroke="#D11453"
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorCandidates)"
@@ -168,7 +168,7 @@ export function HiringFunnelChart({ candidates, interviews, onSelectCandidate }:
       </div>
 
       {/* Actionable ToDos (Right 1 col) */}
-      <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 flex flex-col justify-between">
+      <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-5 flex flex-col justify-between">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-semibold text-gray-900 tracking-tight font-display">
@@ -193,7 +193,7 @@ export function HiringFunnelChart({ candidates, interviews, onSelectCandidate }:
             {pendingTasks.map(t => (
               <div
                 key={t.id}
-                className="p-2.5 border border-[#DAD4C8] rounded-lg hover:bg-gray-55 hover:border-gray-350 transition duration-150 text-xs flex gap-2 w-full"
+                className="p-2.5 border border-[#E4E6EA] rounded-lg hover:bg-gray-55 hover:border-gray-350 transition duration-150 text-xs flex gap-2 w-full"
               >
                 <AlertCircle
                   size={14}
@@ -217,7 +217,7 @@ export function HiringFunnelChart({ candidates, interviews, onSelectCandidate }:
         </div>
 
         {/* Bottom audit pointer */}
-        <div className="pt-3 border-t border-[#DAD4C8] mt-4 flex items-center justify-between text-[11px] text-gray-500">
+        <div className="pt-3 border-t border-[#E4E6EA] mt-4 flex items-center justify-between text-[11px] text-gray-500">
           <span className="flex items-center gap-1">
             <CheckCircle2 size={12} className="text-green-500" /> BGV Automated Sync Active
           </span>

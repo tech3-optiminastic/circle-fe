@@ -23,7 +23,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex animate-in flex-col items-center justify-center rounded-2xl border border-dashed border-[#CFC8BA] bg-[#F7F4EE] px-6 py-16 text-center fade-in-0 zoom-in-95 duration-300',
+        'flex animate-in flex-col items-center justify-center rounded-2xl border border-dashed border-[#D7DAE0] bg-[#FFFFFF] px-6 py-16 text-center fade-in-0 zoom-in-95 duration-300',
         className,
       )}
     >

@@ -81,11 +81,11 @@ export function TestReportModal({ invite, onClose }: { invite: TestInvite; onClo
       aria-label="Close" onClick={onClose}
     >
       <div
-        className="bg-[#F7F4EE] rounded-2xl border border-[#DAD4C8] shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col"
+        className="bg-[#FFFFFF] rounded-2xl border border-[#E4E6EA] shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 px-6 py-4 border-b border-[#E6E1D8]">
+        <div className="flex items-start justify-between gap-3 px-6 py-4 border-b border-[#EDEEF1]">
           <div className="flex items-center gap-3 min-w-0">
             <span className="w-10 h-10 rounded-xl bg-accent-50 text-accent-600 flex items-center justify-center shrink-0">
               {isIq ? <BrainCircuit size={18} /> : <ClipboardList size={18} />}
@@ -153,7 +153,7 @@ export function TestReportModal({ invite, onClose }: { invite: TestInvite; onClo
             {stats.map(s => (
               <div
                 key={s.label}
-                className="bg-[#F2EEE7] border border-[#DAD4C8] rounded-xl px-3 py-2.5 text-center"
+                className="bg-[#F7F8FA] border border-[#E4E6EA] rounded-xl px-3 py-2.5 text-center"
               >
                 <span className={`inline-flex ${s.cls}`}>{s.icon}</span>
                 <p className="text-base font-bold text-gray-900 tabular-nums leading-tight mt-0.5">
@@ -181,7 +181,7 @@ export function TestReportModal({ invite, onClose }: { invite: TestInvite; onClo
                     key={q.id}
                     className={`rounded-xl border px-4 py-3 ${
                       !hasAnswer
-                        ? 'border-[#DAD4C8] bg-[#F7F4EE]'
+                        ? 'border-[#E4E6EA] bg-[#FFFFFF]'
                         : right
                           ? 'border-emerald-200 bg-emerald-50/40'
                           : 'border-red-200 bg-red-50/40'

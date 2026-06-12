@@ -109,8 +109,8 @@ export function DocRequestPanel({ candidateId, candidateName }: DocRequestPanelP
   const bank = request?.bankDetails;
 
   return (
-    <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-5 space-y-4 md:col-span-3">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E6E1D8] pb-2.5">
+    <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-5 space-y-4 md:col-span-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EDEEF1] pb-2.5">
         <div>
           <h4 className="flex items-center gap-1.5 font-bold text-gray-900">
             <FileText size={14} className="text-accent-600" /> Joining documents
@@ -152,7 +152,7 @@ export function DocRequestPanel({ candidateId, candidateName }: DocRequestPanelP
       ) : (
         <>
           {/* Link + expiry */}
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#DAD4C8] bg-[#ECE6DA] px-3 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#E4E6EA] bg-[#F1F3F5] px-3 py-2">
             <span
               className={`inline-flex items-center gap-1 font-mono text-[11px] font-semibold ${
                 live ? 'text-amber-700' : 'text-red-600'
@@ -162,7 +162,7 @@ export function DocRequestPanel({ candidateId, candidateName }: DocRequestPanelP
             </span>
             <button
               onClick={copyLink}
-              className="inline-flex items-center gap-1 rounded-md border border-[#DAD4C8] bg-[#F7F4EE] px-2 py-1 text-[10px] font-semibold text-gray-600 transition hover:border-accent-400 hover:text-accent-600"
+              className="inline-flex items-center gap-1 rounded-md border border-[#E4E6EA] bg-[#FFFFFF] px-2 py-1 text-[10px] font-semibold text-gray-600 transition hover:border-accent-400 hover:text-accent-600"
             >
               <Copy size={11} /> Copy link
             </button>
@@ -173,7 +173,7 @@ export function DocRequestPanel({ candidateId, candidateName }: DocRequestPanelP
             {REQUIRED_DOCS.map(doc => {
               const sub = submittedFor.get(doc.type);
               return (
-                <div key={doc.type} className="rounded-lg border border-[#DAD4C8] bg-white p-2.5">
+                <div key={doc.type} className="rounded-lg border border-[#E4E6EA] bg-white p-2.5">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <p className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-800">
@@ -218,7 +218,7 @@ export function DocRequestPanel({ candidateId, candidateName }: DocRequestPanelP
                         value={reason}
                         onChange={e => setReason(e.target.value)}
                         placeholder="Reason for rejection (shown to the candidate)"
-                        className="flex-1 rounded-md border border-[#DAD4C8] bg-[#F7F4EE] px-2 py-1 text-[11px] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                        className="flex-1 rounded-md border border-[#E4E6EA] bg-[#FFFFFF] px-2 py-1 text-[11px] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                       />
                       <button
                         onClick={() => runVerify(doc.type, 'Rejected', reason.trim() || undefined)}
@@ -234,7 +234,7 @@ export function DocRequestPanel({ candidateId, candidateName }: DocRequestPanelP
           </div>
 
           {/* Bank details */}
-          <div className="rounded-lg border border-[#DAD4C8] bg-white p-3">
+          <div className="rounded-lg border border-[#E4E6EA] bg-white p-3">
             <p className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold text-gray-800">
               <Landmark size={13} className="text-accent-600" /> Bank details
             </p>
@@ -275,13 +275,13 @@ function IconBtn({
   active?: boolean;
 }) {
   const tones: Record<string, string> = {
-    gray: 'border-[#DAD4C8] text-gray-500 hover:text-accent-600 hover:border-accent-400',
+    gray: 'border-[#E4E6EA] text-gray-500 hover:text-accent-600 hover:border-accent-400',
     green: active
       ? 'border-emerald-500 bg-emerald-500 text-white'
-      : 'border-[#DAD4C8] text-emerald-600 hover:border-emerald-400',
+      : 'border-[#E4E6EA] text-emerald-600 hover:border-emerald-400',
     red: active
       ? 'border-red-500 bg-red-500 text-white'
-      : 'border-[#DAD4C8] text-red-600 hover:border-red-400',
+      : 'border-[#E4E6EA] text-red-600 hover:border-red-400',
   };
   return (
     <button

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Gauge, CheckCircle2, TrendingUp } from 'lucide-react';
+import { Gauge, CheckCircle2, TrendingUp, User, ListChecks, Award, Wallet, ClipboardCheck } from 'lucide-react';
 import { Employee } from '@/types';
+import { Table, THead, Th, TBody, Tr, Td, TagPill, StatusPill, SelectionBar, useTableSelection } from '@/components/ui/table';
 
 type Period = 'daily' | 'weekly' | 'monthly';
 
@@ -36,10 +37,10 @@ function monthlySalary(emp: Employee): number {
 }
 
 function grade(pct: number) {
-  if (pct >= 90) return { label: 'Exceeds', cls: 'text-green-600 bg-green-50', status: 'Increment eligible', bar: 'bg-green-500' };
-  if (pct >= 78) return { label: 'On Track', cls: 'text-accent-700 bg-accent-50', status: 'Meeting targets', bar: 'bg-accent-500' };
-  if (pct >= 65) return { label: 'Average', cls: 'text-amber-600 bg-amber-50', status: 'Monitor closely', bar: 'bg-amber-500' };
-  return { label: 'Below', cls: 'text-red-500 bg-red-50', status: 'Needs improvement', bar: 'bg-red-400' };
+  if (pct >= 90) return { label: 'Exceeds', status: 'Increment eligible', bar: 'bg-green-500', dot: 'green' as const, tone: 'green' as const };
+  if (pct >= 78) return { label: 'On Track', status: 'Meeting targets', bar: 'bg-accent-500', dot: 'accent' as const, tone: 'blue' as const };
+  if (pct >= 65) return { label: 'Average', status: 'Monitor closely', bar: 'bg-amber-500', dot: 'amber' as const, tone: 'amber' as const };
+  return { label: 'Below', status: 'Needs improvement', bar: 'bg-red-400', dot: 'red' as const, tone: 'red' as const };
 }
 
 const inr = (n: number) => '₹' + n.toLocaleString('en-IN');
@@ -62,6 +63,9 @@ export function PerformanceTrackerView({ employees }: { employees: Employee[] })
   const avg = rows.length ? Math.round(rows.reduce((s, r) => s + r.completionPct, 0) / rows.length) : 0;
   const eligible = rows.filter(r => r.completionPct >= 90).length;
 
+  const ids = useMemo(() => rows.map(r => r.e.id), [rows]);
+  const sel = useTableSelection(ids);
+
   return (
     <div className="space-y-6 select-none">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
@@ -76,13 +80,13 @@ export function PerformanceTrackerView({ employees }: { employees: Employee[] })
         </div>
 
         {/* Period toggle */}
-        <div className="flex items-center bg-[#E6E1D8] rounded-md p-0.5 w-fit">
+        <div className="flex items-center bg-[#EDEEF1] rounded-md p-0.5 w-fit">
           {PERIODS.map(p => (
             <button
               key={p.key}
               onClick={() => setPeriod(p.key)}
               className={`text-[11px] font-semibold font-mono uppercase tracking-wider px-3 py-1 rounded cursor-pointer transition ${
-                period === p.key ? 'bg-[#F7F4EE] text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+                period === p.key ? 'bg-[#FFFFFF] text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
               }`}
             >
               {p.label}
@@ -93,66 +97,67 @@ export function PerformanceTrackerView({ employees }: { employees: Employee[] })
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-4">
+        <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-4">
           <p className="text-[10px] font-mono uppercase tracking-wider text-gray-500">Team completion ({period})</p>
           <p className="text-2xl font-bold text-gray-900 mt-1 font-display">{avg}%</p>
         </div>
-        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-4">
+        <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-4">
           <p className="text-[10px] font-mono uppercase tracking-wider text-gray-500">Increment eligible</p>
           <p className="text-2xl font-bold text-green-600 mt-1 font-display flex items-center gap-1.5">
             <TrendingUp size={18} /> {eligible}
           </p>
         </div>
-        <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-4">
+        <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-4">
           <p className="text-[10px] font-mono uppercase tracking-wider text-gray-500">Employees tracked</p>
           <p className="text-2xl font-bold text-gray-900 mt-1 font-display">{rows.length}</p>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-[#DAD4C8] text-[10px] font-mono uppercase tracking-wider text-gray-500">
-              <th className="text-left font-semibold px-4 py-2.5">Employee</th>
-              <th className="text-left font-semibold px-4 py-2.5">Tasks done</th>
-              <th className="text-left font-semibold px-4 py-2.5 w-48">Completion</th>
-              <th className="text-left font-semibold px-4 py-2.5">Grade</th>
-              <th className="text-right font-semibold px-4 py-2.5">Monthly salary</th>
-              <th className="text-left font-semibold px-4 py-2.5">Review status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(r => (
-              <tr key={r.e.id} className="border-b border-[#E6E1D8] last:border-0 hover:bg-[#E6E1D8]/50 transition">
-                <td className="px-4 py-3">
-                  <p className="font-semibold text-gray-900">{r.e.fullName}</p>
-                  <p className="text-[10px] text-gray-500">{r.e.role} · {r.e.department}</p>
-                </td>
-                <td className="px-4 py-3 font-mono text-gray-700">
-                  <span className="inline-flex items-center gap-1">
-                    <CheckCircle2 size={12} className="text-gray-500" />
-                    {r.completed}/{r.assigned}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-[#E6E1D8] h-2 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${r.g.bar}`} style={{ width: `${r.completionPct}%` }} />
-                    </div>
-                    <span className="font-mono text-[11px] text-gray-600 w-9 text-right">{r.completionPct}%</span>
+      <SelectionBar count={sel.count} onClear={sel.clear} />
+      <Table>
+        <THead>
+          <Th select checked={sel.allSelected} indeterminate={sel.someSelected} onToggle={sel.toggleAll} />
+          <Th icon={<User size={11} />}>Employee</Th>
+          <Th icon={<CheckCircle2 size={11} />}>Tasks done</Th>
+          <Th icon={<ListChecks size={11} />} className="w-48">Completion</Th>
+          <Th icon={<Award size={11} />}>Grade</Th>
+          <Th icon={<Wallet size={11} />} align="right">Monthly salary</Th>
+          <Th icon={<ClipboardCheck size={11} />}>Review status</Th>
+        </THead>
+        <TBody>
+          {rows.map(r => (
+            <Tr key={r.e.id} selected={sel.isSelected(r.e.id)} onClick={() => sel.toggle(r.e.id)}>
+              <Td select checked={sel.isSelected(r.e.id)} onToggle={() => sel.toggle(r.e.id)} />
+              <Td>
+                <p className="font-semibold text-gray-900">{r.e.fullName}</p>
+                <p className="text-[10px] text-gray-500">{r.e.role} · {r.e.department}</p>
+              </Td>
+              <Td className="font-mono">
+                <span className="inline-flex items-center gap-1">
+                  <CheckCircle2 size={12} className="text-gray-500" />
+                  {r.completed}/{r.assigned}
+                </span>
+              </Td>
+              <Td>
+                <div className="flex items-center gap-2">
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#EDEEF1]">
+                    <div className={`h-full rounded-full ${r.g.bar}`} style={{ width: `${r.completionPct}%` }} />
                   </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full ${r.g.cls}`}>{r.g.label}</span>
-                </td>
-                <td className="px-4 py-3 text-right font-mono font-semibold text-gray-800">{inr(r.salary)}</td>
-                <td className="px-4 py-3 text-gray-500">{r.g.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  <span className="w-9 text-right font-mono text-[11px] text-gray-600">{r.completionPct}%</span>
+                </div>
+              </Td>
+              <Td>
+                <TagPill color={r.g.dot}>{r.g.label}</TagPill>
+              </Td>
+              <Td align="right" className="font-mono font-semibold text-gray-800">{inr(r.salary)}</Td>
+              <Td>
+                <StatusPill tone={r.g.tone} label={r.g.status} />
+              </Td>
+            </Tr>
+          ))}
+        </TBody>
+      </Table>
 
       <p className="text-[10px] text-gray-500 font-mono">
         Task data shown is derived for demonstration — wire a real task/PMS feed to drive these numbers live.

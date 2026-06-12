@@ -61,7 +61,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   // Hold rendering until we know the auth state (avoids a flash of the dashboard).
   if (!ready || !user) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#ECE8E0]">
+      <div className="h-screen flex items-center justify-center bg-[#F1F3F5]">
         <div className="w-6 h-6 border-2 border-accent-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -75,7 +75,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       id="master-viewport"
-      className="flex h-screen overflow-hidden bg-[#ECE8E0] font-sans antialiased text-gray-950"
+      className="flex h-screen overflow-hidden bg-[#F1F3F5] font-sans antialiased text-gray-950"
     >
       <Sidebar
         userRole={userRole}
@@ -93,10 +93,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           onToggleSidebar={toggleSidebar}
         />
 
-        <main className="flex-1 overflow-y-auto px-6 py-6 min-h-0 bg-[#ECE8E0]">
+        <main className="flex-1 overflow-y-auto px-6 py-6 min-h-0 bg-[#F1F3F5]">
           {error ? (
             <div className="max-w-md mx-auto mt-20 text-center">
-              <div className="bg-[#F7F4EE] border border-red-200 rounded-xl p-6">
+              <div className="bg-[#FFFFFF] border border-red-200 rounded-xl p-6">
                 <p className="text-sm font-semibold text-red-600">Backend unavailable</p>
                 <p className="text-xs text-gray-500 mt-2">
                   Could not reach {apiBase()}
