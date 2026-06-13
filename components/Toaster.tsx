@@ -56,7 +56,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
-      <SonnerToaster position="bottom-left" />
+      <SonnerToaster position="bottom-right" />
 
       <Dialog open={!!pending} onOpenChange={open => !open && setPending(null)}>
         <DialogContent className="w-[min(92vw,26rem)] max-w-[26rem] sm:max-w-[26rem]">

@@ -40,7 +40,7 @@ const EMPTY = {
 };
 
 const inputCls =
-  'w-full px-3 py-2 border border-[#DAD4C8] rounded-lg text-sm bg-[#ECE8E0] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus:border-accent-400 transition';
+  'w-full px-3 py-2.5 border border-[#E4E6EA] rounded-lg text-sm bg-[#FFFFFF] placeholder:text-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500/30 focus:border-accent-500 transition';
 
 const MAX_RESUME_MB = 5;
 
@@ -272,113 +272,87 @@ export default function PublicJobPage() {
     .filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-[#ECE8E0]">
-      {/* Top bar */}
-      <header className="sticky top-0 z-20 bg-[#F7F4EE]/90 backdrop-blur border-b border-[#DAD4C8]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-2.5">
-          <a
-            href={BRAND.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2.5 transition hover:opacity-80"
-            title="Optiminastic"
-          >
-            <Logo size={26} />
-            <div>
-              <h1 className="text-sm font-bold text-gray-900 tracking-tight font-display leading-none">
-                {BRAND.name}
-              </h1>
-              <p className="text-[10px] text-gray-500 uppercase font-mono font-semibold tracking-wider">
-                Careers
-              </p>
-            </div>
-          </a>
+    <div className="min-h-screen bg-[#FFFFFF]">
+      {/* Minimal top bar */}
+      <header className="sticky top-0 z-20 border-b border-[#EDEEF1] bg-[#FFFFFF]/90 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-2xl items-center gap-2.5 px-5">
+          <Logo size={24} />
+          <span className="font-display text-sm font-bold tracking-tight text-gray-900">{BRAND.name}</span>
+          <span className="ml-auto font-mono text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            Careers
+          </span>
         </div>
       </header>
 
-      {/* Hero */}
-      <div className="bg-gradient-to-br from-accent-600 to-accent-800 text-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-            <div className="min-w-0">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-[#F7F4EE]/15 rounded-full px-2.5 py-1 mb-3">
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${closed ? 'bg-red-300' : 'bg-emerald-300'}`}
-                />
-                {closed ? 'Applications closed' : 'Actively hiring'}
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">{job.title}</h2>
-              <p className="text-white/70 text-xs font-mono mt-1">
-                {job.department} · Ref {job.id}
-              </p>
-            </div>
-            <a
-              href="#apply"
-              className="lg:hidden shrink-0 bg-[#F7F4EE] text-accent-700 hover:bg-[#F7F4EE]/90 px-4 py-2 rounded-lg font-semibold text-sm text-center transition"
-            >
-              Apply now
-            </a>
-          </div>
-
-          <div className="flex flex-wrap gap-2 mt-5">
-            {[
-              { icon: <MapPin size={13} />, label: job.location },
-              { icon: <Briefcase size={13} />, label: `${job.employmentType} · ${job.workMode}` },
-              { icon: <Clock4 size={13} />, label: `${job.minExperienceYears}+ yrs` },
-              { icon: <Wallet size={13} />, label: `${job.salaryMin} – ${job.salaryMax}` },
-            ].map((chip, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1.5 text-xs bg-[#F7F4EE]/15 rounded-full px-3 py-1.5"
-              >
-                {chip.icon}
-                {chip.label}
-              </span>
-            ))}
+      <main className="mx-auto max-w-2xl px-5 py-10 sm:py-12">
+        {/* Role header */}
+        <div className="space-y-3">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+              closed ? 'border-red-200 bg-red-50 text-red-600' : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+            }`}
+          >
+            <span className={`size-1.5 rounded-full ${closed ? 'bg-red-500' : 'bg-emerald-500'}`} />
+            {closed ? 'Applications closed' : 'Actively hiring'}
+          </span>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">{job.title}</h1>
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-gray-500">
+            <span className="font-semibold text-gray-700">{BRAND.name}</span>
+            <span className="text-gray-300">·</span>
+            <span className="inline-flex items-center gap-1">
+              <MapPin size={13} /> {job.location}
+            </span>
+            <span className="text-gray-300">·</span>
+            <span className="inline-flex items-center gap-1">
+              <Briefcase size={13} /> {job.employmentType} · {job.workMode}
+            </span>
+            <span className="text-gray-300">·</span>
+            <span className="inline-flex items-center gap-1">
+              <Clock4 size={13} /> {job.minExperienceYears}+ yrs
+            </span>
+            <span className="text-gray-300">·</span>
+            <span className="inline-flex items-center gap-1">
+              <Wallet size={13} /> {job.salaryMin} – {job.salaryMax}
+            </span>
           </div>
         </div>
-      </div>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 grid grid-cols-1 lg:grid-cols-5 gap-5 lg:gap-6">
-        {/* Job details */}
-        <section className="lg:col-span-3 space-y-5">
-          <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-2xl p-5 sm:p-6 shadow-2xs space-y-5">
-            <div>
-              <h3 className="font-bold text-gray-900 text-sm mb-2">About the role</h3>
-              <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">
-                {job.description}
-              </p>
-            </div>
-            {requirements.length > 0 && (
-              <div>
-                <h3 className="font-bold text-gray-900 text-sm mb-2">What we're looking for</h3>
-                <ul className="space-y-1.5">
-                  {requirements.map((r, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                      <CheckCircle2 size={15} className="text-accent-500 shrink-0 mt-0.5" />
-                      <span>{r}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+        {/* About the role */}
+        <section className="mt-8 space-y-6 border-t border-[#EDEEF1] pt-8">
+          <div>
+            <h2 className="mb-2 font-mono text-[11px] font-bold uppercase tracking-wider text-gray-500">
+              About the role
+            </h2>
+            <p className="whitespace-pre-line text-[14px] leading-relaxed text-gray-700">{job.description}</p>
           </div>
+          {requirements.length > 0 && (
+            <div>
+              <h2 className="mb-2 font-mono text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                What we&apos;re looking for
+              </h2>
+              <ul className="space-y-2">
+                {requirements.map((r, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[14px] text-gray-700">
+                    <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-accent-500" />
+                    <span>{r}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
 
-        {/* Apply form */}
-        <section id="apply" className="lg:col-span-2 scroll-mt-20">
-          <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-2xl p-5 sm:p-6 shadow-2xs lg:sticky lg:top-20">
-            <h3 className="font-bold text-gray-900 text-base mb-1">Apply for this role</h3>
-            <p className="text-xs text-gray-500 mb-4">
-              Your details go straight to the hiring team.
-            </p>
+        {/* Apply */}
+        <section id="apply" className="mt-8 scroll-mt-16 border-t border-[#EDEEF1] pt-8">
+          <h2 className="text-lg font-bold tracking-tight text-gray-900">Apply for this role</h2>
+          <p className="mb-5 mt-1 text-[13px] text-gray-500">Your application goes straight to the hiring team.</p>
 
             {closed ? (
               <div className="bg-red-50 border border-red-100 text-red-600 text-xs rounded-lg p-3">
                 Applications for this posting are currently closed.
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-3">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 {hasQuestions && (
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent-600">
@@ -414,7 +388,7 @@ export default function PublicJobPage() {
                   </Field>
                   <Field label="Phone *">
                     <div className="flex items-stretch">
-                      <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-[#DAD4C8] bg-[#E6E1D8] text-sm text-gray-600">
+                      <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-[#E4E6EA] bg-[#EDEEF1] text-sm text-gray-600">
                         +91
                       </span>
                       <input
@@ -495,7 +469,7 @@ export default function PublicJobPage() {
                 </div>
                 <Field label="Resume *">
                   {resumeFile ? (
-                    <div className="flex items-center gap-2.5 border border-[#DAD4C8] rounded-lg px-3 py-2.5 bg-accent-50/50">
+                    <div className="flex items-center gap-2.5 border border-[#E4E6EA] rounded-lg px-3 py-2.5 bg-accent-50/50">
                       <span className="w-8 h-8 rounded-md bg-accent-100 text-accent-700 flex items-center justify-center shrink-0">
                         <FileText size={15} />
                       </span>
@@ -519,7 +493,7 @@ export default function PublicJobPage() {
                       </Tip>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center gap-1 cursor-pointer border border-dashed border-[#CFC8BA] rounded-lg px-3 py-5 bg-[#ECE8E0] hover:border-accent-400 hover:bg-accent-50/40 transition text-center">
+                    <label className="flex flex-col items-center justify-center gap-1 cursor-pointer border border-dashed border-[#D7DAE0] rounded-lg px-3 py-5 bg-[#F1F3F5] hover:border-accent-400 hover:bg-accent-50/40 transition text-center">
                       <UploadCloud size={20} className="text-accent-500" />
                       <span className="text-xs font-semibold text-gray-600">
                         Click to upload your resume
@@ -579,7 +553,7 @@ export default function PublicJobPage() {
                 )}
 
                 {step === 1 && (
-                  <div className="space-y-4 rounded-lg border border-[#DAD4C8] bg-[#ECE8E0]/60 p-3">
+                  <div className="space-y-4 rounded-lg border border-[#E4E6EA] bg-[#F1F3F5]/60 p-3">
                     <p className="text-[11px] font-semibold text-gray-700">A few quick questions</p>
                     {(
                       [
@@ -623,7 +597,7 @@ export default function PublicJobPage() {
                                           className={`min-w-[6rem] flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
                                             active
                                               ? 'border-accent-500 bg-accent-50 text-accent-700'
-                                              : 'border-[#DAD4C8] bg-[#F7F4EE] text-gray-600 hover:border-accent-300'
+                                              : 'border-[#E4E6EA] bg-[#FFFFFF] text-gray-600 hover:border-accent-300'
                                           }`}
                                         >
                                           {opt}
@@ -657,7 +631,7 @@ export default function PublicJobPage() {
                       <button
                         type="button"
                         onClick={() => setStep(0)}
-                        className="rounded-lg border border-[#DAD4C8] bg-[#F7F4EE] px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-[#E6E1D8] cursor-pointer transition"
+                        className="rounded-lg border border-[#E4E6EA] bg-[#FFFFFF] px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-[#EDEEF1] cursor-pointer transition"
                       >
                         Previous
                       </button>
@@ -679,21 +653,11 @@ export default function PublicJobPage() {
                 )}
               </form>
             )}
-          </div>
         </section>
       </main>
 
-      <footer className="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex justify-center">
-        <a
-          href={BRAND.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-[12px] font-semibold text-gray-600 transition hover:opacity-80"
-          title="Optiminastic"
-        >
-          <Logo size={20} />
-          {BRAND.name}
-        </a>
+      <footer className="mx-auto max-w-2xl border-t border-[#EDEEF1] px-5 py-8 text-center text-[11px] text-gray-400">
+        {BRAND.name} · Careers
       </footer>
     </div>
   );
@@ -701,8 +665,8 @@ export default function PublicJobPage() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block space-y-1">
-      <span className="text-[11px] font-semibold text-gray-600">{label}</span>
+    <label className="block space-y-1.5">
+      <span className="text-[12px] font-medium text-gray-700">{label}</span>
       {children}
     </label>
   );
@@ -710,7 +674,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#ECE8E0] flex flex-col items-center justify-center gap-3 px-5">
+    <div className="min-h-screen bg-[#FFFFFF] flex flex-col items-center justify-center gap-3 px-5">
       {children}
     </div>
   );

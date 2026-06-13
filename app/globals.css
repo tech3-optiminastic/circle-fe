@@ -15,20 +15,20 @@
     var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     sans-serif;
 
-  /* Active palette — Primary brand accent: Crimson #A51C30.
+  /* Active palette — Primary brand accent: Raspberry pink #D11453.
      Swap the values below to re-theme; component classes use accent-* tokens. */
-  --color-brand: #a51c30;
+  --color-brand: #d11453;
 
-  /* Custom "accent" palette — Crimson (600 = brand) */
-  --color-accent-50: #fbeeef;
-  --color-accent-100: #f5dadc;
-  --color-accent-200: #e9b3b7;
-  --color-accent-300: #da858c;
-  --color-accent-400: #c9545e;
-  --color-accent-500: #b62e39;
-  --color-accent-600: #a51c30;
-  --color-accent-700: #841526;
-  --color-accent-800: #5f0f16;
+  /* Custom "accent" palette — Raspberry pink (600 = brand) */
+  --color-accent-50: #fdeef3;
+  --color-accent-100: #fbd8e3;
+  --color-accent-200: #f7b1c8;
+  --color-accent-300: #f181a7;
+  --color-accent-400: #eb5183;
+  --color-accent-500: #e42a63;
+  --color-accent-600: #d11453;
+  --color-accent-700: #a91044;
+  --color-accent-800: #7d0c33;
 }
 
 /* shadcn/ui token layer — maps shadcn's semantic tokens to the live
@@ -62,25 +62,25 @@
 
 :root {
   --radius: 0.625rem;
-  --background: #eae6df; /* greige page */
+  --background: #F6F7F9; /* soft off-white page */
   --foreground: #1a1a1a;
-  --card: #f7f4ee;
+  --card: #FFFFFF;
   --card-foreground: #1a1a1a;
-  --popover: #f7f4ee;
+  --popover: #FFFFFF;
   --popover-foreground: #1a1a1a;
-  --primary: #a51c30; /* crimson brand */
+  --primary: #d11453; /* raspberry brand */
   --primary-foreground: #ffffff;
-  --secondary: #ece8e0;
+  --secondary: #F1F3F5;
   --secondary-foreground: #1a1a1a;
-  --muted: #ece8e0;
+  --muted: #F1F3F5;
   --muted-foreground: #6b7280;
-  --accent: #e6e1d8; /* subtle hover fill */
+  --accent: #EDEEF1; /* subtle hover fill */
   --accent-foreground: #1a1a1a;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: #dad4c8;
-  --input: #dad4c8;
-  --ring: #b62e39; /* crimson focus ring */
+  --border: #E4E6EA;
+  --input: #E4E6EA;
+  --ring: #e42a63; /* raspberry focus ring */
 }
 
 @layer base {
@@ -90,7 +90,7 @@
 }
 
 body {
-  background-color: #eae6df; /* warm greige page surface */
+  background-color: #F6F7F9; /* warm greige page surface */
   color: #1a1a1a; /* near-black text */
   font-family: var(--font-sans);
   letter-spacing: -0.011em;
@@ -132,7 +132,7 @@ h4 {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cfc8ba;
+  background: #D7DAE0;
   border-radius: 9999px;
 }
 
@@ -142,8 +142,8 @@ h4 {
 
 /* Enterprise styles */
 .gradient-border-button {
-  background: #f7f4ee;
-  border: 1px solid #dad4c8;
+  background: #FFFFFF;
+  border: 1px solid #E4E6EA;
   position: relative;
 }
 

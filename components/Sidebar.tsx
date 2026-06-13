@@ -15,6 +15,7 @@ import {
   Briefcase,
   UserSearch,
   Library,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -24,7 +25,7 @@ interface SidebarProps {
   onToggleCollapse: () => void;
 }
 
-export function Sidebar({ collapsed: isCollapsed }: SidebarProps) {
+export function Sidebar({ userRole, setUserRole, collapsed: isCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const [expandedSections, setExpandedSections] = useState({
     employees: true,
@@ -42,7 +43,7 @@ export function Sidebar({ collapsed: isCollapsed }: SidebarProps) {
         href={href}
         className={`w-full flex items-center gap-3 px-3 py-1.5 text-xs rounded-lg transition-all duration-150 group font-medium ${
           isActive
-            ? 'bg-[#F7F4EE] text-gray-900 font-semibold shadow-sm'
+            ? 'bg-[#FFFFFF] text-gray-900 font-semibold shadow-sm'
             : 'text-gray-600 hover:bg-[#D2D2D6] hover:text-gray-900'
         }`}
         title={label}
@@ -60,12 +61,12 @@ export function Sidebar({ collapsed: isCollapsed }: SidebarProps) {
   return (
     <aside
       id="app-sidebar"
-      className={`bg-[#E2DDD2] border-r border-[#CFC8BA] h-screen select-none flex flex-col shrink-0 transition-all duration-200 sticky top-0 ${
+      className={`bg-[#ECEDF0] border-r border-[#D7DAE0] h-screen select-none flex flex-col shrink-0 transition-all duration-200 sticky top-0 ${
         isCollapsed ? 'w-16' : 'w-64'
       }`}
     >
       {/* Brand Header */}
-      <div className="p-4 border-b border-[#CFC8BA] flex items-center justify-between">
+      <div className="p-4 border-b border-[#D7DAE0] flex items-center justify-between">
         {!isCollapsed ? (
           <div className="flex items-center gap-2.5">
             <Logo size={40} className="shrink-0" />
@@ -127,10 +128,46 @@ export function Sidebar({ collapsed: isCollapsed }: SidebarProps) {
         </div>
 
         {/* ANALYTICS & SETTINGS */}
-        <div className="pt-2 border-t border-[#CFC8BA] space-y-0.5">
+        <div className="pt-2 border-t border-[#D7DAE0] space-y-0.5">
           {navItem('/reports', 'Enterprise Reports', <BarChart3 size={14} />)}
           {navItem('/settings', 'Global Settings', <Settings size={14} />)}
         </div>
+      </div>
+
+      {/* Role Manager Switcher */}
+      <div className="p-3 border-t border-[#D7DAE0] bg-[#ECEDF0] flex flex-col gap-2">
+        {!isCollapsed ? (
+          <div className="flex flex-col gap-1">
+            <span className="text-[9px] text-gray-500 font-mono font-semibold uppercase tracking-wider">
+              Access Scope
+            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                <ShieldCheck
+                  size={12}
+                  className={userRole === 'Admin' ? 'text-purple-600' : 'text-emerald-600'}
+                />
+                {userRole === 'Admin' ? 'Admin / Leader' : 'HR Specialist'}
+              </span>
+              <button
+                id="btn-toggle-role"
+                onClick={() => setUserRole(userRole === 'HR' ? 'Admin' : 'HR')}
+                className="text-[9px] bg-[#FFFFFF] border border-[#E4E6EA] hover:bg-[#EDEEF1] text-gray-900 px-1.5 py-0.5 rounded font-mono font-bold uppercase cursor-pointer"
+              >
+                SWAP
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            id="btn-toggle-role-collapsed"
+            onClick={() => setUserRole(userRole === 'HR' ? 'Admin' : 'HR')}
+            className={`w-8 h-8 mx-auto flex items-center justify-center rounded-full hover:bg-[#ECEDF0] transition ${userRole === 'Admin' ? 'bg-purple-50 text-purple-600' : 'bg-emerald-50 text-emerald-600'}`}
+            title="Toggle system view role"
+          >
+            <ShieldCheck size={16} />
+          </button>
+        )}
       </div>
     </aside>
   );

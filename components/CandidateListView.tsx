@@ -17,6 +17,7 @@ import {
   Plus,
   FileText,
   ChevronRight,
+  SlidersHorizontal,
   Trash2,
   UserCheck,
   UserSearch,
@@ -24,8 +25,29 @@ import {
   X,
   Check,
   Minus,
+  User,
+  Briefcase,
+  Building2,
+  Clock4,
+  Wallet,
+  CalendarClock,
+  Flag,
+  Gauge,
+  Radio,
 } from 'lucide-react';
 import { EmptyState } from '@/components/ui/empty-state';
+import {
+  Table,
+  THead,
+  Th,
+  TBody,
+  Tr,
+  Td,
+  TagPill,
+  SelectionBar,
+  useTableSelection,
+  type DotColor,
+} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,6 +64,34 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+
+const DEPT_COLOR: Record<string, DotColor> = {
+  Engineering: 'blue',
+  Product: 'purple',
+  Design: 'pink',
+  Sales: 'amber',
+  'Human Resources': 'green',
+  Marketing: 'pink',
+};
+const deptColor = (d: string): DotColor => DEPT_COLOR[d] ?? 'gray';
+
+const statusColor = (s: CandidateStatus): DotColor => {
+  switch (s) {
+    case 'Selected':
+    case 'Offer Shortlisted':
+      return 'green';
+    case 'Shortlisted':
+      return 'purple';
+    case 'Moved to HR Call':
+      return 'blue';
+    case 'Rejected':
+      return 'red';
+    case 'On Hold':
+      return 'amber';
+    default:
+      return 'accent';
+  }
+};
 
 interface CandidateListViewProps {
   candidates: Candidate[];
@@ -119,6 +169,8 @@ export function CandidateListView({
     const matchesExp = cand.totalExperienceYears >= minExperience;
     return matchesSearch && matchesDept && matchesStatus && matchesSource && matchesNotice && matchesExp;
   });
+
+  const sel = useTableSelection(filtered.map(c => c.id));
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,7 +257,7 @@ export function CandidateListView({
     <div className="space-y-4 text-xs select-none">
       {/* View Header with CTA triggers */}
       {showHeader && (
-        <div className="flex justify-between items-center bg-[#F2EEE7] border-b border-[#DAD4C8] pb-3">
+        <div className="flex justify-between items-center bg-[#F7F8FA] border-b border-[#E4E6EA] pb-3">
           <div>
             <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
               Candidate Evaluation & ATS Panel
@@ -227,158 +279,168 @@ export function CandidateListView({
         </div>
       )}
 
-      {/* Inline filter toolbar */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <div className="relative min-w-[200px] flex-1">
-          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500">
-            <Search size={13} />
-          </span>
-          <input
-            type="text"
-            placeholder="Search name, applied role…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-[#DAD4C8] bg-[#F7F4EE] py-1.5 pl-8 pr-3 text-xs transition focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
-          />
+      {/* Advanced Filter Bars */}
+      <div className="bg-[#FFFFFF] border border-[#E4E6EA] p-4 rounded-xl shadow-2xs space-y-3">
+        <div className="flex items-center gap-2 text-gray-700 font-semibold mb-1">
+          <SlidersHorizontal size={13} className="text-accent-600" />
+          <span>Evaluation Filters</span>
         </div>
-        <Select
-          value={selectedDept}
-          onChange={e => setSelectedDept(e.target.value)}
-          className="rounded-lg border border-[#DAD4C8] bg-[#F7F4EE] px-2.5 py-1.5 text-xs"
-        >
-          {departments.map(d => (
-            <option key={d} value={d}>
-              {d === 'All' ? 'All departments' : d}
-            </option>
-          ))}
-        </Select>
-        <Select
-          value={maxNoticePeriod}
-          onChange={e => setMaxNoticePeriod(Number(e.target.value))}
-          className="rounded-lg border border-[#DAD4C8] bg-[#F7F4EE] px-2.5 py-1.5 text-xs font-mono"
-        >
-          <option value={9999}>Any notice</option>
-          <option value={30}>≤ 30 days</option>
-          <option value={15}>≤ 15 days</option>
-          <option value={0}>Immediate</option>
-        </Select>
-        <Select
-          value={selectedStatus}
-          onChange={e => setSelectedStatus(e.target.value)}
-          className="rounded-lg border border-[#DAD4C8] bg-[#F7F4EE] px-2.5 py-1.5 text-xs"
-        >
-          {statuses.map(s => (
-            <option key={s} value={s}>
-              {s === 'All' ? 'All statuses' : s}
-            </option>
-          ))}
-        </Select>
-        <Select
-          value={selectedSource}
-          onChange={e => setSelectedSource(e.target.value)}
-          className="rounded-lg border border-[#DAD4C8] bg-[#F7F4EE] px-2.5 py-1.5 text-xs"
-        >
-          {sources.map(sc => (
-            <option key={sc} value={sc}>
-              {sc === 'All' ? 'All sources' : sc}
-            </option>
-          ))}
-        </Select>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3.5 text-xs">
+          {/* Text filters */}
+          <div className="space-y-1 col-span-1 sm:col-span-2">
+            <span className="text-[10px] font-bold text-gray-500 uppercase font-mono">Candidate search</span>
+            <div className="relative">
+              <span className="absolute left-2.5 top-2.5 text-gray-500">
+                <Search size={12} />
+              </span>
+              <input
+                type="text"
+                placeholder="Search name, applied role..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-7 pr-3 py-1.5 bg-[#EDEEF1] border border-[#E4E6EA] rounded text-xs focus:bg-[#FFFFFF]"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-gray-500 uppercase font-mono">Department</span>
+            <Select
+              value={selectedDept}
+              onChange={e => setSelectedDept(e.target.value)}
+              className="w-full px-2 py-1.5 bg-[#EDEEF1] border border-[#E4E6EA] rounded"
+            >
+              {departments.map(d => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-gray-500 uppercase font-mono">Notice period</span>
+            <Select
+              value={maxNoticePeriod}
+              onChange={e => setMaxNoticePeriod(Number(e.target.value))}
+              className="w-full px-2 py-1.5 bg-[#EDEEF1] border border-[#E4E6EA] rounded font-mono"
+            >
+              <option value={9999}>Any Notice</option>
+              <option value={30}>≤ 30 Days</option>
+              <option value={15}>≤ 15 Days</option>
+              <option value={0}>Immediate</option>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-gray-500 uppercase font-mono">Hiring status</span>
+            <Select
+              value={selectedStatus}
+              onChange={e => setSelectedStatus(e.target.value)}
+              className="w-full px-2 py-1.5 bg-[#EDEEF1] border border-[#E4E6EA] rounded"
+            >
+              {statuses.map(s => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-gray-500 uppercase font-mono">Medium Source</span>
+            <Select
+              value={selectedSource}
+              onChange={e => setSelectedSource(e.target.value)}
+              className="w-full px-2 py-1.5 bg-[#EDEEF1] border border-[#E4E6EA] rounded"
+            >
+              {sources.map(sc => (
+                <option key={sc} value={sc}>
+                  {sc}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
       </div>
 
       {/* Main Tabular candidate container */}
-      <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl overflow-hidden shadow-2xs">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-[#F2EEE7] border-b border-[#DAD4C8] text-gray-500 font-mono text-[9px] uppercase font-bold">
-              <th className="p-3">Candidate name</th>
-              <th className="p-3">Applied position</th>
-              <th className="p-3">Department</th>
-              <th className="p-3 text-center">Experience</th>
-              <th className="p-3 text-center">Current CTC</th>
-              <th className="p-3 text-center">Expected CTC</th>
-              <th className="p-3 text-center">Notice period</th>
-              <th className="p-3">Stage status</th>
-              <th className="p-3 text-center">Fit</th>
-              <th className="p-3">Source</th>
-              <th className="p-3 text-right">Actions</th>
+      <SelectionBar count={sel.count} onClear={sel.clear} />
+      <Table minWidth={980}>
+        <THead>
+          <Th select checked={sel.allSelected} indeterminate={sel.someSelected} onToggle={sel.toggleAll} />
+          <Th icon={<User size={11} />}>Candidate name</Th>
+          <Th icon={<Briefcase size={11} />}>Applied position</Th>
+          <Th icon={<Building2 size={11} />}>Department</Th>
+          <Th icon={<Gauge size={11} />} align="center">Experience</Th>
+          <Th icon={<Wallet size={11} />} align="center">Current CTC</Th>
+          <Th icon={<Wallet size={11} />} align="center">Expected CTC</Th>
+          <Th icon={<Clock4 size={11} />} align="center">Notice period</Th>
+          <Th icon={<Flag size={11} />}>Stage status</Th>
+          <Th icon={<Check size={11} />} align="center">Fit</Th>
+          <Th icon={<Radio size={11} />}>Source</Th>
+          <Th align="right">Actions</Th>
+        </THead>
+        <TBody>
+          {filtered.length === 0 ? (
+            <tr>
+              <Td colSpan={12}>
+                <EmptyState
+                  icon={UserSearch}
+                  title={candidates.length === 0 ? 'No candidates yet' : 'No matches'}
+                  description={
+                    candidates.length === 0
+                      ? 'Candidates will appear here as they apply or are added.'
+                      : 'No candidate records match the current filters.'
+                  }
+                  className="border-0 bg-transparent py-10"
+                />
+              </Td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-[#DAD4C8]">
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={11} className="bg-[#F7F4EE] p-3">
-                  <EmptyState
-                    icon={UserSearch}
-                    title={candidates.length === 0 ? 'No candidates yet' : 'No matches'}
-                    description={
-                      candidates.length === 0
-                        ? 'Candidates will appear here as they apply or are added.'
-                        : 'No candidate records match the current filters.'
-                    }
-                    className="border-0 bg-transparent py-10"
-                  />
-                </td>
-              </tr>
-            ) : (
-              filtered.map(cand => (
-                <tr
-                  key={cand.id}
-                  onClick={() => onSelectCandidate(cand.id)}
-                  className="hover:bg-[#F2EEE7] group transition duration-150 cursor-pointer"
-                >
-                  <td className="p-3">
-                    <span className="font-semibold text-gray-900 group-hover:text-accent-600 group-hover:underline">
-                      {cand.fullName}
-                    </span>
-                  </td>
-                  <td className="p-3 font-medium text-gray-855 truncate max-w-[150px]">{cand.appliedRole}</td>
-                  <td className="p-3 text-gray-600">{cand.department}</td>
-                  <td className="p-3 text-center font-mono text-gray-750">{cand.totalExperienceYears} Yrs</td>
-                  <td className="p-3 text-center font-mono text-gray-500">{cand.currentCtc}</td>
-                  <td className="p-3 text-center font-mono text-accent-600 font-semibold">
-                    {cand.expectedCtc}
-                  </td>
-                  <td className="p-3 text-center font-mono text-gray-700">{cand.noticePeriodDays} Days</td>
-                  <td className="p-3">
-                    <span
-                      className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold select-none ${
-                        cand.status === 'Selected'
-                          ? 'bg-green-50 text-green-600'
-                          : cand.status === 'Offer Shortlisted'
-                            ? 'bg-emerald-50 text-emerald-600'
-                          : cand.status === 'Shortlisted'
-                            ? 'bg-purple-50 text-purple-600'
-                            : cand.status === 'Moved to HR Call'
-                              ? 'bg-teal-50 text-teal-600'
-                              : cand.status === 'Rejected'
-                                ? 'bg-red-50 text-red-600'
-                                : cand.status === 'On Hold'
-                                  ? 'bg-yellow-50 text-yellow-600'
-                                  : 'bg-accent-50 text-accent-600'
-                      }`}
-                    >
-                      {cand.status}
-                    </span>
-                  </td>
-                  <td className="p-3 text-center">
-                    {(() => {
-                      const fit = effectiveFit(cand);
-                      if (!fit) return <span className="text-[10px] text-gray-400">—</span>;
-                      return (
-                        <span
-                          title={cand.fitRatingOverride ? 'Set by HR' : 'Auto from screening'}
-                          className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold ${fitStyle(fit)}`}
-                        >
-                          {fit}
-                          {cand.fitRatingOverride && <span className="ml-0.5 opacity-60">*</span>}
-                        </span>
-                      );
-                    })()}
-                  </td>
-                  <td className="p-3 text-gray-500 font-mono text-[10px]">{cand.sourceOfApplication}</td>
-                  <td className="p-3 text-right" onClick={e => e.stopPropagation()}>
-                    <div className="flex items-center justify-end">
+          ) : (
+            filtered.map(cand => (
+              <Tr
+                key={cand.id}
+                selected={sel.isSelected(cand.id)}
+                onClick={() => onSelectCandidate(cand.id)}
+                className="group"
+              >
+                <Td select checked={sel.isSelected(cand.id)} onToggle={() => sel.toggle(cand.id)} />
+                <Td>
+                  <span className="font-semibold text-gray-900 group-hover:text-accent-600 group-hover:underline">
+                    {cand.fullName}
+                  </span>
+                </Td>
+                <Td className="max-w-[150px] truncate font-medium text-gray-700">{cand.appliedRole}</Td>
+                <Td>
+                  <TagPill color={deptColor(cand.department)}>{cand.department}</TagPill>
+                </Td>
+                <Td align="center" className="font-mono text-gray-600">{cand.totalExperienceYears} Yrs</Td>
+                <Td align="center" className="font-mono text-gray-500">{cand.currentCtc}</Td>
+                <Td align="center" className="font-mono font-semibold text-accent-600">{cand.expectedCtc}</Td>
+                <Td align="center" className="font-mono text-gray-700">{cand.noticePeriodDays} Days</Td>
+                <Td>
+                  <TagPill color={statusColor(cand.status)}>{cand.status}</TagPill>
+                </Td>
+                <Td align="center">
+                  {(() => {
+                    const fit = effectiveFit(cand);
+                    if (!fit) return <span className="text-[10px] text-gray-400">—</span>;
+                    return (
+                      <span
+                        title={cand.fitRatingOverride ? 'Set by HR' : 'Auto from screening'}
+                        className={`rounded-full px-2 py-0.5 font-mono text-[9px] font-bold ${fitStyle(fit)}`}
+                      >
+                        {fit}
+                        {cand.fitRatingOverride && <span className="ml-0.5 opacity-60">*</span>}
+                      </span>
+                    );
+                  })()}
+                </Td>
+                <Td className="font-mono text-[10px] text-gray-500">{cand.sourceOfApplication}</Td>
+                <Td align="right" className="whitespace-nowrap" >
+                  <div className="flex items-center justify-end" onClick={e => e.stopPropagation()}>
                       <ActionMenu
                         items={[
                           {
@@ -434,13 +496,12 @@ export function CandidateListView({
                         ]}
                       />
                     </div>
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+        </TBody>
+      </Table>
 
       {/* Slide overlay Adding Form Model */}
       <Dialog
@@ -634,8 +695,8 @@ export function CandidateListView({
                   <FileDropzone
                     value={resume}
                     onChange={setResume}
-                    accept=".pdf"
-                    hint="PDF only, up to 15 MB"
+                    accept=".pdf,.doc,.docx"
+                    hint="PDF, DOC or DOCX up to 15 MB"
                   />
                 </div>
               </div>

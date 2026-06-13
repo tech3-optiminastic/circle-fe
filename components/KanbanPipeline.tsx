@@ -49,11 +49,11 @@ const COLUMNS: {
   countColor: string;
   bg: string;
 }[] = [
-  { key: 'New', label: 'New', Icon: FileText, countColor: 'text-accent-600 bg-accent-50', bg: 'bg-[#E6E1D8]/50' },
-  { key: 'Screening', label: 'Screening', Icon: ShieldCheck, countColor: 'text-purple-600 bg-purple-50', bg: 'bg-[#E6E1D8]/50' },
+  { key: 'New', label: 'New', Icon: FileText, countColor: 'text-accent-600 bg-accent-50', bg: 'bg-[#EDEEF1]/50' },
+  { key: 'Screening', label: 'Screening', Icon: ShieldCheck, countColor: 'text-purple-600 bg-purple-50', bg: 'bg-[#EDEEF1]/50' },
   { key: 'HR Call', label: 'HR Call', Icon: Phone, countColor: 'text-teal-600 bg-teal-50', bg: 'bg-teal-50/10' },
-  { key: 'IQ Test', label: 'IQ Test', Icon: BrainCircuit, countColor: 'text-indigo-600 bg-indigo-50', bg: 'bg-[#E6E1D8]/50' },
-  { key: 'Assignment', label: 'Assessment', Icon: ClipboardList, countColor: 'text-amber-600 bg-amber-50', bg: 'bg-[#E6E1D8]/50' },
+  { key: 'IQ Test', label: 'IQ Test', Icon: BrainCircuit, countColor: 'text-indigo-600 bg-indigo-50', bg: 'bg-[#EDEEF1]/50' },
+  { key: 'Assignment', label: 'Assessment', Icon: ClipboardList, countColor: 'text-amber-600 bg-amber-50', bg: 'bg-[#EDEEF1]/50' },
   { key: 'Interview', label: 'Interview', Icon: CalendarDays, countColor: 'text-blue-600 bg-blue-50', bg: 'bg-blue-50/10' },
   { key: 'Decision', label: 'Decision', Icon: Flag, countColor: 'text-emerald-600 bg-emerald-50', bg: 'bg-emerald-50/10' },
   { key: 'On Hold', label: 'On Hold', Icon: PauseCircle, countColor: 'text-yellow-600 bg-yellow-50', bg: 'bg-yellow-50/10' },
@@ -126,10 +126,10 @@ export function KanbanPipeline({ candidates }: KanbanPipelineProps) {
               key={col.key}
               type="button"
               onClick={() => setOpenColumn(col.key)}
-              className={`text-left border border-[#DAD4C8] rounded-xl p-3 flex flex-col min-h-[160px] transition hover:border-accent-400 hover:shadow-xs cursor-pointer ${col.bg}`}
+              className={`text-left border border-[#E4E6EA] rounded-xl p-3 flex flex-col min-h-[160px] transition hover:border-accent-400 hover:shadow-xs cursor-pointer ${col.bg}`}
             >
               {/* Column header: icon + label + count */}
-              <div className="flex items-center justify-between mb-3 border-b border-[#DAD4C8]/60 pb-2">
+              <div className="flex items-center justify-between mb-3 border-b border-[#E4E6EA]/60 pb-2">
                 <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-800">
                   <ColIcon size={13} className="text-gray-500" />
                   {col.label}
@@ -144,7 +144,7 @@ export function KanbanPipeline({ candidates }: KanbanPipelineProps) {
               {/* Latest candidate preview, or empty hint */}
               <div className="flex-1">
                 {list.length === 0 ? (
-                  <div className="text-center py-6 border border-dashed border-[#DAD4C8] rounded-lg text-[10px] text-gray-500 bg-[#F7F4EE]">
+                  <div className="text-center py-6 border border-dashed border-[#E4E6EA] rounded-lg text-[10px] text-gray-500 bg-[#FFFFFF]">
                     No candidates
                   </div>
                 ) : (
@@ -189,7 +189,7 @@ export function KanbanPipeline({ candidates }: KanbanPipelineProps) {
                   key={c.id}
                   type="button"
                   onClick={() => goToCandidate(c.id)}
-                  className="group flex w-full items-center justify-between gap-3 rounded-lg border border-[#DAD4C8] bg-[#F7F4EE] p-3 text-left transition hover:border-accent-400 hover:shadow-xs"
+                  className="group flex w-full items-center justify-between gap-3 rounded-lg border border-[#E4E6EA] bg-[#FFFFFF] p-3 text-left transition hover:border-accent-400 hover:shadow-xs"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-xs font-bold text-gray-900 group-hover:text-accent-600">

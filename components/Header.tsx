@@ -108,7 +108,7 @@ export function Header({
   return (
     <header
       id="app-header"
-      className="bg-[#F7F4EE] border-b border-[#DAD4C8] h-14 px-6 flex items-center justify-between sticky top-0 z-50 select-none"
+      className="bg-[#FFFFFF] border-b border-[#E4E6EA] h-14 px-6 flex items-center justify-between sticky top-0 z-50 select-none"
     >
       <div className="flex items-center gap-2">
         {/* Sidebar collapse toggle */}
@@ -116,7 +116,7 @@ export function Header({
           id="btn-sidebar-collapse"
           onClick={onToggleSidebar}
           aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="shrink-0 rounded-md p-1.5 text-gray-500 hover:bg-[#E6E1D8] hover:text-gray-700 cursor-pointer transition"
+          className="shrink-0 rounded-md p-1.5 text-gray-500 hover:bg-[#EDEEF1] hover:text-gray-700 cursor-pointer transition"
         >
           {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
         </button>
@@ -136,7 +136,7 @@ export function Header({
           onFocus={() => {
             if (searchQuery.length > 1) setShowSearchResults(true);
           }}
-          className="w-full pl-9 pr-4 py-1.5 text-xs bg-[#E6E1D8] border border-[#DAD4C8] rounded-md focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus:ring-1 focus:ring-accent-600 focus:border-accent-600 transition"
+          className="w-full pl-9 pr-4 py-1.5 text-xs bg-[#EDEEF1] border border-[#E4E6EA] rounded-md focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus:ring-1 focus:ring-accent-600 focus:border-accent-600 transition"
         />
 
         {/* Global Quick Search Results overlay */}
@@ -169,7 +169,7 @@ export function Header({
                     </span>
                   </div>
                 </div>
-                <span className="text-[10px] bg-[#E6E1D8] text-gray-600 px-1.5 py-0.5 rounded font-mono font-medium shrink-0">
+                <span className="text-[10px] bg-[#EDEEF1] text-gray-600 px-1.5 py-0.5 rounded font-mono font-medium shrink-0">
                   {c.status}
                 </span>
               </button>
@@ -187,7 +187,7 @@ export function Header({
           aria-label="Recruitment Calendar"
           title="Recruitment Calendar"
           className={cn(
-            'rounded-md border border-[#DAD4C8] p-1.5 text-gray-500 transition hover:bg-accent hover:text-gray-700',
+            'rounded-md border border-[#E4E6EA] p-1.5 text-gray-500 transition hover:bg-accent hover:text-gray-700',
             ui.focusRing,
           )}
         >
@@ -199,7 +199,7 @@ export function Header({
           <Popover.Trigger
             id="btn-notifications"
             className={cn(
-              'relative rounded-md border border-[#DAD4C8] p-1.5 text-gray-500 transition hover:bg-accent hover:text-gray-700',
+              'relative rounded-md border border-[#E4E6EA] p-1.5 text-gray-500 transition hover:bg-accent hover:text-gray-700',
               ui.focusRing,
             )}
             aria-label="Notifications"
@@ -264,7 +264,7 @@ export function Header({
         </Link>
 
         {/* Active Profile */}
-        <div className="border-l border-[#DAD4C8] pl-4">
+        <div className="border-l border-[#E4E6EA] pl-4">
           <DropdownMenu.Root>
             <DropdownMenu.Trigger
               id="btn-profile-menu"

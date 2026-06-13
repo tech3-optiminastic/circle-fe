@@ -16,7 +16,7 @@ const TZ = process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_TZ ?? 'America/New_York';
 export function GoogleCalendarEmbed() {
   if (!SRC) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-[#DAD4C8] bg-[#F7F4EE] px-6 py-14 text-center">
+      <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-[#E4E6EA] bg-[#FFFFFF] px-6 py-14 text-center">
         <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent-50 text-accent-600">
           <CalendarDays size={22} />
         </span>
@@ -24,8 +24,8 @@ export function GoogleCalendarEmbed() {
           <h3 className="text-sm font-bold text-gray-900">Connect your Google Calendar</h3>
           <p className="mx-auto mt-1 max-w-md text-[12px] leading-relaxed text-gray-500">
             Scheduled rounds are already pushed to the shared HR Google Calendar. To view it here,
-            set <code className="rounded bg-[#E6E1D8] px-1 py-0.5 font-mono">NEXT_PUBLIC_GOOGLE_CALENDAR_SRC</code> in{' '}
-            <code className="rounded bg-[#E6E1D8] px-1 py-0.5 font-mono">.env.local</code> to the
+            set <code className="rounded bg-[#EDEEF1] px-1 py-0.5 font-mono">NEXT_PUBLIC_GOOGLE_CALENDAR_SRC</code> in{' '}
+            <code className="rounded bg-[#EDEEF1] px-1 py-0.5 font-mono">.env.local</code> to the
             calendar&apos;s address (its ID / account email) and make the calendar shareable.
           </p>
         </div>
@@ -33,7 +33,7 @@ export function GoogleCalendarEmbed() {
           href="https://calendar.google.com/calendar/u/0/r/settings"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[#DAD4C8] bg-card px-3 py-1.5 text-[12px] font-semibold text-gray-700 hover:bg-secondary/50"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[#E4E6EA] bg-card px-3 py-1.5 text-[12px] font-semibold text-gray-700 hover:bg-secondary/50"
         >
           Calendar settings <ExternalLink size={13} />
         </a>
@@ -50,8 +50,8 @@ export function GoogleCalendarEmbed() {
     showPrint: '0',
     showCalendars: '0',
     showTz: '0',
-    bgcolor: '#F7F4EE', // greige background
-    color: '#A51C30', // crimson events (the only event-tint Google's embed allows)
+    bgcolor: '#FFFFFF', // greige background
+    color: '#D11453', // raspberry events (the only event-tint Google's embed allows)
   });
   const url = `https://calendar.google.com/calendar/embed?${params.toString()}`;
 
@@ -59,7 +59,7 @@ export function GoogleCalendarEmbed() {
     <iframe
       title="Recruitment Google Calendar"
       src={url}
-      className="h-[76vh] w-full rounded-xl border border-[#DAD4C8] bg-white shadow-2xs"
+      className="h-[76vh] w-full rounded-xl border border-[#E4E6EA] bg-white shadow-2xs"
       style={{ border: 0 }}
     />
   );

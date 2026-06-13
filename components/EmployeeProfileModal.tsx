@@ -140,9 +140,9 @@ export function EmployeeProfileModal({
 
   return (
     <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs flex justify-end z-[100] transition-opacity duration-300">
-      <div className="bg-[#F7F4EE] w-full max-w-2xl h-full flex flex-col shadow-2xl relative animate-slide-in select-none">
+      <div className="bg-[#FFFFFF] w-full max-w-2xl h-full flex flex-col shadow-2xl relative animate-slide-in select-none">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-[#DAD4C8] bg-[#F2EEE7] flex items-center justify-between shrink-0">
+        <div className="px-6 py-4 border-b border-[#E4E6EA] bg-[#F7F8FA] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-purple-600 flex items-center justify-center text-white text-md font-bold">
               {employee.fullName
@@ -159,7 +159,7 @@ export function EmployeeProfileModal({
           </div>
           <button
             aria-label="Close" onClick={onClose}
-            className="p-1.5 hover:bg-[#E6E1D8] rounded-md text-gray-500 hover:text-gray-600 cursor-pointer"
+            className="p-1.5 hover:bg-[#EDEEF1] rounded-md text-gray-500 hover:text-gray-600 cursor-pointer"
           >
             <X size={16} />
           </button>
@@ -171,7 +171,7 @@ export function EmployeeProfileModal({
           onValueChange={v => setActiveTab(v as 'info' | 'onboarding' | 'sec' | 'perf')}
           className="shrink-0 gap-0"
         >
-          <TabsList className="bg-[#F7F4EE] px-6 text-xs font-medium">
+          <TabsList className="bg-[#FFFFFF] px-6 text-xs font-medium">
             <TabsTrigger value="info" className="py-3">
               Personal &amp; Job Info
             </TabsTrigger>
@@ -193,7 +193,7 @@ export function EmployeeProfileModal({
         </Tabs>
 
         {/* Modal body content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#F2EEE7]">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#F7F8FA]">
           {activeTab === 'info' && (
             <div className="space-y-5 text-xs">
               <DocumentsPanel
@@ -203,7 +203,7 @@ export function EmployeeProfileModal({
                 title="Important Documents"
               />
               {/* Job Details Card */}
-              <div className="bg-[#F7F4EE] border border-[#DAD4C8] p-4 rounded-xl space-y-3.5">
+              <div className="bg-[#FFFFFF] border border-[#E4E6EA] p-4 rounded-xl space-y-3.5">
                 <h3 className="font-bold text-gray-900 font-mono text-[10px] uppercase tracking-wider text-gray-500">
                   Corporate Assignment Details
                 </h3>
@@ -228,32 +228,32 @@ export function EmployeeProfileModal({
               </div>
 
               {/* Secure personal data */}
-              <div className="bg-[#F7F4EE] border border-[#DAD4C8] p-4 rounded-xl space-y-3">
+              <div className="bg-[#FFFFFF] border border-[#E4E6EA] p-4 rounded-xl space-y-3">
                 <h3 className="font-bold text-gray-900 font-mono text-[10px] uppercase tracking-wider text-gray-500">
                   Masked Personal Records
                 </h3>
                 <div className="space-y-2.5">
-                  <div className="flex justify-between py-1 border-b border-[#E6E1D8]">
+                  <div className="flex justify-between py-1 border-b border-[#EDEEF1]">
                     <span className="text-gray-500">Contact Email:</span>
                     <span className="font-semibold text-gray-900 select-all">{employee.email}</span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-[#E6E1D8]">
+                  <div className="flex justify-between py-1 border-b border-[#EDEEF1]">
                     <span className="text-gray-500">Phone Code:</span>
                     <span className="font-semibold text-gray-900 select-all">{employee.phone}</span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-[#E6E1D8]">
+                  <div className="flex justify-between py-1 border-b border-[#EDEEF1]">
                     <span className="text-gray-500">Mailing Address:</span>
                     <span className="font-semibold text-gray-900 text-right">
                       {employee.personalDetails.address}
                     </span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-[#E6E1D8]">
+                  <div className="flex justify-between py-1 border-b border-[#EDEEF1]">
                     <span className="text-gray-500">Emergency Contacts:</span>
                     <span className="font-semibold text-gray-900 text-right">
                       {employee.personalDetails.emergencyContact}
                     </span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-[#E6E1D8]">
+                  <div className="flex justify-between py-1 border-b border-[#EDEEF1]">
                     <span className="text-gray-500">Bank Routing Code:</span>
                     <span className="font-mono font-semibold text-gray-500">
                       {employee.personalDetails.bankAccount}
@@ -281,7 +281,7 @@ export function EmployeeProfileModal({
                         <Select
                           value={offboardReason}
                           onChange={e => setOffboardReason(e.target.value as any)}
-                          className="w-full px-2 py-1.5 bg-[#F7F4EE] border border-[#DAD4C8] rounded"
+                          className="w-full px-2 py-1.5 bg-[#FFFFFF] border border-[#E4E6EA] rounded"
                         >
                           <option value="Resignation">Resignation Clearance</option>
                           <option value="Termination">Termination Dispatch</option>
@@ -300,7 +300,7 @@ export function EmployeeProfileModal({
                         <button
                           type="button"
                           onClick={() => setShowOffboardForm(false)}
-                          className="border border-[#DAD4C8] bg-[#F7F4EE] text-gray-650 font-medium px-3.5 py-1 rounded cursor-pointer transition text-[11px]"
+                          className="border border-[#E4E6EA] bg-[#FFFFFF] text-gray-650 font-medium px-3.5 py-1 rounded cursor-pointer transition text-[11px]"
                         >
                           Back
                         </button>
@@ -324,7 +324,7 @@ export function EmployeeProfileModal({
               {onboarding ? (
                 <>
                   {/* Progress header */}
-                  <div className="bg-[#F7F4EE] border border-[#DAD4C8] p-4 rounded-xl space-y-3">
+                  <div className="bg-[#FFFFFF] border border-[#E4E6EA] p-4 rounded-xl space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="font-bold font-mono text-[10px] uppercase tracking-wider text-gray-500">
                         Onboarding Checklist
@@ -334,7 +334,7 @@ export function EmployeeProfileModal({
                       </span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="flex-1 h-2 bg-[#E6E1D8] rounded-full overflow-hidden">
+                      <div className="flex-1 h-2 bg-[#EDEEF1] rounded-full overflow-hidden">
                         <div
                           className="h-full bg-accent-600 rounded-full transition-all"
                           style={{ width: `${onboarding.progressPercentage}%` }}
@@ -364,7 +364,7 @@ export function EmployeeProfileModal({
                     .map(g => (
                       <div
                         key={g.cat}
-                        className="bg-[#F7F4EE] border border-[#DAD4C8] p-4 rounded-xl space-y-2"
+                        className="bg-[#FFFFFF] border border-[#E4E6EA] p-4 rounded-xl space-y-2"
                       >
                         <h4 className="font-bold font-mono text-[10px] uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
                           <ListTodo size={12} className="text-accent-600" /> {g.cat}
@@ -378,7 +378,7 @@ export function EmployeeProfileModal({
                                 taskId: t.id,
                               })
                             }
-                            className="w-full flex items-center gap-2.5 text-left px-2.5 py-2 rounded-lg hover:bg-[#F2EEE7] transition cursor-pointer"
+                            className="w-full flex items-center gap-2.5 text-left px-2.5 py-2 rounded-lg hover:bg-[#F7F8FA] transition cursor-pointer"
                           >
                             {t.isChecked ? (
                               <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
@@ -398,7 +398,7 @@ export function EmployeeProfileModal({
                     ))}
                 </>
               ) : (
-                <div className="bg-[#F7F4EE] p-8 border border-[#DAD4C8] rounded-xl text-center text-gray-500">
+                <div className="bg-[#FFFFFF] p-8 border border-[#E4E6EA] rounded-xl text-center text-gray-500">
                   <CheckCircle2 size={22} className="mx-auto text-emerald-400 mb-2" />
                   <p className="font-semibold text-gray-600">No active onboarding checklist.</p>
                   <p className="text-[11px] mt-1">
@@ -413,7 +413,7 @@ export function EmployeeProfileModal({
           {activeTab === 'sec' && (
             <div className="space-y-5 text-xs">
               {/* Credentials — view, grant, and control access */}
-              <div className="bg-[#F7F4EE] border border-[#DAD4C8] p-4 rounded-xl space-y-3">
+              <div className="bg-[#FFFFFF] border border-[#E4E6EA] p-4 rounded-xl space-y-3">
                 <h3 className="font-bold text-gray-900 font-mono text-[10px] uppercase tracking-wider text-gray-500">
                   System Credentials
                 </h3>
@@ -422,7 +422,7 @@ export function EmployeeProfileModal({
                     credentials.map(cr => (
                       <div
                         key={cr.id}
-                        className="flex flex-wrap justify-between items-center gap-2 bg-[#F2EEE7] p-2.5 rounded border border-[#E2DDD2]"
+                        className="flex flex-wrap justify-between items-center gap-2 bg-[#F7F8FA] p-2.5 rounded border border-[#ECEDF0]"
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <KeyRound size={12} className="text-gray-500 shrink-0" />
@@ -452,7 +452,7 @@ export function EmployeeProfileModal({
                               credId: cr.id,
                               status: e.target.value,
                             })}
-                            className="px-2 py-1 bg-[#F7F4EE] border border-[#DAD4C8] rounded text-[10px]"
+                            className="px-2 py-1 bg-[#FFFFFF] border border-[#E4E6EA] rounded text-[10px]"
                           >
                             <option value="Active">Active</option>
                             <option value="Restricted">Restricted</option>
@@ -470,19 +470,19 @@ export function EmployeeProfileModal({
                 {/* Grant new access */}
                 <form
                   onSubmit={grantCredential}
-                  className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-[#E6E1D8]"
+                  className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-[#EDEEF1]"
                 >
                   <input
                     type="text"
                     placeholder="System name (Slack, GitHub, AWS…)"
                     value={grantForm.systemName}
                     onChange={e => setGrantForm({ ...grantForm, systemName: e.target.value })}
-                    className="flex-1 px-2.5 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] focus:bg-[#F7F4EE] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                    className="flex-1 px-2.5 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] focus:bg-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
                   />
                   <Select
                     value={grantForm.accessLevel}
                     onChange={e => setGrantForm({ ...grantForm, accessLevel: e.target.value })}
-                    className="px-2 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8] sm:w-32"
+                    className="px-2 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1] sm:w-32"
                   >
                     <option value="Admin">Admin</option>
                     <option value="Standard">Standard</option>
@@ -499,7 +499,7 @@ export function EmployeeProfileModal({
               </div>
 
               {/* Hardware — assigned inventory + assignment control */}
-              <div className="bg-[#F7F4EE] border border-[#DAD4C8] p-4 rounded-xl space-y-3">
+              <div className="bg-[#FFFFFF] border border-[#E4E6EA] p-4 rounded-xl space-y-3">
                 <h3 className="font-bold text-gray-900 font-mono text-[10px] uppercase tracking-wider text-gray-500">
                   Hardware Assets
                 </h3>
@@ -508,7 +508,7 @@ export function EmployeeProfileModal({
                     assignedAssets.map(as => (
                       <div
                         key={as.id}
-                        className="flex flex-wrap justify-between items-center gap-2 bg-[#F2EEE7] p-2.5 rounded border border-[#E2DDD2]"
+                        className="flex flex-wrap justify-between items-center gap-2 bg-[#F7F8FA] p-2.5 rounded border border-[#ECEDF0]"
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <Laptop size={12} className="text-gray-500 shrink-0" />
@@ -526,7 +526,7 @@ export function EmployeeProfileModal({
                           </span>
                           <button
                             onClick={() => returnAsset(as.id)}
-                            className="text-[10px] bg-[#F7F4EE] border border-[#DAD4C8] text-gray-600 hover:text-red-600 hover:border-red-200 px-2 py-1 rounded-md font-semibold font-mono flex items-center gap-1 cursor-pointer transition"
+                            className="text-[10px] bg-[#FFFFFF] border border-[#E4E6EA] text-gray-600 hover:text-red-600 hover:border-red-200 px-2 py-1 rounded-md font-semibold font-mono flex items-center gap-1 cursor-pointer transition"
                             title="Mark this asset as returned"
                           >
                             <Undo2 size={11} /> Return
@@ -542,7 +542,7 @@ export function EmployeeProfileModal({
                 </div>
 
                 {/* Assign from available pool */}
-                <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-[#E6E1D8]">
+                <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-[#EDEEF1]">
                   <Select
                     value={assignAssetId}
                     onChange={e => setAssignAssetId(e.target.value)}
@@ -552,7 +552,7 @@ export function EmployeeProfileModal({
                         : 'No hardware available in inventory'
                     }
                     disabled={availableAssets.length === 0}
-                    className="flex-1 px-2 py-1.5 border border-[#DAD4C8] rounded text-xs bg-[#E6E1D8]"
+                    className="flex-1 px-2 py-1.5 border border-[#E4E6EA] rounded text-xs bg-[#EDEEF1]"
                   >
                     <option value="">
                       {availableAssets.length > 0
@@ -586,9 +586,9 @@ export function EmployeeProfileModal({
                 employee.appraisalHistory.map(ap => (
                   <div
                     key={ap.id}
-                    className="bg-[#F7F4EE] border border-[#DAD4C8] p-4 rounded-xl space-y-3 shadow-2xs"
+                    className="bg-[#FFFFFF] border border-[#E4E6EA] p-4 rounded-xl space-y-3 shadow-2xs"
                   >
-                    <div className="flex justify-between font-mono text-[9px] border-b border-[#E6E1D8] pb-1 font-bold">
+                    <div className="flex justify-between font-mono text-[9px] border-b border-[#EDEEF1] pb-1 font-bold">
                       <span className="text-accent-600 uppercase">Review: {ap.reviewPeriod}</span>
                       <span className="text-green-600">{ap.status}</span>
                     </div>
@@ -596,14 +596,14 @@ export function EmployeeProfileModal({
                       <span className="font-semibold text-gray-900 block">Performance Grade Rank:</span>
                       <span className="font-bold text-sm text-gray-900">⭐ {ap.performanceScore} / 5</span>
                     </div>
-                    <div className="space-y-1 bg-[#E6E1D8] p-2.5 rounded text-gray-700 leading-normal">
+                    <div className="space-y-1 bg-[#EDEEF1] p-2.5 rounded text-gray-700 leading-normal">
                       <p className="font-bold">Manager Feedback Summary:</p>
                       <p className="italic">"{ap.managerFeedback}"</p>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="bg-[#F7F4EE] p-6 border border-[#DAD4C8] rounded-xl text-center text-gray-500">
+                <div className="bg-[#FFFFFF] p-6 border border-[#E4E6EA] rounded-xl text-center text-gray-500">
                   <Award size={20} className="mx-auto text-gray-300 mb-1.5" />
                   No direct performance appraisal forms filed for this cycle.
                 </div>

@@ -19,6 +19,7 @@ import { BRAND } from '@/lib/brand';
 import { OFFICE_LOCATION_URL } from '@/lib/config';
 import { Candidate } from '@/types';
 import { loadBanks, type RoleQuestionBank } from '@/lib/question-banks';
+import { useEmployees } from '@/features/employees/hooks';
 
 /** An existing interview window used for conflict detection. */
 export interface BusyInterview {
@@ -103,6 +104,18 @@ export function InterviewScheduleModal({
     );
     if (match) setQuestionBankId(match.id);
   }, [position]);
+
+  // Interviewers are picked from active employees — selecting one fills the email.
+  const { data: employees = [] } = useEmployees();
+  const interviewerPool = useMemo(
+    () => employees.filter(e => e.status !== 'Offboarded'),
+    [employees],
+  );
+  const pickInterviewer = (name: string) => {
+    setInterviewerName(name);
+    const match = interviewerPool.find(e => e.fullName === name);
+    if (match?.email) setInterviewerEmail(match.email);
+  };
 
   const [subject, setSubject] = useState(`Interview Invitation - ${position} - ${BRAND.name}`);
   const [body, setBody] = useState('');
@@ -284,13 +297,19 @@ export function InterviewScheduleModal({
                 <Label htmlFor="iv-interviewer" className="text-[11px] font-medium text-gray-600">
                   Interviewer Name
                 </Label>
-                <Input
+                <Select
                   id="iv-interviewer"
-                  placeholder="e.g. Donald Knuth"
                   value={interviewerName}
-                  onChange={e => setInterviewerName(e.target.value)}
+                  onChange={e => pickInterviewer(e.target.value)}
                   className="mt-1"
-                />
+                >
+                  <option value="">Select an employee…</option>
+                  {interviewerPool.map(e => (
+                    <option key={e.id} value={e.fullName}>
+                      {e.fullName} — {e.role}
+                    </option>
+                  ))}
+                </Select>
               </div>
               <div className="sm:col-span-2">
                 <Label htmlFor="iv-ivemail" className="text-[11px] font-medium text-gray-600">

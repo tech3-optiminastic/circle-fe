@@ -140,7 +140,7 @@ export default function OnboardingDocsPortal() {
 
   return (
     <Shell>
-      <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-[#DAD4C8] bg-[#F7F4EE] p-4">
+      <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-[#E4E6EA] bg-[#FFFFFF] p-4">
         <div>
           <p className="text-sm font-bold text-gray-900">Welcome, {request.candidateName}</p>
           <p className="text-[12px] text-gray-500">
@@ -180,7 +180,7 @@ export default function OnboardingDocsPortal() {
             <div
               key={doc.type}
               className={`flex items-center justify-between gap-3 rounded-lg border bg-white p-3 ${
-                rejected ? 'border-red-300' : sub ? 'border-emerald-200' : 'border-[#DAD4C8]'
+                rejected ? 'border-red-300' : sub ? 'border-emerald-200' : 'border-[#E4E6EA]'
               }`}
             >
               <div className="min-w-0">
@@ -215,7 +215,7 @@ export default function OnboardingDocsPortal() {
                   type="button"
                   disabled={isUploading}
                   onClick={() => fileInputs.current[doc.type]?.click()}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#DAD4C8] bg-[#F7F4EE] px-2.5 py-1.5 text-[11px] font-semibold text-gray-700 transition hover:border-accent-400 hover:text-accent-600 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#E4E6EA] bg-[#FFFFFF] px-2.5 py-1.5 text-[11px] font-semibold text-gray-700 transition hover:border-accent-400 hover:text-accent-600 disabled:opacity-50"
                 >
                   {isUploading ? (
                     <Loader2 size={13} className="animate-spin" />
@@ -302,7 +302,7 @@ export default function OnboardingDocsPortal() {
 /* ------------------------------ chrome ------------------------------ */
 
 const FIELD =
-  'w-full rounded-md border border-[#DAD4C8] bg-white px-2.5 py-2 text-[13px] text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500';
+  'w-full rounded-md border border-[#E4E6EA] bg-white px-2.5 py-2 text-[13px] text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -315,13 +315,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#EFE9DD] px-4 py-8">
+    <div className="min-h-screen bg-[#F1F3F5] px-4 py-8">
       <div className="mx-auto w-full max-w-xl">
         <div className="mb-5 flex items-center gap-2">
-          <Logo className="h-7 w-7" />
+          <Logo size={26} />
           <span className="text-sm font-bold text-gray-800">{BRAND.name}</span>
         </div>
-        <div className="rounded-2xl border border-[#DAD4C8] bg-[#F2EEE7] p-5 shadow-sm sm:p-6">{children}</div>
+        <div className="rounded-2xl border border-[#E4E6EA] bg-[#F7F8FA] p-5 shadow-sm sm:p-6">{children}</div>
       </div>
     </div>
   );

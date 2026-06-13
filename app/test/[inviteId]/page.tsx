@@ -394,7 +394,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
                   attempt cannot be accepted.
                 </p>
               </div>
-              <div className="w-full max-w-sm rounded-2xl border border-[#E2DCCF] bg-[#F2EEE7] px-5 py-3.5 text-sm text-gray-600">
+              <div className="w-full max-w-sm rounded-2xl border border-[#E2DCCF] bg-[#F7F8FA] px-5 py-3.5 text-sm text-gray-600">
                 Our HR team has been notified — you&apos;ll receive an email about the outcome.
               </div>
             </div>
@@ -448,7 +448,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
                 : `Qualifying score: ${ASSESSMENT_PASS_PERCENT}% +`}
             </p>
 
-            <div className="w-full max-w-sm rounded-2xl border border-[#E2DCCF] bg-[#F2EEE7] px-5 py-3.5 text-sm text-gray-600">
+            <div className="w-full max-w-sm rounded-2xl border border-[#E2DCCF] bg-[#F7F8FA] px-5 py-3.5 text-sm text-gray-600">
               {passed
                 ? invite.kind === 'iq'
                   ? '📧 Check your email — your role assessment link is on its way.'
@@ -516,7 +516,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
               ))}
             </div>
 
-            <div className="rounded-2xl border border-[#E2DCCF] bg-[#F2EEE7] p-5">
+            <div className="rounded-2xl border border-[#E2DCCF] bg-[#F7F8FA] p-5">
               <p className="flex items-center gap-2 text-sm font-bold text-gray-900">
                 <ShieldAlert size={16} className="text-accent-600" /> Test rules — read carefully
               </p>
@@ -567,7 +567,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   return (
-    <div className="flex min-h-screen flex-col select-none bg-gradient-to-b from-[#EFEBE3] to-[#E4DED4]">
+    <div className="flex min-h-screen flex-col select-none bg-gradient-to-b from-[#F6F7F9] to-[#E4E6EA]">
       {/* Sticky proctor bar */}
       <div className="sticky top-0 z-50 bg-gradient-to-r from-accent-700 to-accent-800 text-white shadow-md">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2.5">
@@ -634,7 +634,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
             </p>
             <p className="text-[11px] font-medium text-gray-500">{answered} answered</p>
           </div>
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#DAD4C8]">
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#E4E6EA]">
             <div
               className="h-full rounded-full bg-gradient-to-r from-accent-500 to-accent-700 transition-all duration-300"
               style={{ width: `${((page + 1) / totalPages) * 100}%` }}
@@ -654,7 +654,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
                 <div className="flex items-start gap-4">
                   <span
                     className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sm font-bold transition ${
-                      done ? 'bg-accent-600 text-white' : 'bg-[#ECE6DA] text-gray-500'
+                      done ? 'bg-accent-600 text-white' : 'bg-[#F1F3F5] text-gray-500'
                     }`}
                   >
                     {done ? <Check size={18} /> : i + 1}
@@ -674,12 +674,12 @@ function TestFlow({ invite }: { invite: TestInvite }) {
                         className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left text-sm transition cursor-pointer ${
                           selected
                             ? 'border-accent-500 bg-accent-50 font-semibold text-accent-800 ring-2 ring-accent-500/25'
-                            : 'border-[#E2DCCF] text-gray-700 hover:border-accent-300 hover:bg-[#F2EEE7]'
+                            : 'border-[#E2DCCF] text-gray-700 hover:border-accent-300 hover:bg-[#F7F8FA]'
                         }`}
                       >
                         <span
                           className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold transition ${
-                            selected ? 'bg-accent-600 text-white' : 'bg-[#ECE6DA] text-gray-500'
+                            selected ? 'bg-accent-600 text-white' : 'bg-[#F1F3F5] text-gray-500'
                           }`}
                         >
                           {selected ? <Check size={15} /> : String.fromCharCode(65 + idx)}
@@ -701,7 +701,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
           <button
             onClick={() => goToPage(page - 1)}
             disabled={page === 0}
-            className="flex items-center gap-1.5 rounded-xl border border-[#E2DCCF] bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-[#F2EEE7] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+            className="flex items-center gap-1.5 rounded-xl border border-[#E2DCCF] bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-[#F7F8FA] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
           >
             <ArrowLeft size={15} /> Previous
           </button>
@@ -738,7 +738,7 @@ function TestFlow({ invite }: { invite: TestInvite }) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-screen flex flex-col overflow-hidden bg-gradient-to-b from-[#EFEBE3] to-[#E4DED4]">
+    <div className="relative min-h-screen flex flex-col overflow-hidden bg-gradient-to-b from-[#F6F7F9] to-[#E4E6EA]">
       {/* Soft brand glows in the background */}
       <div
         aria-hidden

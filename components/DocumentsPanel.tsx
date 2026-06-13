@@ -41,7 +41,7 @@ export function DocumentsPanel({
   };
 
   return (
-    <div className="bg-[#F7F4EE] border border-[#DAD4C8] rounded-xl p-4 space-y-3">
+    <div className="bg-[#FFFFFF] border border-[#E4E6EA] rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
           <FileText size={13} className="text-accent-600" /> {title}
@@ -90,7 +90,7 @@ export function DocumentsPanel({
               key={doc.id}
               onClick={previewOnly ? () => openDocument(doc.id) : undefined}
               title={previewOnly ? 'Open in new tab' : undefined}
-              className={`flex items-center gap-2 p-2 border border-[#DAD4C8] rounded-lg text-[11px] hover:bg-[#E6E1D8] transition ${
+              className={`flex items-center gap-2 p-2 border border-[#E4E6EA] rounded-lg text-[11px] hover:bg-[#EDEEF1] transition ${
                 previewOnly ? 'cursor-pointer' : ''
               }`}
             >
