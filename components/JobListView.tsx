@@ -53,6 +53,8 @@ import {
   PauseCircle,
 } from 'lucide-react';
 import { ActionMenu } from '@/components/ActionMenu';
+import { EditableSelect } from '@/components/ui/editable-select';
+import { useOrgSettings } from '@/store/org-settings';
 import {
   Table,
   THead,
@@ -157,6 +159,7 @@ export function JobListView({
 }: JobListViewProps) {
   const toast = useToast();
   const router = useRouter();
+  const org = useOrgSettings();
   const [showAddForm, setShowAddForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -696,17 +699,14 @@ export function JobListView({
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Department</Label>
-                      <Select
+                      <EditableSelect
                         value={form.department}
-                        onChange={e => setForm({ ...form, department: e.target.value })}
-                        className="mt-2 h-9 w-full rounded-md border border-input bg-secondary/50 px-3 text-sm shadow-xs"
-                      >
-                        <option value="Engineering">Engineering</option>
-                        <option value="Product">Product</option>
-                        <option value="Design">Design</option>
-                        <option value="Sales">Sales</option>
-                        <option value="Human Resources">Human Resources</option>
-                      </Select>
+                        onChange={v => setForm({ ...form, department: v })}
+                        options={org.departments}
+                        onAdd={v => org.add('departments', v)}
+                        placeholder="Select department"
+                        className="mt-2"
+                      />
                     </div>
                     <div>
                       <Label htmlFor="job-location" className="text-sm font-medium">

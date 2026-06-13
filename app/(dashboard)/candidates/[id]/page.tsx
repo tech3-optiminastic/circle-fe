@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft,
   Check,
   ChevronRight,
   ChevronDown,
@@ -34,9 +33,11 @@ import {
   Star,
   UserCheck,
   Download,
+  Pencil,
 } from 'lucide-react';
 import { CandidateStatus, HRCallRecord, Interview, ScheduleType, ScreeningReview, StageDecision, TestInvite } from '@/types';
 import { useCandidates, useCandidateMutations } from '@/features/candidates/hooks';
+import { EditCandidateDialog } from '@/components/EditCandidateDialog';
 import { useSchedules } from '@/features/schedule/hooks';
 import { useInterviews, useInterviewMutations } from '@/features/interviews/hooks';
 import { useIqTests } from '@/features/assessments/hooks';
@@ -141,6 +142,7 @@ export default function CandidateDetailPage() {
   const { move, update } = useCandidateMutations();
   const { grade: gradeInterview } = useInterviewMutations();
   const ensureOnboarding = useEnsureOnboarding();
+  const [editOpen, setEditOpen] = useState(false);
   const toast = useToast();
   const qc = useQueryClient();
 
@@ -1059,14 +1061,12 @@ export default function CandidateDetailPage() {
 
   return (
     <div className="space-y-5 text-xs">
-      {/* Back + header */}
-      <Link
-        href="/candidates"
-        className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 hover:text-accent-600"
-      >
-        <ArrowLeft size={13} /> Back to candidates
-      </Link>
-
+      <EditCandidateDialog
+        open={editOpen}
+        candidate={candidate}
+        onClose={() => setEditOpen(false)}
+        onSave={updated => update.mutate(updated)}
+      />
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[280px_minmax(0,1fr)_320px]">
         {/* LEFT — profile, contact, documents */}
         <aside className="space-y-4">
@@ -1110,6 +1110,13 @@ export default function CandidateDetailPage() {
                 <Mail size={16} />
               </a>
             </div>
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-[#E4E6EA] bg-[#FFFFFF] px-3 py-2 text-[12px] font-semibold text-gray-700 transition hover:border-accent-400 hover:text-accent-600"
+            >
+              <Pencil size={13} /> Edit candidate
+            </button>
           </div>
 
           {/* Contact details */}

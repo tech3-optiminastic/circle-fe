@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
-  ArrowLeft,
   Mail,
   Phone,
   MapPin,
@@ -36,6 +35,9 @@ import { useBgvs } from '@/features/candidates/hooks';
 import { useDocRequests } from '@/features/doc-requests/hooks';
 import { PageLoading } from '@/components/PageLoading';
 import { DocumentsPanel } from '@/components/DocumentsPanel';
+import { DatePicker } from '@/components/ui/date-picker';
+import { AvatarUploader } from '@/components/AvatarUploader';
+import { EditEmployeeDialog } from '@/components/EditEmployeeDialog';
 
 const PROBATION_MONTHS = 6;
 
@@ -65,6 +67,7 @@ export default function EmployeeDetailPage() {
   const { update } = useEmployeeMutations();
   const toast = useToast();
   const [tab, setTab] = useState<TabKey>('overview');
+  const [editOpen, setEditOpen] = useState(false);
 
   // HR-triggered resignation / notice period
   const [resignOpen, setResignOpen] = useState(false);
@@ -193,26 +196,41 @@ export default function EmployeeDetailPage() {
 
   return (
     <div className="space-y-5 text-xs">
-      <Link
-        href="/directory"
-        className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 hover:text-accent-600"
-      >
-        <ArrowLeft size={13} /> Back to directory
-      </Link>
-
+      <EditEmployeeDialog
+        open={editOpen}
+        employee={employee}
+        onClose={() => setEditOpen(false)}
+        onSave={updated => update.mutate(updated)}
+      />
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* MAIN */}
         <div className="space-y-5">
           {/* Profile card */}
           <div className="overflow-hidden rounded-2xl border border-[#E4E6EA] bg-[#FFFFFF] shadow-2xs">
-            <div className="h-24 bg-gradient-to-r from-accent-500 to-accent-700" />
+            <div
+              className="h-28 bg-[#EDE9E3] bg-cover bg-center"
+              style={{ backgroundImage: "url('/optiminastic-banner.png')" }}
+              role="img"
+              aria-label="Optiminastic"
+            />
             <div className="px-5">
               {/* Avatar overlaps the banner; quick actions on the right */}
               <div className="-mt-12 flex items-end justify-between gap-3">
-                <span className="grid size-24 shrink-0 place-items-center rounded-full bg-gradient-to-br from-purple-500 to-purple-700 text-2xl font-bold text-white ring-4 ring-[#FFFFFF]">
-                  {initials}
-                </span>
+                <AvatarUploader
+                  employeeId={employee.id}
+                  avatarUrl={employee.avatarUrl}
+                  initials={initials}
+                  size={96}
+                  onChange={url => update.mutate({ ...employee, avatarUrl: url })}
+                />
                 <div className="flex items-center gap-2 pb-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditOpen(true)}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E4E6EA] bg-[#FFFFFF] px-3 text-[12px] font-semibold text-gray-700 transition hover:border-accent-400 hover:text-accent-600"
+                  >
+                    <PenLine size={14} /> Edit
+                  </button>
                   <a
                     href={employee.email ? `mailto:${employee.email}` : undefined}
                     aria-label="Email"
@@ -632,12 +650,7 @@ export default function EmployeeDetailPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-semibold text-gray-700">Resignation date</label>
-                  <input
-                    type="date"
-                    value={resignDate}
-                    onChange={e => setResignDate(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-[#E4E6EA] bg-[#F7F8FA] px-2.5 py-1.5 font-mono text-xs"
-                  />
+                  <DatePicker value={resignDate} onChange={setResignDate} className="mt-1" />
                 </div>
                 <div>
                   <label className="font-semibold text-gray-700">Notice (days)</label>
