@@ -12,7 +12,6 @@ import {
   Search,
   Bell,
   CalendarRange,
-  Library,
   Check,
   MapPin,
   Briefcase,
@@ -249,19 +248,6 @@ export function Header({
             </Popover.Content>
           </Popover.Portal>
         </Popover.Root>
-
-        {/* Question library */}
-        <Link
-          href="/question-library"
-          aria-label="Question Library"
-          title="Question Library"
-          className={cn(
-            'rounded-md border border-[#E4E6EA] p-1.5 text-gray-500 transition hover:bg-accent hover:text-gray-700',
-            ui.focusRing,
-          )}
-        >
-          <Library size={14} />
-        </Link>
 
         {/* Active Profile */}
         <div className="border-l border-[#E4E6EA] pl-4">

@@ -9,7 +9,6 @@ import {
   type ScreeningItem,
 } from '@/lib/question-banks';
 import { Button } from '@/components/ui/button';
-import { Tip } from '@/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -36,7 +35,6 @@ import {
   Plus,
   X,
   Link2,
-  Check,
   ExternalLink,
   Trash2,
   Users,
@@ -50,7 +48,11 @@ import {
   Gauge,
   Wallet,
   Flag,
+  Play,
+  Pause,
+  PauseCircle,
 } from 'lucide-react';
+import { ActionMenu } from '@/components/ActionMenu';
 import {
   Table,
   THead,
@@ -197,6 +199,7 @@ export function JobListView({
     try {
       await navigator.clipboard.writeText(publicUrl(id));
       setCopiedId(id);
+      toast.success('Public application link copied.');
       setTimeout(() => setCopiedId(null), 2000);
     } catch {
       // Clipboard API can be unavailable on insecure origins.
@@ -601,86 +604,53 @@ export function JobListView({
                       </button>
                     </Td>
                     <Td align="right">
-                      <div className="flex items-center justify-end gap-1.5" onClick={e => e.stopPropagation()}>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="xs"
-                            onClick={e => {
-                              e.stopPropagation();
-                              copyLink(job.id);
-                            }}
-                            className="font-mono font-semibold"
-                            title="Copy public application link"
-                          >
-                            {copiedId === job.id ? (
-                              <>
-                                <Check size={11} className="text-emerald-600" /> Copied
-                              </>
-                            ) : (
-                              <>
-                                <Link2 size={11} /> Link
-                              </>
-                            )}
-                          </Button>
-                          <Button
-                            asChild
-                            variant="outline"
-                            size="xs"
-                            className="font-mono font-semibold"
-                            title="Open public posting"
-                          >
-                            <a
-                              href={publicUrl(job.id)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={e => e.stopPropagation()}
-                            >
-                              <ExternalLink size={11} /> View
-                            </a>
-                          </Button>
-                          <Tip label={job.status === 'Open' ? 'Active — click to pause' : 'Paused — click to activate'}>
-                            <button
-                              type="button"
-                              role="switch"
-                              aria-checked={job.status === 'Open'}
-                              aria-label={job.status === 'Open' ? 'Pause this posting' : 'Activate this posting'}
-                              onClick={e => {
-                                e.stopPropagation();
-                                onSetStatus(job.id, job.status === 'Open' ? 'Closed' : 'Open');
-                              }}
-                              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 ${
-                                job.status === 'Open' ? 'bg-accent-600' : 'bg-[#D7DAE0]'
-                              }`}
-                            >
-                              <span
-                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                                  job.status === 'Open' ? 'translate-x-[18px]' : 'translate-x-0.5'
-                                }`}
-                              />
-                            </button>
-                          </Tip>
-                          <Tip label="Delete posting">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-xs"
-                              onClick={e => {
-                                e.stopPropagation();
+                      <div className="flex justify-end" onClick={e => e.stopPropagation()}>
+                        <ActionMenu
+                          items={[
+                            {
+                              key: 'copy',
+                              label: copiedId === job.id ? 'Link copied' : 'Copy public link',
+                              icon: <Link2 size={14} />,
+                              onClick: () => copyLink(job.id),
+                            },
+                            {
+                              key: 'view',
+                              label: 'View posting',
+                              icon: <ExternalLink size={14} />,
+                              onClick: () =>
+                                window.open(publicUrl(job.id), '_blank', 'noopener,noreferrer'),
+                            },
+                            {
+                              key: 'toggle',
+                              label: job.status === 'Open' ? 'Close posting' : 'Activate posting',
+                              icon:
+                                job.status === 'Open' ? <Pause size={14} /> : <Play size={14} />,
+                              onClick: () =>
+                                onSetStatus(job.id, job.status === 'Open' ? 'Closed' : 'Open'),
+                            },
+                            {
+                              key: 'hold',
+                              label: job.status === 'On Hold' ? 'Resume posting' : 'Put on hold',
+                              icon: <PauseCircle size={14} />,
+                              onClick: () =>
+                                onSetStatus(job.id, job.status === 'On Hold' ? 'Open' : 'On Hold'),
+                            },
+                            {
+                              key: 'delete',
+                              label: 'Delete posting',
+                              icon: <Trash2 size={14} />,
+                              danger: true,
+                              onClick: () =>
                                 toast.confirm({
                                   title: `Delete "${job.title}"?`,
                                   description: 'This cannot be undone.',
                                   confirmLabel: 'Delete',
                                   onConfirm: () => onDeleteJob(job.id),
-                                });
-                              }}
-                              className="text-gray-500 hover:bg-red-50 hover:text-red-600"
-                              aria-label="Delete posting"
-                            >
-                              <Trash2 size={12} />
-                            </Button>
-                          </Tip>
-                        </div>
+                                }),
+                            },
+                          ]}
+                        />
+                      </div>
                     </Td>
                   </Tr>
                   );
