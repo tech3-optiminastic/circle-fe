@@ -48,18 +48,23 @@ import { repositories } from '@/lib/api/repositories';
 import { qk } from '@/lib/query/keys';
 import { effectiveFit, fitStyle } from '@/lib/screening';
 import { sendTestEmail, sendCustomEmail } from '@/lib/api/notifications';
+import { BRAND } from '@/lib/brand';
 import {
   ASSIGNMENT_MAX_MARKS,
   ASSIGNMENT_PASS_MARKS,
   IQ_DURATION_MIN,
-  ASSIGNMENT_DEADLINE_DAYS,
-  assignmentBriefFor,
 } from '@/data/test-banks';
 import { randomId, randomToken, nowISO } from '@/lib/utils';
 import { SendTestModal, SendTestResult } from '@/components/SendTestModal';
 import { useToast } from '@/components/Toaster';
 import { openDocument, useDocuments } from '@/features/documents/hooks';
 import { documentPreviewUrl } from '@/lib/api/documents';
+import {
+  loadInterviewBanks,
+  INTERVIEW_MODULES,
+  type InterviewBank,
+} from '@/lib/question-banks';
+import { encodeInterviewSheet } from '@/lib/interview-sheet';
 import { PageLoading } from '@/components/PageLoading';
 import { Tip } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
@@ -151,7 +156,14 @@ export default function CandidateDetailPage() {
   // Replay the stepper entrance animation each time the page (or candidate) loads.
   const [stepIn, setStepIn] = useState(false);
   // Right-side drawer used to fill in a stage's details from the candidate flow.
-  const [openForm, setOpenForm] = useState<null | 'screening' | 'hrcall' | 'grade' | 'feedback'>(null);
+  const [openForm, setOpenForm] = useState<
+    null | 'screening' | 'hrcall' | 'grade' | 'feedback' | 'decision' | 'ivpack'
+  >(null);
+  // "Send to interviewer" pack (Physical Interview): question bank + email.
+  const [ivpackBanks, setIvpackBanks] = useState<InterviewBank[]>([]);
+  const [ivpackBankId, setIvpackBankId] = useState('');
+  const [ivpackSubject, setIvpackSubject] = useState('');
+  const [ivpackBody, setIvpackBody] = useState('');
   const [sr, setSr] = useState<ScreeningReview>(blankScreening());
   const [hc, setHc] = useState<HRCallRecord>(blankHrCall());
   const [gradeScore, setGradeScore] = useState('');
@@ -162,6 +174,11 @@ export default function CandidateDetailPage() {
   const [fbInterview, setFbInterview] = useState<Interview | null>(null);
   const [fbRec, setFbRec] = useState('Hire');
   const [fbComments, setFbComments] = useState('');
+  // Final decision (Decision step): the HR summary + the editable outcome email.
+  const [decisionSummary, setDecisionSummary] = useState('');
+  const [decisionKind, setDecisionKind] = useState<'accept' | 'reject' | null>(null);
+  const [decisionSubject, setDecisionSubject] = useState('');
+  const [decisionBody, setDecisionBody] = useState('');
   // "Send IQ test" / "Send Assessment" modal — the invite id/link is generated up front.
   const [sendTest, setSendTest] = useState<{ kind: 'iq' | 'assignment'; id: string; url: string } | null>(
     null,
@@ -219,29 +236,18 @@ export default function CandidateDetailPage() {
         passed,
         gradeComments: notes,
       });
-      if (!passed) {
-        await repositories.candidates.patch(invite.candidateId, { status: 'Rejected' }).catch(() => {});
-        sendTestEmail({
-          to: invite.email,
-          candidateName: invite.candidateName,
-          template: 'assessment_failed',
-          position: invite.position,
-        }).catch(() => {});
-      }
+      // Record the evaluation only — HR decides next via Accept / On Hold / Reject.
       return { invite, passed };
     },
-    onSuccess: ({ invite, passed }) => {
+    onSuccess: ({ passed }) => {
       qc.invalidateQueries({ queryKey: qk.testInvites.all });
       qc.invalidateQueries({ queryKey: qk.candidates.all });
       setOpenForm(null);
       setGradeScore('');
       setGradeComments('');
-      if (passed) {
-        toast.success('Assignment cleared — schedule the interview.');
-        openSchedule(invite.candidateId, invite.candidateName, 'Interview');
-      } else {
-        toast.info('Candidate was not moved forward.');
-      }
+      toast.success(
+        `Grade saved (${passed ? 'pass' : 'fail'}) — now Accept, On Hold, or Reject the stage.`,
+      );
     },
     onError: () => toast.error('Could not save the grade — try again.'),
   });
@@ -295,6 +301,8 @@ export default function CandidateDetailPage() {
   const selected = candidate.status === 'Selected';
   const decided = rejected || selected;
   const onHold = candidate.status === 'On Hold';
+  // The physical interview must be accepted by HR before the final Decision opens.
+  const physicalAccepted = candidate.stageDecisions?.['Physical Interview'] === 'Accepted';
 
   const stages = [
     { label: 'Applied', Icon: FileText, reached: true, done: true, desc: fmtDate(candidate.appliedDate) },
@@ -353,7 +361,7 @@ export default function CandidateDetailPage() {
     {
       label: 'Decision',
       Icon: Flag,
-      reached: decided || offerShortlisted,
+      reached: decided || offerShortlisted || physicalAccepted,
       done: decided,
       desc: selected
         ? 'Selected for role'
@@ -547,7 +555,8 @@ export default function CandidateDetailPage() {
     }
 
     if (label === 'Assessment') {
-      if (asgInvite)
+      const asgDoneNow = asgInvite && (asgInvite.status === 'Graded' || asgInvite.score != null);
+      if (asgInvite && asgDoneNow) {
         return (
           <div className="space-y-2.5">
             <KV k="Role" v={`${asgInvite.position} MCQ`} />
@@ -563,6 +572,7 @@ export default function CandidateDetailPage() {
             )}
           </div>
         );
+      }
       if (asgInvite)
         return (
           <div className="space-y-2.5">
@@ -628,7 +638,9 @@ export default function CandidateDetailPage() {
 
     if (label === 'Physical Interview') {
       if (!interviewReached) return empty('Schedule the interview first.');
-      if (!interviewConducted) return empty('Interview scheduled — feedback not recorded yet.');
+      const anyResponses = myInterviews.some(iv => iv.questionResponses?.length);
+      if (!interviewConducted && !anyResponses)
+        return empty('Interview scheduled — feedback not recorded yet.');
       return (
         <div className="space-y-2.5">
           {myInterviews.map(iv => (
@@ -645,6 +657,8 @@ export default function CandidateDetailPage() {
                   {iv.grading.interviewerComments}”
                 </p>
               )}
+              {/* The interviewer's per-question responses are reviewed in the
+                  "Review feedback" modal, so they're intentionally not repeated here. */}
             </div>
           ))}
         </div>
@@ -742,6 +756,108 @@ export default function CandidateDetailPage() {
     toast.info('Candidate marked as rejected.');
   };
 
+  // ---- Final decision (Decision step): open the outcome-email composer ----
+  const openDecision = (kind: 'accept' | 'reject') => {
+    const position = candidate.appliedRole || candidate.department || 'the role';
+    const summary = decisionSummary.trim();
+    setDecisionKind(kind);
+    if (kind === 'accept') {
+      setDecisionSubject(`Congratulations — ${position} at ${BRAND.name}`);
+      setDecisionBody(
+        [
+          `Dear ${candidate.fullName},`,
+          '',
+          `Congratulations! We are delighted to move forward with you for the ${position} role at ${BRAND.name}.`,
+          ...(summary ? ['', summary] : []),
+          '',
+          'Our team will be in touch shortly with the next steps.',
+          '',
+          'Warm regards,',
+          `${BRAND.name} HR Team`,
+        ].join('\n'),
+      );
+    } else {
+      const iqText = myIq[0]
+        ? `${myIq[0].correctAnswers}/${myIq[0].totalQuestions} (${myIq[0].scorePercentage}%)`
+        : '—';
+      const asgText = asgInvite?.score != null ? `${asgInvite.score}%` : '—';
+      setDecisionSubject(`Update on your application — ${position} at ${BRAND.name}`);
+      setDecisionBody(
+        [
+          `Dear ${candidate.fullName},`,
+          '',
+          `Thank you for your time interviewing for the ${position} role at ${BRAND.name}.`,
+          '',
+          'After careful review, we have decided not to move forward at this stage. A summary of your evaluation:',
+          '',
+          `• IQ test: ${iqText}`,
+          `• Assessment: ${asgText}`,
+          ...(summary ? ['', `Summary: ${summary}`] : []),
+          '',
+          'We genuinely appreciate your interest and wish you the very best.',
+          '',
+          'Regards,',
+          `${BRAND.name} HR Team`,
+        ].join('\n'),
+      );
+    }
+    setOpenForm('decision');
+  };
+
+  const submitDecision = async () => {
+    if (!decisionKind) return;
+    const isAccept = decisionKind === 'accept';
+    const status: CandidateStatus = isAccept ? 'Selected' : 'Rejected';
+    update.mutate({
+      ...candidate,
+      status,
+      stageDecisions: {
+        ...(candidate.stageDecisions ?? {}),
+        Decision: isAccept ? 'Accepted' : 'Rejected',
+      },
+      hrRemarks: decisionSummary.trim() || candidate.hrRemarks,
+    });
+    if (isAccept)
+      ensureOnboarding.mutate(candidate, {
+        onError: () => toast.error('Selected, but could not start onboarding — try again.'),
+      });
+    setOpenForm(null);
+    setDecisionKind(null);
+    if (!candidate.email) {
+      toast.info(
+        `Candidate ${isAccept ? 'selected' : 'rejected'} — no email on file, so none was sent.`,
+      );
+      return;
+    }
+    try {
+      const res = await sendCustomEmail({
+        to: candidate.email,
+        subject: decisionSubject,
+        body: decisionBody,
+      });
+      repositories.sentEmails
+        .create({
+          id: randomId('EML'),
+          recipientName: candidate.fullName,
+          recipientEmail: candidate.email,
+          templateTitle: isAccept ? 'Offer / Congratulations' : 'Rejection',
+          subject: decisionSubject,
+          dateSent: nowISO(),
+          status: res.sent ? 'Sent' : 'Failed',
+          relatedEntity: candidate.fullName,
+        })
+        .then(() => qc.invalidateQueries({ queryKey: qk.sentEmails.all }))
+        .catch(() => {});
+      toast.success(
+        res.sent
+          ? `Candidate ${isAccept ? 'selected' : 'rejected'} — email sent.`
+          : `Candidate ${isAccept ? 'selected' : 'rejected'} — email could not be sent.`,
+      );
+    } catch {
+      toast.error(`Candidate ${isAccept ? 'selected' : 'rejected'}, but sending the email failed.`);
+    }
+  };
+
   // ---- per-stage Accept / On Hold / Reject gate ----
   const decisionOf = (label: string): StageDecision | undefined => candidate.stageDecisions?.[label];
 
@@ -780,7 +896,7 @@ export default function CandidateDetailPage() {
   // ---- Send IQ test / Send Assessment (manual, editable email) ----
   const openSendTest = (kind: 'iq' | 'assignment') => {
     const id = randomToken('TIV');
-    const path = kind === 'iq' ? 'test' : 'assignment';
+    const path = kind === 'iq' ? 'test' : 'assessment';
     const url = `${window.location.origin}/${path}/${id}`;
     setSendTest({ kind, id, url });
   };
@@ -800,12 +916,9 @@ export default function CandidateDetailPage() {
       jobId: candidate.jobId,
       durationMin: kind === 'iq' ? IQ_DURATION_MIN : 0,
       status: 'Pending',
-      ...(kind === 'assignment'
-        ? {
-            instructions: assignmentBriefFor(position, candidate.department),
-            deadlineIso: new Date(Date.now() + ASSIGNMENT_DEADLINE_DAYS * 86_400_000).toISOString(),
-          }
-        : {}),
+      // Assessment carries Question-Library questions the candidate answers on the
+      // public assessment link (auto-scored), not a take-home upload.
+      ...(kind === 'assignment' && r.questions ? { assessmentQuestions: r.questions } : {}),
       createdAt: nowISO(),
     };
     setSendTest(null);
@@ -819,7 +932,12 @@ export default function CandidateDetailPage() {
 
     const label = kind === 'iq' ? 'IQ test' : 'Assessment';
     try {
-      const res = await sendCustomEmail({ to: r.to, subject: r.subject, body: r.body });
+      const res = await sendCustomEmail({
+        to: r.to,
+        subject: r.subject,
+        body: r.body,
+        links: r.links,
+      });
       repositories.sentEmails
         .create({
           id: randomId('EML'),
@@ -901,6 +1019,106 @@ export default function CandidateDetailPage() {
 
   const latestInterview = myInterviews[myInterviews.length - 1];
 
+  // ---- Physical Interview: send the resume + question pack to the interviewer ----
+  const openIvPack = () => {
+    const position = candidate.appliedRole || candidate.department || 'the role';
+    const banks = loadInterviewBanks();
+    setIvpackBanks(banks);
+    const match = banks.find(
+      b => b.roleName.trim().toLowerCase() === position.trim().toLowerCase(),
+    );
+    setIvpackBankId(match?.id ?? '');
+    setIvpackSubject(`Interview pack: ${candidate.fullName} — ${position}`);
+    setIvpackBody(
+      [
+        `Hi ${latestInterview?.interviewerName || 'there'},`,
+        '',
+        `Here is the interview pack for your upcoming interview with ${candidate.fullName} for the ${position} role.`,
+        '',
+        `Candidate: ${candidate.fullName}`,
+        `Role: ${position} (${candidate.department})`,
+        `Experience: ${candidate.totalExperienceYears} yrs total`,
+        '',
+        'The candidate resume and the interview questions are linked below. Please rate each question 1–5 (or NA) and add your recommendation.',
+        '',
+        'Best regards,',
+        `${BRAND.name} HR Team`,
+      ].join('\n'),
+    );
+    setOpenForm('ivpack');
+  };
+
+  const submitIvPack = async () => {
+    if (!latestInterview?.interviewerEmail) {
+      toast.error('No interviewer email on file for this interview.');
+      return;
+    }
+    const position = candidate.appliedRole || candidate.department || 'the role';
+    const bank = ivpackBanks.find(b => b.id === ivpackBankId);
+    if (!bank) {
+      toast.error('Please select an interview question set.');
+      return;
+    }
+    const questions = INTERVIEW_MODULES.flatMap(m =>
+      (bank.modules[m] ?? [])
+        .filter(it => it.text.trim())
+        .map(it => ({ text: it.text.trim(), options: [] as string[], module: m })),
+    );
+    const resumeUrl = resumeDoc ? documentPreviewUrl(resumeDoc.id) : '';
+    const encoded = encodeInterviewSheet({
+      interviewId: latestInterview.id,
+      candidateName: candidate.fullName,
+      role: position,
+      department: candidate.department,
+      experienceYears: candidate.totalExperienceYears,
+      relevantExperienceYears: candidate.relevantExperienceYears,
+      email: candidate.email,
+      phone: candidate.phone,
+      currentCompany: candidate.currentCompany,
+      currentDesignation: candidate.currentDesignation,
+      resumeUrl,
+      interviewerName: latestInterview.interviewerName,
+      whenIso: latestInterview.dateTime,
+      mode: latestInterview.interviewType,
+      roleLabel: bank.roleName,
+      questions,
+    });
+    const sheetUrl = `${window.location.origin}/interview-sheet?d=${encodeURIComponent(encoded)}`;
+    const links = [
+      ...(resumeUrl ? [{ label: 'View candidate resume', url: resumeUrl }] : []),
+      { label: 'Open interview questions', url: sheetUrl },
+    ];
+    setOpenForm(null);
+    try {
+      const res = await sendCustomEmail({
+        to: latestInterview.interviewerEmail,
+        subject: ivpackSubject,
+        body: ivpackBody,
+        links,
+      });
+      repositories.sentEmails
+        .create({
+          id: randomId('EML'),
+          recipientName: latestInterview.interviewerName || 'Interviewer',
+          recipientEmail: latestInterview.interviewerEmail,
+          templateTitle: 'Interview pack',
+          subject: ivpackSubject,
+          dateSent: nowISO(),
+          status: res.sent ? 'Sent' : 'Failed',
+          relatedEntity: candidate.fullName,
+        })
+        .then(() => qc.invalidateQueries({ queryKey: qk.sentEmails.all }))
+        .catch(() => {});
+      toast.success(
+        res.sent
+          ? 'Interview pack sent to the interviewer.'
+          : 'Pack created — email could not be sent.',
+      );
+    } catch {
+      toast.error('Could not send the interview pack — try again.');
+    }
+  };
+
   // Future, still-open interviews — surfaced in the "Upcoming interviews" card.
   const upcomingInterviews = myInterviews
     .filter(iv => iv.status !== 'Cancelled' && iv.status !== 'Completed')
@@ -934,20 +1152,43 @@ export default function CandidateDetailPage() {
         </Button>,
       );
 
-    if (label === 'IQ Test' && !iqReached)
-      btns.push(
-        <Button key="sendiq" size="sm" onClick={() => openSendTest('iq')}>
-          <Send size={13} /> Send IQ test
-        </Button>,
-      );
-
-    if (label === 'Assessment') {
-      if (!asgReached)
+    if (label === 'IQ Test') {
+      const iqPassed = myIq[0]?.qualificationStatus === 'Passed';
+      if (!iqReached)
         btns.push(
-          <Button key="sendasm" size="sm" onClick={() => openSendTest('assignment')}>
-            <Send size={13} /> Send Assessment
+          <Button key="sendiq" size="sm" onClick={() => openSendTest('iq')}>
+            <Send size={13} /> Send IQ test
           </Button>,
         );
+      // Failed, disqualified, or any other issue — re-assign a fresh link.
+      else if (!iqPassed)
+        btns.push(
+          <Button key="resendiq" size="sm" variant="outline" onClick={() => openSendTest('iq')}>
+            <Send size={13} /> Re-assign IQ test
+          </Button>,
+        );
+    }
+
+    if (label === 'Assessment') {
+      // The assessment can only be assigned once HR has accepted (passed) the IQ test.
+      const iqAccepted = decisionOf('IQ Test') === 'Accepted';
+      if (!asgReached) {
+        if (iqAccepted)
+          btns.push(
+            <Button key="sendasm" size="sm" onClick={() => openSendTest('assignment')}>
+              <Send size={13} /> Send Assessment
+            </Button>,
+          );
+        else
+          btns.push(
+            <span
+              key="asmlock"
+              className="inline-flex items-center rounded-md bg-[#EDEEF1] px-2.5 py-1.5 text-[11px] font-medium text-gray-500"
+            >
+              Accept the IQ test result first to assign the assessment.
+            </span>,
+          );
+      }
       if (asgInvite?.status === 'Submitted')
         btns.push(
           <Button key="grade" size="sm" onClick={openGrade}>
@@ -960,6 +1201,23 @@ export default function CandidateDetailPage() {
             <CheckCircle2 size={13} /> Review grade
           </Button>,
         );
+      // Failed or hasn't completed it (any issue) — re-assign a fresh link.
+      if (
+        asgReached &&
+        asgInvite &&
+        asgInvite.status !== 'Submitted' &&
+        !(asgInvite.status === 'Graded' && asgInvite.passed)
+      )
+        btns.push(
+          <Button
+            key="resendasm"
+            size="sm"
+            variant="outline"
+            onClick={() => openSendTest('assignment')}
+          >
+            <Send size={13} /> Re-assign Assessment
+          </Button>,
+        );
     }
 
     if (label === 'Interview Schedule') {
@@ -967,40 +1225,79 @@ export default function CandidateDetailPage() {
     }
 
     if (label === 'Physical Interview') {
+      // The interviewer has answered once their question responses come back.
+      // Responses can only arrive after the pack was emailed, so this single
+      // flag gates both buttons: send is open until then, review opens after.
+      const ivResponded = !!latestInterview?.questionResponses?.length;
+      // Send the resume + interview-question pack to the assigned interviewer.
+      // Locked once their responses are in — no re-sending after that.
+      if (latestInterview?.interviewerEmail)
+        btns.push(
+          <Button key="ivpack" size="sm" onClick={openIvPack} disabled={ivResponded}>
+            <Send size={13} /> Send to interviewer
+          </Button>,
+        );
+      // Reviewing feedback stays disabled until the interviewer has submitted
+      // their responses; then it opens the feedback modal (which shows them).
       if (latestInterview)
         btns.push(
-          <Button key="fb" size="sm" variant="outline" onClick={() => openFeedback(latestInterview)}>
-            <MessageSquarePlus size={13} /> {latestInterview.grading ? 'Edit feedback' : 'Add feedback'}
+          <Button
+            key="fb"
+            size="sm"
+            variant="outline"
+            onClick={() => openFeedback(latestInterview)}
+            disabled={!ivResponded}
+          >
+            <MessageSquarePlus size={13} /> Review feedback
           </Button>,
         );
-      if (latestInterview && !decided)
-        btns.push(
-          <Button key="select" size="sm" onClick={selectForRole}>
-            <Award size={13} /> Select for role
-          </Button>,
-        );
+      // The pass/hold/reject decision is taken via the header gate (below), then
+      // the final outcome + email happens on the Decision step.
     }
 
-    if (label === 'Decision' && !decided) {
-      // Reached only once shortlisted — let HR finalize the offer or step back.
-      if (!offerShortlisted && interviewDone)
-        btns.push(
-          <Button key="d-shortlist" size="sm" onClick={shortlistForOffer}>
-            <UserCheck size={13} /> Shortlist for offer
-          </Button>,
-        );
-      if (offerShortlisted) {
-        btns.push(
-          <Button key="d-select" size="sm" onClick={selectForRole}>
-            <Award size={13} /> Select for role
-          </Button>,
-        );
-        btns.push(
-          <Button key="d-reject" size="sm" variant="outline" onClick={rejectCandidate}>
-            <ThumbsDown size={13} /> Reject
-          </Button>,
-        );
-      }
+    // Final decision: a summary textarea + Accept / On Hold / Reject. Accept and
+    // Reject open the outcome-email composer; the email carries the IQ/assessment
+    // scores and this summary.
+    if (label === 'Decision' && physicalAccepted && !decided) {
+      return (
+        <div className="mt-4 space-y-2.5 border-t border-[#ECEDF0] pt-3">
+          <div>
+            <Label className="text-[11px] font-medium text-gray-600">
+              Final decision about the candidate
+            </Label>
+            <Textarea
+              value={decisionSummary}
+              onChange={e => setDecisionSummary(e.target.value)}
+              placeholder="Overall summary / review — included in the outcome email…"
+              rows={3}
+              className="mt-1"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => openDecision('accept')}>
+              <Check size={13} /> Accept
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                move.mutate({ id: candidate.id, status: 'On Hold' });
+                toast.info('Candidate placed on hold.');
+              }}
+            >
+              <Pause size={13} /> On Hold
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-red-600 hover:bg-red-50 hover:text-red-600"
+              onClick={() => openDecision('reject')}
+            >
+              <ThumbsDown size={13} /> Reject
+            </Button>
+          </div>
+        </div>
+      );
     }
 
     if (!btns.length) return null;
@@ -1015,7 +1312,10 @@ export default function CandidateDetailPage() {
     const isCurrent = idx <= currentIndex && !decided;
     const showGate = isCurrent && ['Applied', 'Screening', 'HR Call'].includes(label);
     const showResultDecision =
-      isCurrent && ((label === 'IQ Test' && iqDone) || (label === 'Assessment' && asgDone));
+      isCurrent &&
+      ((label === 'IQ Test' && iqDone) ||
+        (label === 'Assessment' && asgDone) ||
+        (label === 'Physical Interview' && interviewConducted));
     const showNext = isCurrent && label === 'Interview Schedule' && interviewReached;
 
     if (showGate || showResultDecision)
@@ -1382,6 +1682,8 @@ export default function CandidateDetailPage() {
               {openForm === 'hrcall' && <Phone size={15} className="text-accent-600" />}
               {openForm === 'grade' && <Star size={15} className="text-accent-600" />}
               {openForm === 'feedback' && <MessageSquarePlus size={15} className="text-accent-600" />}
+              {openForm === 'decision' && <Flag size={15} className="text-accent-600" />}
+              {openForm === 'ivpack' && <Send size={15} className="text-accent-600" />}
               {openForm === 'screening'
                 ? 'Screening review'
                 : openForm === 'hrcall'
@@ -1390,7 +1692,13 @@ export default function CandidateDetailPage() {
                     ? 'Grade assignment'
                     : openForm === 'feedback'
                       ? `Interview feedback${fbInterview ? ` — ${fbInterview.interviewRound}` : ''}`
-                      : ''}
+                      : openForm === 'decision'
+                        ? decisionKind === 'accept'
+                          ? 'Send congratulations email'
+                          : 'Send rejection email'
+                        : openForm === 'ivpack'
+                          ? 'Send pack to interviewer'
+                          : ''}
             </SheetTitle>
             <SheetDescription>
               {candidate.fullName} · {candidate.appliedRole}
@@ -1635,6 +1943,60 @@ export default function CandidateDetailPage() {
                     <Download size={14} /> {asgInvite.submissionFileName ?? 'Download submission'}
                   </button>
                 )}
+
+                {/* Candidate's MCQ answers — selected option marked, correct in green */}
+                {asgInvite?.assessmentQuestions && asgInvite.assessmentQuestions.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Candidate&apos;s answers</Label>
+                    <div className="space-y-2.5">
+                      {asgInvite.assessmentQuestions.map((q, i) => {
+                        const sel = asgInvite.answers?.[String(i)];
+                        return (
+                          <div key={i} className="rounded-lg border border-border bg-secondary/30 p-3">
+                            <p className="text-[13px] font-semibold text-gray-800">
+                              {i + 1}. {q.text}
+                            </p>
+                            <div className="mt-2 space-y-1.5">
+                              {q.options.map((opt, oi) => {
+                                const isSel = sel === oi;
+                                const isCorrect = q.answer === oi;
+                                return (
+                                  <div
+                                    key={oi}
+                                    className={`flex items-center gap-2 rounded-md px-2 py-1 text-[12px] ${
+                                      isCorrect
+                                        ? 'bg-emerald-50 font-semibold text-emerald-700'
+                                        : isSel
+                                          ? 'bg-red-50 text-red-600'
+                                          : 'text-gray-600'
+                                    }`}
+                                  >
+                                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white font-mono text-[10px] font-bold">
+                                      {String.fromCharCode(65 + oi)}
+                                    </span>
+                                    <span className="flex-1">{opt}</span>
+                                    {isSel && (
+                                      <span className="rounded-full bg-accent-50 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-accent-600">
+                                        Candidate
+                                      </span>
+                                    )}
+                                    {isCorrect && (
+                                      <CheckCircle2 size={13} className="text-emerald-600" />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              {sel == null && (
+                                <p className="text-[11px] text-gray-400">No answer recorded.</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <Label htmlFor="grade-score" className="text-sm font-medium">
                     Score (out of {ASSIGNMENT_MAX_MARKS}) — pass ≥ {ASSIGNMENT_PASS_MARKS}
@@ -1664,8 +2026,8 @@ export default function CandidateDetailPage() {
                   />
                 </div>
                 <p className="text-[11px] text-gray-500">
-                  A pass schedules the interview and notifies the candidate. A fail marks them not
-                  selected and sends the outcome email.
+                  Saving records the score &amp; comments only. Then Accept (pass), On Hold, or
+                  Reject the stage to decide how the candidate moves forward.
                 </p>
               </>
             )}
@@ -1673,6 +2035,49 @@ export default function CandidateDetailPage() {
             {/* Interview feedback form */}
             {openForm === 'feedback' && (
               <>
+                {fbInterview?.questionResponses && fbInterview.questionResponses.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Interviewer&apos;s responses</Label>
+                    <div className="space-y-2.5">
+                      {fbInterview.questionResponses.map((r, i) => {
+                        // Star-rated questions have no options; selected is "1".."5" or "NA".
+                        // MCQ questions carry options; selected is the chosen option text.
+                        const isRating = (r.options?.length ?? 0) === 0;
+                        const isNA = r.selected === 'NA' || r.selected === 'na';
+                        return (
+                          <div key={i} className="rounded-lg border border-border bg-secondary/30 p-3">
+                            <p className="text-[13px] font-semibold text-gray-800">
+                              {i + 1}. {r.text}
+                            </p>
+                            <p className="mt-1 text-[12px]">
+                              {r.selected ? (
+                                isNA ? (
+                                  <span className="font-medium text-amber-600">Rated: NA</span>
+                                ) : isRating ? (
+                                  <span className="font-medium text-emerald-700">
+                                    Rated: {r.selected} / 5
+                                  </span>
+                                ) : (
+                                  <span className="font-medium text-emerald-700">
+                                    Answered: {r.selected}
+                                  </span>
+                                )
+                              ) : (
+                                <span className="text-gray-400">No answer recorded</span>
+                              )}
+                            </p>
+                            {r.note && (
+                              <p className="mt-1 text-[12px] text-gray-600">
+                                <span className="font-medium text-gray-500">Comment: </span>
+                                {r.note}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="fb-rec" className="text-sm font-medium">
                     Recommendation
@@ -1705,6 +2110,112 @@ export default function CandidateDetailPage() {
                 </div>
               </>
             )}
+
+            {/* Final-decision outcome email (Accept = congrats, Reject = rejection) */}
+            {openForm === 'decision' && (
+              <>
+                <p
+                  className={`rounded-lg px-3 py-2 text-[12px] font-medium ${
+                    decisionKind === 'accept'
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'bg-red-50 text-red-600'
+                  }`}
+                >
+                  {decisionKind === 'accept'
+                    ? 'Accepting marks the candidate Selected and emails this congratulations note.'
+                    : 'Rejecting marks the candidate Rejected and emails this note (with their IQ & assessment scores).'}
+                </p>
+                <div>
+                  <Label htmlFor="dec-subject" className="text-sm font-medium">
+                    Subject
+                  </Label>
+                  <Input
+                    id="dec-subject"
+                    value={decisionSubject}
+                    onChange={e => setDecisionSubject(e.target.value)}
+                    className="mt-2"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="dec-body" className="text-sm font-medium">
+                    Message
+                  </Label>
+                  <Textarea
+                    id="dec-body"
+                    value={decisionBody}
+                    onChange={e => setDecisionBody(e.target.value)}
+                    rows={12}
+                    className="mt-2 font-mono text-[12px] leading-relaxed"
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Send resume + interview questions to the interviewer */}
+            {openForm === 'ivpack' && (
+              <>
+                <p className="rounded-lg bg-accent-50 px-3 py-2 text-[12px] text-accent-700">
+                  Sends to {latestInterview?.interviewerName || 'the interviewer'}
+                  {latestInterview?.interviewerEmail ? ` (${latestInterview.interviewerEmail})` : ''}{' '}
+                  with the candidate&apos;s resume and the selected interview questions attached as
+                  links.
+                </p>
+                <div>
+                  <Label htmlFor="ivp-bank" className="text-sm font-medium">
+                    Interview question set
+                  </Label>
+                  {ivpackBanks.length === 0 ? (
+                    <p className="mt-2 rounded-md border border-dashed border-border bg-secondary/20 px-3 py-2 text-[12px] text-gray-500">
+                      No interview question sets found. Create one in Question Library → Interview
+                      Questions.
+                    </p>
+                  ) : (
+                    <select
+                      id="ivp-bank"
+                      value={ivpackBankId}
+                      onChange={e => setIvpackBankId(e.target.value)}
+                      className={SELECT_CLS}
+                    >
+                      <option value="">Select a set…</option>
+                      {ivpackBanks.map(b => {
+                        const n = INTERVIEW_MODULES.reduce(
+                          (acc, m) => acc + (b.modules[m]?.length ?? 0),
+                          0,
+                        );
+                        return (
+                          <option key={b.id} value={b.id}>
+                            {b.roleName} ({n} question{n === 1 ? '' : 's'})
+                          </option>
+                        );
+                      })}
+                    </select>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="ivp-subject" className="text-sm font-medium">
+                    Subject
+                  </Label>
+                  <Input
+                    id="ivp-subject"
+                    value={ivpackSubject}
+                    onChange={e => setIvpackSubject(e.target.value)}
+                    className="mt-2"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="ivp-body" className="text-sm font-medium">
+                    Message
+                  </Label>
+                  <Textarea
+                    id="ivp-body"
+                    value={ivpackBody}
+                    onChange={e => setIvpackBody(e.target.value)}
+                    rows={10}
+                    className="mt-2 font-mono text-[12px] leading-relaxed"
+                  />
+                </div>
+              </>
+            )}
           </SheetBody>
 
           <SheetFooter className="justify-end">
@@ -1729,6 +2240,17 @@ export default function CandidateDetailPage() {
             {openForm === 'feedback' && (
               <Button onClick={submitFeedback} disabled={gradeInterview.isPending}>
                 Save feedback
+              </Button>
+            )}
+            {openForm === 'decision' && (
+              <Button onClick={submitDecision} disabled={update.isPending}>
+                <Mail size={14} />{' '}
+                {decisionKind === 'accept' ? 'Select & send email' : 'Reject & send email'}
+              </Button>
+            )}
+            {openForm === 'ivpack' && (
+              <Button onClick={submitIvPack} disabled={!ivpackBankId}>
+                <Send size={14} /> Send to interviewer
               </Button>
             )}
           </SheetFooter>

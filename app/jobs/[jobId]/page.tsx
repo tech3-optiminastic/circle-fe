@@ -272,27 +272,15 @@ export default function PublicJobPage() {
     .filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-[#F1F3F5]">
-      {/* Top bar */}
-      <header className="sticky top-0 z-20 bg-[#FFFFFF]/90 backdrop-blur border-b border-[#E4E6EA]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-2.5">
-          <a
-            href={BRAND.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2.5 transition hover:opacity-80"
-            title="Optiminastic"
-          >
-            <Logo size={26} />
-            <div>
-              <h1 className="text-sm font-bold text-gray-900 tracking-tight font-display leading-none">
-                {BRAND.name}
-              </h1>
-              <p className="text-[10px] text-gray-500 uppercase font-mono font-semibold tracking-wider">
-                Careers
-              </p>
-            </div>
-          </a>
+    <div className="min-h-screen bg-[#FFFFFF]">
+      {/* Minimal top bar */}
+      <header className="sticky top-0 z-20 border-b border-[#EDEEF1] bg-[#FFFFFF]/90 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-2xl items-center gap-2.5 px-5">
+          <Logo size={24} />
+          <span className="font-display text-sm font-bold tracking-tight text-gray-900">{BRAND.name}</span>
+          <span className="ml-auto font-mono text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            Careers
+          </span>
         </div>
       </header>
 
@@ -668,17 +656,8 @@ export default function PublicJobPage() {
         </section>
       </main>
 
-      <footer className="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex justify-center">
-        <a
-          href={BRAND.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-[12px] font-semibold text-gray-600 transition hover:opacity-80"
-          title="Optiminastic"
-        >
-          <Logo size={20} />
-          {BRAND.name}
-        </a>
+      <footer className="mx-auto max-w-2xl border-t border-[#EDEEF1] px-5 py-8 text-center text-[11px] text-gray-400">
+        {BRAND.name} · Careers
       </footer>
     </div>
   );

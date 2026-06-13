@@ -23,7 +23,7 @@ export interface InterviewSheetPayload {
   whenIso?: string;
   mode?: string;
   roleLabel?: string;
-  questions: { text: string; options: string[] }[];
+  questions: { text: string; options: string[]; module?: string }[];
 }
 
 /** Base64-encode the payload (unicode-safe) for use as a URL query value. */

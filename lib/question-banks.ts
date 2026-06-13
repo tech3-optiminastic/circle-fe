@@ -101,6 +101,70 @@ export const blankScreeningItem = (id: string): ScreeningItem => ({
   options: ['', ''],
 });
 
+// ---------------------------------------------------------------------------
+// Interview banks — per role, questions grouped into 5 fixed competency
+// modules. Each question is rated 1–5 stars (or NA) by the interviewer.
+// ---------------------------------------------------------------------------
+
+export const INTERVIEW_MODULES = [
+  'Problem Solving',
+  'Technical',
+  'Communication',
+  'Cultural',
+  'Interpersonal',
+] as const;
+export type InterviewModule = (typeof INTERVIEW_MODULES)[number];
+
+export interface InterviewItem {
+  id: string;
+  text: string;
+}
+
+export interface InterviewBank {
+  id: string;
+  /** Role name HR types in manually. */
+  roleName: string;
+  modules: Record<InterviewModule, InterviewItem[]>;
+}
+
+const INTERVIEW_KEY = 'curcle:interview-modules';
+
+export function emptyInterviewModules(): Record<InterviewModule, InterviewItem[]> {
+  return {
+    'Problem Solving': [],
+    Technical: [],
+    Communication: [],
+    Cultural: [],
+    Interpersonal: [],
+  };
+}
+
+export function loadInterviewBanks(): InterviewBank[] {
+  try {
+    const raw = localStorage.getItem(INTERVIEW_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((b: Partial<InterviewBank> & { jobTitle?: string }) => ({
+      id: String(b.id),
+      roleName: b.roleName ?? b.jobTitle ?? '',
+      modules: { ...emptyInterviewModules(), ...(b.modules ?? {}) },
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export function saveInterviewBanks(banks: InterviewBank[]): void {
+  try {
+    localStorage.setItem(INTERVIEW_KEY, JSON.stringify(banks));
+  } catch {
+    /* ignore quota / serialization errors */
+  }
+}
+
+export const blankInterviewItem = (id: string): InterviewItem => ({ id, text: '' });
+
 /** Backfill older saved items (pre-options) so they always have 2–4 options. */
 export const normalizeScreeningItem = (it: ScreeningItem): ScreeningItem => {
   const options = Array.isArray(it.options) ? [...it.options] : [];

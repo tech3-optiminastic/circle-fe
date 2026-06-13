@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Candidate, Interview } from '@/types';
 import { useInterviews } from '@/features/interviews/hooks';
@@ -9,8 +9,6 @@ import { repositories } from '@/lib/api/repositories';
 import { qk } from '@/lib/query/keys';
 import { sendCustomEmail } from '@/lib/api/notifications';
 import { pushCalendarEvent } from '@/lib/api/calendar';
-import { listDocuments, documentPreviewUrl } from '@/lib/api/documents';
-import { encodeInterviewSheet } from '@/lib/interview-sheet';
 import { BRAND } from '@/lib/brand';
 import { HR_EMAIL } from '@/lib/config';
 import { randomId, nowISO } from '@/lib/utils';
@@ -31,7 +29,26 @@ export function InterviewScheduleProvider({ children }: { children: React.ReactN
   const toast = useToast();
   const qc = useQueryClient();
   const [pending, setPending] = useState<Candidate | null>(null);
+  // True while the candidate invitation is in flight — locks the modal open.
+  const [sending, setSending] = useState(false);
+  // The interview already created for the open modal. A retry after a failed
+  // email reuses this so we re-send only — never duplicating the interview
+  // record or the calendar event.
+  const sessionRef = useRef<{
+    candidateId: string;
+    id: string;
+    position: string;
+    eventFields: Record<string, unknown>;
+    meetLink?: string | null;
+    googleEventId?: string | null;
+  } | null>(null);
   const { data: interviews = [] } = useInterviews();
+
+  const closeModal = () => {
+    setPending(null);
+    setSending(false);
+    sessionRef.current = null;
+  };
 
   // Existing interview windows — used to block double-booking the same slot.
   const busyInterviews: BusyInterview[] = useMemo(() => {
@@ -67,106 +84,119 @@ export function InterviewScheduleProvider({ children }: { children: React.ReactN
   };
 
   const confirm = async (input: InterviewScheduleResult) => {
-    if (!pending) return;
+    if (!pending || sending) return;
     const c = pending;
-    const id = randomId('INT');
-
-    const interview: Interview = {
-      id,
-      candidateId: c.id,
-      candidateName: c.fullName,
-      appliedRole: c.appliedRole,
-      department: c.department,
-      interviewRound: input.type === 'Online' ? 'Online' : 'Onsite',
-      interviewerName: input.interviewerName || 'To be assigned',
-      interviewerEmail: input.interviewerEmail,
-      dateTime: input.dateTimeIso,
-      meetingMode: input.type === 'Online' ? 'Google Meet' : 'In-Person',
-      meetingLink: input.type === 'Online' ? input.location : '',
-      location: input.location,
-      interviewType: input.type,
-      candidateEmail: c.email,
-      candidatePhone: c.phone,
-      additionalNotes: input.notes,
-      durationMinutes: input.durationMin,
-      status: 'Scheduled',
-      emailStatus: 'Not Sent',
-      createdAt: nowISO(),
-    };
-
-    // 1) Persist the interview record (drives the timeline + Upcoming Interviews).
-    try {
-      await repositories.interviews.create(interview);
-    } catch {
-      toast.error('Could not save the interview — please try again.');
-      return;
-    }
-    qc.invalidateQueries({ queryKey: qk.interviews.all });
-    setPending(null);
+    setSending(true);
 
     const position = c.appliedRole || c.department || 'the role';
 
-    // Calendar invite (.ics) details shared by every recipient. The HR account is
-    // the organizer, so the event also lands on the HR calendar; candidate +
-    // interviewer + HR are attendees and get it on theirs via the invitation.
-    const attendees = [c.email, input.interviewerEmail, HR_EMAIL].filter(
-      (e): e is string => !!e && e.trim().length > 0,
-    );
-    const eventDescription = [
-      `Candidate: ${c.fullName}`,
-      `Role applied: ${position} (${c.department})`,
-      `Experience: ${c.totalExperienceYears} yrs total · ${c.relevantExperienceYears} yrs relevant`,
-      `Email: ${c.email || '—'}`,
-      `Phone: ${c.phone || '—'}`,
-      `Interviewer: ${input.interviewerName || '—'}`,
-      `Mode: ${input.type}`,
-      input.notes ? `Notes: ${input.notes}` : '',
-    ]
-      .filter(Boolean)
-      .join('\n');
-    // 2) Create the event on the connected HR Google Calendar. Google emails its
-    // own invite to the attendees (candidate + interviewer + HR) via
-    // sendUpdates=all, and the event shows on the HR calendar embedded on the
-    // Calendar page. No-op (returns pushed:false) if Google isn't connected.
-    let pushed = false;
-    let meetLink: string | null | undefined;
-    let googleEventId: string | null | undefined;
-    try {
-      const res = await pushCalendarEvent({
-        appEventId: id,
-        type: 'Interview',
-        title: `Interview - ${c.fullName} - ${position}`,
-        dateTimeIso: input.dateTimeIso,
-        durationMin: input.durationMin,
+    // 1) Create the interview record + calendar event ONCE per modal session.
+    // A retry after a failed email reuses the stored session, so re-sending the
+    // invitation never duplicates the interview record or the calendar event.
+    let session = sessionRef.current;
+    if (!session || session.candidateId !== c.id) {
+      const id = randomId('INT');
+
+      const interview: Interview = {
+        id,
+        candidateId: c.id,
+        candidateName: c.fullName,
+        appliedRole: c.appliedRole,
+        department: c.department,
+        interviewRound: input.type === 'Online' ? 'Online' : 'Onsite',
+        interviewerName: input.interviewerName || 'To be assigned',
+        interviewerEmail: input.interviewerEmail,
+        dateTime: input.dateTimeIso,
+        meetingMode: input.type === 'Online' ? 'Google Meet' : 'In-Person',
+        meetingLink: input.type === 'Online' ? input.location : '',
         location: input.location,
-        attendees,
-        notes: eventDescription,
-      });
-      pushed = res.pushed;
-      meetLink = res.meetLink;
-      googleEventId = res.googleEventId;
-    } catch {
-      /* calendar sync is best-effort */
+        interviewType: input.type,
+        candidateEmail: c.email,
+        candidatePhone: c.phone,
+        additionalNotes: input.notes,
+        durationMinutes: input.durationMin,
+        status: 'Scheduled',
+        emailStatus: 'Not Sent',
+        createdAt: nowISO(),
+      };
+
+      // Persist the interview record (drives the timeline + Upcoming Interviews).
+      try {
+        await repositories.interviews.create(interview);
+      } catch {
+        setSending(false);
+        toast.error('Could not save the interview — please try again.', { position: 'top-center' });
+        return;
+      }
+      qc.invalidateQueries({ queryKey: qk.interviews.all });
+
+      // Calendar invite (.ics) details shared by every recipient. The HR account is
+      // the organizer, so the event also lands on the HR calendar; candidate +
+      // interviewer + HR are attendees and get it on theirs via the invitation.
+      const attendees = [c.email, input.interviewerEmail, HR_EMAIL].filter(
+        (e): e is string => !!e && e.trim().length > 0,
+      );
+      const eventDescription = [
+        `Candidate: ${c.fullName}`,
+        `Role applied: ${position} (${c.department})`,
+        `Experience: ${c.totalExperienceYears} yrs total · ${c.relevantExperienceYears} yrs relevant`,
+        `Email: ${c.email || '—'}`,
+        `Phone: ${c.phone || '—'}`,
+        `Interviewer: ${input.interviewerName || '—'}`,
+        `Mode: ${input.type}`,
+        input.notes ? `Notes: ${input.notes}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+      // Create the event on the connected HR Google Calendar. Google emails its
+      // own invite to the attendees (candidate + interviewer + HR) via
+      // sendUpdates=all, and the event shows on the HR calendar embedded on the
+      // Calendar page. No-op (returns pushed:false) if Google isn't connected.
+      let pushed = false;
+      let meetLink: string | null | undefined;
+      let googleEventId: string | null | undefined;
+      try {
+        const res = await pushCalendarEvent({
+          appEventId: id,
+          type: 'Interview',
+          title: `Interview - ${c.fullName} - ${position}`,
+          dateTimeIso: input.dateTimeIso,
+          durationMin: input.durationMin,
+          location: input.location,
+          attendees,
+          notes: eventDescription,
+        });
+        pushed = res.pushed;
+        meetLink = res.meetLink;
+        googleEventId = res.googleEventId;
+      } catch {
+        /* calendar sync is best-effort */
+      }
+
+      // Attach an .ics invite to the emails only when Google did NOT create the
+      // event (e.g. the shared account isn't connected) — avoids duplicate entries.
+      const eventFields = pushed
+        ? {}
+        : {
+            eventStartIso: input.dateTimeIso,
+            eventDurationMin: input.durationMin,
+            eventSummary: `Interview - ${c.fullName} - ${position}`,
+            eventLocation: input.location,
+            eventDescription,
+            organizerEmail: HR_EMAIL,
+            organizerName: `${BRAND.name} HR`,
+            attendees,
+            eventUid: id,
+          };
+
+      session = { candidateId: c.id, id, position, eventFields, meetLink, googleEventId };
+      sessionRef.current = session;
     }
 
-    // Attach an .ics invite to the emails only when Google did NOT create the
-    // event (e.g. the shared account isn't connected) — avoids duplicate entries.
-    const eventFields = pushed
-      ? {}
-      : {
-          eventStartIso: input.dateTimeIso,
-          eventDurationMin: input.durationMin,
-          eventSummary: `Interview - ${c.fullName} - ${position}`,
-          eventLocation: input.location,
-          eventDescription,
-          organizerEmail: HR_EMAIL,
-          organizerName: `${BRAND.name} HR`,
-          attendees,
-          eventUid: id,
-        };
+    const { id, eventFields, meetLink, googleEventId } = session;
 
     // 2) Email the candidate the (possibly edited) invitation, with the calendar
-    // invite attached and HR cc'd. Log delivery status.
+    // invite attached and HR cc'd. This is the step the modal is gated on.
     let emailStatus: Interview['emailStatus'] = 'Not Sent';
     if (c.email) {
       try {
@@ -175,12 +205,23 @@ export function InterviewScheduleProvider({ children }: { children: React.ReactN
           subject: input.emailSubject,
           body: input.emailBody,
           cc: [HR_EMAIL],
+          ...(input.links?.length ? { links: input.links } : {}),
           ...eventFields,
         });
         emailStatus = r.sent ? 'Sent' : 'Failed';
       } catch {
         emailStatus = 'Failed';
       }
+
+      // The invitation couldn't be delivered — keep the modal open so HR can
+      // fix the issue and try again. The interview/calendar event is preserved
+      // in the session, so retrying only re-sends the email.
+      if (emailStatus !== 'Sent') {
+        setSending(false);
+        toast.error('Email not sent — please try again.', { position: 'top-center' });
+        return;
+      }
+
       repositories.sentEmails
         .create({
           id: randomId('EML'),
@@ -189,7 +230,7 @@ export function InterviewScheduleProvider({ children }: { children: React.ReactN
           templateTitle: 'Interview Invitation',
           subject: input.emailSubject,
           dateSent: nowISO(),
-          status: emailStatus === 'Sent' ? 'Sent' : 'Failed',
+          status: 'Sent',
           relatedEntity: c.fullName,
         })
         .then(() => qc.invalidateQueries({ queryKey: qk.sentEmails.all }))
@@ -211,41 +252,8 @@ export function InterviewScheduleProvider({ children }: { children: React.ReactN
             minute: '2-digit',
           });
 
-      // Resolve the candidate's uploaded resume to a public inline-preview link.
-      let resumeUrl = '';
-      try {
-        const docs = await listDocuments('candidate', c.id);
-        const resumeDoc = docs.find(d => d.category === 'resume') ?? docs[0];
-        if (resumeDoc) resumeUrl = documentPreviewUrl(resumeDoc.id);
-      } catch {
-        /* resume optional — proceed without it */
-      }
-
-      // Build the public question-sheet link (candidate basics + questions encoded
-      // in the URL, so it works for an external interviewer with no app access).
-      let sheetUrl = '';
-      if (input.questionSet && input.questionSet.questions.length) {
-        const encoded = encodeInterviewSheet({
-          interviewId: id,
-          candidateName: c.fullName,
-          role: position,
-          department: c.department,
-          experienceYears: c.totalExperienceYears,
-          relevantExperienceYears: c.relevantExperienceYears,
-          email: c.email,
-          phone: c.phone,
-          currentCompany: c.currentCompany,
-          currentDesignation: c.currentDesignation,
-          resumeUrl,
-          interviewerName: input.interviewerName,
-          whenIso: input.dateTimeIso,
-          mode: input.type,
-          roleLabel: input.questionSet.roleLabel,
-          questions: input.questionSet.questions,
-        });
-        sheetUrl = `${window.location.origin}/interview-sheet?d=${encodeURIComponent(encoded)}`;
-      }
-
+      // Basic assignment notice only — the resume + interview questions are sent
+      // separately from the Physical Interview step once the candidate gets there.
       const ivBody = [
         `Hi ${input.interviewerName || 'there'},`,
         '',
@@ -254,27 +262,29 @@ export function InterviewScheduleProvider({ children }: { children: React.ReactN
         `Candidate: ${c.fullName}`,
         `Role applied: ${position} (${c.department})`,
         `Experience: ${c.totalExperienceYears} yrs total · ${c.relevantExperienceYears} yrs relevant`,
-        `Current: ${c.currentCompany || '—'} — ${c.currentDesignation || '—'}`,
-        `Email: ${c.email || '—'}`,
-        `Phone: ${c.phone || '—'}`,
         '',
         `When: ${whenStr}`,
         `Mode: ${input.type}`,
-        ...(input.location ? [`Location: ${input.location}`] : []),
+        // Offline location is sent as a "View office location" button (below),
+        // so the body avoids pasting the raw map URL.
+        ...(input.type === 'Offline' && input.location
+          ? ['Location: Our office — see the button below for directions.']
+          : input.location
+            ? [`Location: ${input.location}`]
+            : []),
         input.notes ? `\nNotes: ${input.notes}` : '',
         '',
         `— ${BRAND.name}`,
       ].join('\n');
-      // Resume + question sheet go as labelled buttons (anchors), not raw URLs.
-      const links = [
-        ...(resumeUrl ? [{ label: 'View candidate resume', url: resumeUrl }] : []),
-        ...(sheetUrl ? [{ label: 'Open interview questions', url: sheetUrl }] : []),
-      ];
+      const ivLinks =
+        input.type === 'Offline' && input.location
+          ? [{ label: 'View office location', url: input.location }]
+          : [];
       sendCustomEmail({
         to: input.interviewerEmail,
         subject: `Interview scheduled: ${c.fullName} for ${position}`,
         body: ivBody,
-        ...(links.length ? { links } : {}),
+        ...(ivLinks.length ? { links: ivLinks } : {}),
         ...eventFields,
       }).catch(() => {});
     }
@@ -289,14 +299,16 @@ export function InterviewScheduleProvider({ children }: { children: React.ReactN
       .then(() => qc.invalidateQueries({ queryKey: qk.interviews.all }))
       .catch(() => {});
 
+    // The invitation went out (or there was no candidate email to send to) —
+    // close the modal and confirm to HR.
+    closeModal();
+
     if (emailStatus === 'Sent') {
-      toast.success('Interview scheduled successfully and invitation sent.');
-    } else if (!c.email) {
-      toast.info('Interview scheduled — no candidate email on file, so no invitation was sent.');
-    } else if (emailStatus === 'Failed') {
-      toast.info('Interview scheduled, but the invitation email could not be sent.');
+      toast.success('Email sent successfully — interview scheduled.', { position: 'top-center' });
     } else {
-      toast.success('Interview scheduled successfully.');
+      toast.info('Interview scheduled — no candidate email on file, so no invitation was sent.', {
+        position: 'top-center',
+      });
     }
   };
 
@@ -308,7 +320,8 @@ export function InterviewScheduleProvider({ children }: { children: React.ReactN
           candidate={pending}
           busyInterviews={busyInterviews}
           onConfirm={confirm}
-          onClose={() => setPending(null)}
+          onClose={closeModal}
+          isSending={sending}
         />
       )}
     </InterviewSchedulerContext.Provider>

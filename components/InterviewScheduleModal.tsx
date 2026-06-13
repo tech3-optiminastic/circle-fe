@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { CalendarPlus, CalendarClock, Mail, Phone, Briefcase, User } from 'lucide-react';
+import { CalendarPlus, CalendarClock, Mail, Phone, Briefcase, User, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,6 @@ import { BRAND } from '@/lib/brand';
 import { OFFICE_LOCATION_URL } from '@/lib/config';
 import { Candidate } from '@/types';
 import { useEmployees } from '@/features/employees/hooks';
-import { loadBanks, type RoleQuestionBank } from '@/lib/question-banks';
 
 /** An existing interview window used for conflict detection. */
 export interface BusyInterview {
@@ -40,8 +39,9 @@ export interface InterviewScheduleResult {
   notes?: string;
   emailSubject: string;
   emailBody: string;
-  /** Interview questions (from the Question Library) to send to the interviewer. */
-  questionSet?: { roleLabel: string; questions: { text: string; options: string[] }[] };
+  /** Links rendered in the email as labelled anchor buttons (e.g. the office
+   *  location map) — never pasted into the body as a raw URL. */
+  links?: { label: string; url: string }[];
 }
 
 interface InterviewScheduleModalProps {
@@ -49,6 +49,9 @@ interface InterviewScheduleModalProps {
   busyInterviews: BusyInterview[];
   onClose: () => void;
   onConfirm: (result: InterviewScheduleResult) => void;
+  /** True while the invitation email is being sent — keeps the modal open and
+   *  locked so HR can't double-submit or close it mid-send. */
+  isSending?: boolean;
 }
 
 const DURATION_MIN = 45;
@@ -76,6 +79,7 @@ export function InterviewScheduleModal({
   busyInterviews,
   onClose,
   onConfirm,
+  isSending = false,
 }: InterviewScheduleModalProps) {
   const position = candidate.appliedRole || candidate.department || 'the role';
 
@@ -102,19 +106,6 @@ export function InterviewScheduleModal({
     if (match?.email) setInterviewerEmail(match.email);
   };
 
-  // Interview question sets from the Question Library — auto-select the one whose
-  // role matches what the candidate applied for; HR can switch to any other.
-  const [interviewBanks, setInterviewBanks] = useState<RoleQuestionBank[]>([]);
-  const [questionBankId, setQuestionBankId] = useState('');
-  useEffect(() => {
-    const banks = loadBanks('interview');
-    setInterviewBanks(banks);
-    const match = banks.find(
-      b => b.jobTitle.trim().toLowerCase() === position.trim().toLowerCase(),
-    );
-    if (match) setQuestionBankId(match.id);
-  }, [position]);
-
   const [subject, setSubject] = useState(`Interview Invitation - ${position} - ${BRAND.name}`);
   const [body, setBody] = useState('');
   const [emailEdited, setEmailEdited] = useState(false);
@@ -133,8 +124,11 @@ export function InterviewScheduleModal({
       '',
       `Date: ${fmtDate(date)}`,
       `Time: ${fmtTime(time)}`,
-      // Office location is kept in the email only (no field in the form).
-      ...(type === 'Offline' ? [`Location: ${OFFICE_LOCATION_URL}`] : []),
+      // The office location goes out as a "View office location" button (added in
+      // submit() via `links`), so the body references it instead of pasting the URL.
+      ...(type === 'Offline'
+        ? ['Location: Our office — tap the “View office location” button below for directions.']
+        : []),
       '',
       'Please confirm your availability by replying to this email.',
       '',
@@ -176,16 +170,7 @@ export function InterviewScheduleModal({
   }, [date, time, startMs, candidate.email, conflict]);
 
   const submit = () => {
-    if (error || startMs == null) return;
-    const bank = interviewBanks.find(b => b.id === questionBankId);
-    const questionSet = bank
-      ? {
-          roleLabel: bank.jobTitle,
-          questions: bank.questions
-            .filter(q => q.q.trim())
-            .map(q => ({ text: q.q.trim(), options: q.options.map(o => o.trim()).filter(Boolean) })),
-        }
-      : undefined;
+    if (error || startMs == null || isSending) return;
     onConfirm({
       dateTimeIso: `${date}T${time}:00`,
       durationMin: DURATION_MIN,
@@ -196,7 +181,10 @@ export function InterviewScheduleModal({
       notes: notes.trim() || undefined,
       emailSubject: subject.trim() || `Interview Invitation - ${position} - ${BRAND.name}`,
       emailBody: body,
-      questionSet,
+      links:
+        type === 'Offline'
+          ? [{ label: 'View office location', url: OFFICE_LOCATION_URL }]
+          : undefined,
     });
   };
 
@@ -204,7 +192,7 @@ export function InterviewScheduleModal({
     'mt-1 flex items-center gap-1.5 rounded-md border border-input bg-secondary/40 px-3 py-2 text-sm text-gray-700';
 
   return (
-    <Dialog open onOpenChange={open => !open && onClose()}>
+    <Dialog open onOpenChange={open => !open && !isSending && onClose()}>
       <DialogContent className="flex max-h-[92vh] w-[min(96vw,46rem)] max-w-[46rem] sm:max-w-[46rem] flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="shrink-0 border-b border-border px-6 py-4 text-left">
           <DialogTitle className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-gray-900">
@@ -287,13 +275,13 @@ export function InterviewScheduleModal({
               </div>
               <div>
                 <Label htmlFor="iv-interviewer" className="text-[11px] font-medium text-gray-600">
-                  Interviewer Name
+                  Interviewer
                 </Label>
                 <Select
                   id="iv-interviewer"
                   value={interviewerName}
                   onChange={e => pickInterviewer(e.target.value)}
-                  className="mt-1"
+                  className="mt-1 h-9 w-full rounded-md border border-input bg-secondary/50 px-3 text-sm"
                 >
                   <option value="">Select an employee…</option>
                   {interviewerPool.map(e => (
@@ -302,44 +290,10 @@ export function InterviewScheduleModal({
                     </option>
                   ))}
                 </Select>
-              </div>
-              <div className="sm:col-span-2">
-                <Label htmlFor="iv-ivemail" className="text-[11px] font-medium text-gray-600">
-                  Interviewer Email <span className="text-gray-400">(optional — added to the calendar invite)</span>
-                </Label>
-                <Input
-                  id="iv-ivemail"
-                  type="email"
-                  placeholder="interviewer@optiminastic.com"
-                  value={interviewerEmail}
-                  onChange={e => setInterviewerEmail(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <Label className="text-[11px] font-medium text-gray-600">
-                  Interviewer Questions{' '}
-                  <span className="text-gray-400">(auto-selected by role — sent to the interviewer)</span>
-                </Label>
-                {interviewBanks.length === 0 ? (
-                  <p className="mt-1 rounded-md border border-dashed border-input bg-secondary/20 px-3 py-2 text-[11px] text-gray-500">
-                    No interview question sets found. Create one in Question Library → Interview
-                    Questions.
+                {interviewerName && interviewerEmail && (
+                  <p className="mt-1 flex items-center gap-1 text-[10px] text-gray-500">
+                    <Mail size={10} /> {interviewerEmail}
                   </p>
-                ) : (
-                  <Select
-                    value={questionBankId}
-                    onChange={e => setQuestionBankId(e.target.value)}
-                    className="mt-1 h-9 w-full rounded-md border border-input bg-secondary/50 px-3 text-sm"
-                    placeholder="Select an interview question set"
-                  >
-                    <option value="">— None —</option>
-                    {interviewBanks.map(b => (
-                      <option key={b.id} value={b.id}>
-                        {b.jobTitle} ({b.questions.length} question{b.questions.length === 1 ? '' : 's'})
-                      </option>
-                    ))}
-                  </Select>
                 )}
               </div>
               <div className="sm:col-span-2">
@@ -413,11 +367,19 @@ export function InterviewScheduleModal({
         </div>
 
         <DialogFooter className="shrink-0 border-t border-border px-6 py-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSending}>
             Cancel
           </Button>
-          <Button type="button" onClick={submit} disabled={!!error}>
-            <CalendarPlus size={14} /> Schedule Interview
+          <Button type="button" onClick={submit} disabled={!!error || isSending}>
+            {isSending ? (
+              <>
+                <Loader2 size={14} className="animate-spin" /> Sending invitation…
+              </>
+            ) : (
+              <>
+                <CalendarPlus size={14} /> Schedule Interview
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

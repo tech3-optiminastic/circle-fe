@@ -17,7 +17,18 @@ import {
   User,
   CheckCircle2,
   Loader2,
+  Star,
+  Ban,
 } from 'lucide-react';
+
+type Recommendation = 'Strong Hire' | 'Hire' | 'Hold' | 'Reject' | 'Re-Interview Required';
+const RECOMMENDATIONS: Recommendation[] = [
+  'Strong Hire',
+  'Hire',
+  'Hold',
+  'Reject',
+  'Re-Interview Required',
+];
 
 function fmtWhen(iso?: string): string {
   if (!iso) return '';
@@ -41,6 +52,8 @@ export default function InterviewSheetPage() {
   const [responses, setResponses] = useState<Record<number, { selected?: string; note?: string }>>(
     {},
   );
+  const [recommendation, setRecommendation] = useState<Recommendation>('Hire');
+  const [comments, setComments] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -60,8 +73,30 @@ export default function InterviewSheetPage() {
       selected: responses[i]?.selected,
       note: responses[i]?.note?.trim() || undefined,
     }));
+    // Store the interviewer's overall verdict on the interview record as `grading`
+    // so HR sees it (recommendation + comments) in the Physical Interview review.
+    const grading = {
+      grades: {
+        subjectKnowledge: 3,
+        clarityOfCommunication: 3,
+        confidence: 3,
+        practicalExperience: 3,
+        problemSolvingAbility: 3,
+        attitude: 3,
+        teamFit: 3,
+        learningAbility: 3,
+        overallSuitability: 3,
+      },
+      interviewerComments: comments.trim(),
+      recommendation,
+      gradedAt: new Date().toISOString(),
+    };
     try {
-      await http.patch(`/interviews/${data.interviewId}`, { questionResponses });
+      await http.patch(`/interviews/${data.interviewId}`, {
+        questionResponses,
+        grading,
+        status: 'Completed',
+      });
       setSubmitted(true);
     } catch {
       setSubmitError('Could not submit your responses. Please try again.');
@@ -190,12 +225,56 @@ export default function InterviewSheetPage() {
                   const picked = responses[i]?.selected;
                   return (
                     <li key={i} className="rounded-xl border border-[#ECEDF0] bg-[#F1F3F5]/50 p-4">
+                      {q.module && (
+                        <span className="mb-1.5 inline-block rounded-full bg-accent-50 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-accent-600">
+                          {q.module}
+                        </span>
+                      )}
                       <div className="flex gap-2.5">
                         <span className="font-mono text-[12px] font-bold text-accent-700">
                           {i + 1}.
                         </span>
                         <p className="text-sm font-semibold text-gray-900">{q.text}</p>
                       </div>
+                      {/* Interview questions are rated 1–5 stars (or NA) */}
+                      {q.options.length === 0 && (
+                        <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pl-7">
+                          {[1, 2, 3, 4, 5].map(n => {
+                            const on = Number(picked) >= n;
+                            return (
+                              <button
+                                key={n}
+                                type="button"
+                                onClick={() => setSelected(i, String(n))}
+                                title={`${n} star${n > 1 ? 's' : ''}`}
+                                aria-label={`${n} stars`}
+                                className="p-0.5"
+                              >
+                                <Star
+                                  size={22}
+                                  className={
+                                    on
+                                      ? 'fill-amber-400 text-amber-400'
+                                      : 'fill-transparent text-gray-300 transition hover:text-amber-300'
+                                  }
+                                />
+                              </button>
+                            );
+                          })}
+                          <button
+                            type="button"
+                            onClick={() => setSelected(i, 'NA')}
+                            title="Not applicable"
+                            className={`ml-2 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition ${
+                              picked === 'NA'
+                                ? 'border-red-300 bg-red-50 text-red-600'
+                                : 'border-[#E4E6EA] bg-[#FFFFFF] text-gray-500 hover:border-red-300'
+                            }`}
+                          >
+                            <Ban size={12} /> NA
+                          </button>
+                        </div>
+                      )}
                       {q.options.length > 0 && (
                         <div className="mt-2.5 space-y-1.5 pl-7">
                           {q.options.map((opt, oi) => {
@@ -240,7 +319,40 @@ export default function InterviewSheetPage() {
               </ol>
 
               {data.interviewId && (
-                <div className="mt-5 flex flex-col items-end gap-2">
+                <div className="mt-5 space-y-4 rounded-2xl border border-[#E4E6EA] bg-[#F1F3F5] p-5">
+                  <div>
+                    <label className="mb-1.5 block text-[12px] font-semibold text-gray-700">
+                      Recommendation
+                    </label>
+                    <select
+                      value={recommendation}
+                      onChange={e => setRecommendation(e.target.value as Recommendation)}
+                      className="w-full rounded-lg border border-[#E4E6EA] bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                    >
+                      {RECOMMENDATIONS.map(r => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-[12px] font-semibold text-gray-700">
+                      Comments
+                    </label>
+                    <textarea
+                      value={comments}
+                      onChange={e => setComments(e.target.value)}
+                      placeholder="Overall assessment, strengths, concerns…"
+                      rows={4}
+                      className="w-full rounded-lg border border-[#E4E6EA] bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {data.interviewId && (
+                <div className="mt-4 flex flex-col items-end gap-2">
                   {submitError && <p className="text-[12px] text-red-600">{submitError}</p>}
                   <button
                     type="button"
