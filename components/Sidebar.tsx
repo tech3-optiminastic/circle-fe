@@ -14,7 +14,6 @@ import {
   Settings,
   Briefcase,
   UserSearch,
-  Library,
   ShieldCheck,
 } from 'lucide-react';
 
@@ -89,7 +88,6 @@ export function Sidebar({ userRole, setUserRole, collapsed: isCollapsed }: Sideb
           {navItem('/', 'Dashboard', <LayoutDashboard size={14} />)}
           {navItem('/jobs', 'Job Postings', <Briefcase size={14} />)}
           {navItem('/candidates', 'Candidates', <UserSearch size={14} />)}
-          {navItem('/question-library', 'Question Library', <Library size={14} />)}
         </div>
 
         {/* EMPLOYEES DIVISION */}

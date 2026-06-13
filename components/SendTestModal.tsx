@@ -23,6 +23,9 @@ export interface SendTestResult {
   to: string;
   subject: string;
   body: string;
+  /** The test link, rendered in the email as a labelled anchor button (never a
+   *  raw URL in the body). */
+  links: { label: string; url: string }[];
   /** Selected assessment questions (assessment only). */
   questions?: AssessmentQuestion[];
 }
@@ -65,6 +68,9 @@ export function SendTestModal({ candidate, kind, testUrl, onClose, onConfirm }: 
         .map(q => ({ text: q.q.trim(), options: [...q.options], answer: q.answer }))
     : [];
 
+  // The link itself is sent as a labelled button (see `linkLabel` below), so the
+  // body only references it — no raw URL is ever pasted into the message.
+  const linkLabel = isIq ? 'Start IQ Test' : 'Open Assessment';
   const composed = useMemo(
     () =>
       [
@@ -72,16 +78,14 @@ export function SendTestModal({ candidate, kind, testUrl, onClose, onConfirm }: 
         '',
         `As the next step in your application for ${position}, please complete our ${what.toLowerCase()}.`,
         '',
-        `${what} link: ${testUrl}`,
-        '',
         isIq
-          ? 'The test is timed and runs in full screen — please ensure a stable internet connection before you begin.'
-          : 'Open the link to read the brief and submit your work before the deadline.',
+          ? `Use the "${linkLabel}" button below to begin. The test is timed and runs in full screen — please ensure a stable internet connection before you start.`
+          : `Use the "${linkLabel}" button below to read the brief and submit your work before the deadline.`,
         '',
         'Best Regards,',
         `${BRAND.name} HR Team`,
       ].join('\n'),
-    [candidate.fullName, position, what, testUrl, isIq],
+    [candidate.fullName, position, what, isIq, linkLabel],
   );
 
   const [body, setBody] = useState(composed);
@@ -240,6 +244,7 @@ export function SendTestModal({ candidate, kind, testUrl, onClose, onConfirm }: 
                 to: to.trim(),
                 subject: subject.trim(),
                 body,
+                links: [{ label: linkLabel, url: testUrl }],
                 ...(isIq ? {} : { questions: selectedQuestions }),
               })
             }

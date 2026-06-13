@@ -172,6 +172,21 @@ export function CandidateListView({
 
   const sel = useTableSelection(filtered.map(c => c.id));
 
+  // Bulk-delete every currently-selected candidate (confirmed once).
+  const deleteSelected = () => {
+    if (!onDeleteCandidate || sel.count === 0) return;
+    const ids = sel.selectedIds;
+    toast.confirm({
+      title: `Delete ${ids.length} candidate${ids.length === 1 ? '' : 's'}?`,
+      description: 'This removes the selected profiles from the ATS database. This cannot be undone.',
+      confirmLabel: 'Delete',
+      onConfirm: () => {
+        ids.forEach(id => onDeleteCandidate(id));
+        sel.clear();
+      },
+    });
+  };
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCand.fullName || !newCand.email) {
@@ -366,7 +381,16 @@ export function CandidateListView({
       </div>
 
       {/* Main Tabular candidate container */}
-      <SelectionBar count={sel.count} onClear={sel.clear} />
+      <SelectionBar count={sel.count} onClear={sel.clear}>
+        {onDeleteCandidate && (
+          <button
+            onClick={deleteSelected}
+            className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-[#FFFFFF] px-2 py-1 font-medium text-red-600 transition hover:bg-red-50"
+          >
+            <Trash2 size={12} /> Delete
+          </button>
+        )}
+      </SelectionBar>
       <Table minWidth={980}>
         <THead>
           <Th select checked={sel.allSelected} indeterminate={sel.someSelected} onToggle={sel.toggleAll} />

@@ -241,7 +241,10 @@ function TestFlow({ invite }: { invite: TestInvite }) {
         /* even if this PATCH fails we still show the result; HR records below */
       }
 
-      // ---- side effects: HR records, candidate status, next-step emails ----
+      // ---- side effects: record the result only ----
+      // The candidate's pipeline status is NOT changed here. HR reviews the
+      // result on the candidate page and decides manually (Accept / On Hold /
+      // Reject) — a fail or disqualification never auto-rejects the candidate.
       try {
         if (isIq) {
           const iqRecord: IQTest = {
@@ -262,21 +265,6 @@ function TestFlow({ invite }: { invite: TestInvite }) {
               : `IQ score ${score} · ${violationsRef.current} violation(s)${auto ? ' · auto-submitted' : ''}`,
           };
           await repositories.iqTests.create(iqRecord).catch(() => {});
-
-          // A failed / disqualified attempt rejects the candidate (HR can re-assign).
-          // No result email is sent — HR drives next steps manually.
-          if (!passed) {
-            repositories.candidates
-              .patch(invite.candidateId, { status: 'Rejected' })
-              .catch(() => {});
-          }
-        } else {
-          // Assessment round — a failed attempt rejects the candidate (no email).
-          if (!passed) {
-            repositories.candidates
-              .patch(invite.candidateId, { status: 'Rejected' })
-              .catch(() => {});
-          }
         }
       } finally {
         try {

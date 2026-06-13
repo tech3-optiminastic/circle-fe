@@ -1,5 +1,5 @@
-import { RoleQuestionBanksView } from '@/components/RoleQuestionBanksView';
+import { InterviewBanksView } from '@/components/InterviewBanksView';
 
 export default function InterviewQuestionsPage() {
-  return <RoleQuestionBanksView category="interview" slug="interview-questions" />;
+  return <InterviewBanksView />;
 }

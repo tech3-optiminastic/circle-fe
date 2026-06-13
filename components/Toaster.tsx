@@ -25,10 +25,21 @@ interface ConfirmOptions {
   onConfirm: () => void;
 }
 
+/** Per-toast overrides (e.g. show this one top-center instead of bottom-right). */
+type ToastOptions = {
+  position?:
+    | 'top-left'
+    | 'top-center'
+    | 'top-right'
+    | 'bottom-left'
+    | 'bottom-center'
+    | 'bottom-right';
+};
+
 interface ToastApi {
-  success: (message: string) => void;
-  error: (message: string) => void;
-  info: (message: string) => void;
+  success: (message: string, options?: ToastOptions) => void;
+  error: (message: string, options?: ToastOptions) => void;
+  info: (message: string, options?: ToastOptions) => void;
   /** Centered confirmation dialog (replaces window.confirm). Nothing happens
    *  unless the user clicks the action — the safe default for destructive ops. */
   confirm: (options: ConfirmOptions) => void;
@@ -92,9 +103,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 }
 
 const api: ToastApi = {
-  success: message => sonnerToast.success(message),
-  error: message => sonnerToast.error(message),
-  info: message => sonnerToast.info(message),
+  success: (message, options) => sonnerToast.success(message, options),
+  error: (message, options) => sonnerToast.error(message, options),
+  info: (message, options) => sonnerToast.info(message, options),
   confirm: options => {
     if (confirmHandler) {
       confirmHandler(options);
