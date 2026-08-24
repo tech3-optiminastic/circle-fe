@@ -720,6 +720,9 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
   };
 
   const convertToEmployee = () => {
+    // Belt-and-suspenders alongside showActionFor already hiding this button
+    // once done — never re-fire the conversion for an already-converted candidate.
+    if (joined) return;
     promote.mutate(checklist, {
       onSuccess: () => toast.success(`${checklist.candidateName} onboarded into the employee directory.`),
       onError: () => toast.error('Could not convert to employee — try again.'),

@@ -382,6 +382,11 @@ export function usePromoteFromOnboarding() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (checklist: OnboardingChecklist) => {
+      // Defense-in-depth: the UI already hides the "Convert to employee"
+      // action once converted, but this guard stops a duplicate employee
+      // record from being created even if the mutation somehow fires again
+      // (stale UI state, a double-click race, another call site).
+      if (checklist.convertedToEmployeeAt || checklist.employeeId) return;
       const candidates = qc.getQueryData<Candidate[]>(qk.candidates.all) ?? [];
       const candidate = candidates.find(c => c.id === checklist.candidateId);
       if (!candidate) return;
