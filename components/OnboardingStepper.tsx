@@ -397,6 +397,17 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
       action: { kind: 'confirm-joining', cta: 'Confirm & email' },
     },
     {
+      Icon: KeyRound,
+      label: 'Allocation of mail, system & desk',
+      done: allocationDone,
+      desc: allocationDone
+        ? 'Done'
+        : `${[allocationEmailDone, systemDeskDone, buddyDone].filter(Boolean).length}/3 done`,
+      detail:
+        'Set up the new hire\'s company email, assign their system and desk, and assign an onboarding buddy — done in order, one at a time.',
+      action: { kind: 'allocation', cta: 'Allocate' },
+    },
+    {
       Icon: DoorOpen,
       label: 'First day',
       done: firstDayArrived,
@@ -444,17 +455,6 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
           : 'The candidate has been onboarded into the employee directory.'
         : 'The final step — convert the candidate into an employee once the appointment letter is out.',
       action: { kind: 'convert-employee', cta: 'Convert to employee' },
-    },
-    {
-      Icon: KeyRound,
-      label: 'Allocation of mail, system & desk',
-      done: allocationDone,
-      desc: allocationDone
-        ? 'Done'
-        : `${[allocationEmailDone, systemDeskDone, buddyDone].filter(Boolean).length}/3 done`,
-      detail:
-        'Set up the new hire\'s company email, assign their system and desk, and assign an onboarding buddy — done in order, one at a time.',
-      action: { kind: 'allocation', cta: 'Allocate' },
     },
   ];
 
