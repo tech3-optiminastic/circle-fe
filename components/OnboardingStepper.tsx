@@ -814,14 +814,12 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
   };
 
   // --- per-stage action helpers (each entry drives its own button) ---
-  // BGV realistically takes ~20 days to come back from OnGrid, so HR still
-  // needs to get joining-date/first-day/appointment-letter paperwork moving
-  // in parallel — only the actual "Employee" conversion (becoming an
-  // employee of record) is hard-blocked on BGV being verified; every other
-  // step only needs its immediate predecessor done.
-  const employeeStageIndex = stages.findIndex(s => s.label === 'Employee');
+  // BGV realistically takes ~20 days to come back from OnGrid, so HR needs
+  // every other step — including converting to employee — to proceed
+  // independently of it; BGV verification itself is still tracked (pill,
+  // report upload, undo) but no longer blocks anything else. Each step only
+  // needs its immediate predecessor done.
   const gateReasonFor = (i: number): string | null => {
-    if (i === employeeStageIndex && !bgvVerified) return 'Complete Background Verification first';
     if (i > 0 && !stages[i - 1].done) return 'Complete the previous step first';
     return null;
   };
