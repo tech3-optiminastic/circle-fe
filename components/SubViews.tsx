@@ -897,7 +897,7 @@ function onboardingTags(
   return tags;
 }
 
-/** Live progress + status label across the real 9 onboarding steps (see
+/** Live progress + status label across the real 10 onboarding steps (see
  *  OnboardingStepper.tsx — same done-conditions). `checklist.progressPercentage`
  *  /`onboardingStatus` are separate, legacy fields (driven by a "tasks"
  *  checklist nobody uses from this flow) hardcoded at creation
@@ -925,6 +925,7 @@ function onboardingProgress(
       signedAppointment?.status === 'Submitted' ||
       signedAppointment?.status === 'Verified',
     Boolean(o.convertedToEmployeeAt) || Boolean(o.employeeId),
+    Boolean(o.allocationEmailSavedAt) && Boolean(o.systemDeskSavedAt) && Boolean(o.buddyAssignedAt),
   ];
   const percentage = Math.round((done.filter(Boolean).length / done.length) * 100);
   const status =

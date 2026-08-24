@@ -258,6 +258,67 @@ export function useOnboardingEmails() {
     onSuccess: invalidate,
   });
 
+  // Allocation of mail, system & desk — sub-step 1: save the new hire's
+  // company email (re-savable via the same call once already set).
+  const saveAllocationEmail = useMutation({
+    mutationFn: ({ candidateId, email }: { candidateId: string; email: string }) =>
+      repositories.onboarding.patch(candidateId, {
+        allocationEmail: email,
+        allocationEmailSavedAt: nowISO(),
+      }),
+    onSuccess: invalidate,
+  });
+
+  // Sub-step 2: save system + desk assignment.
+  const saveSystemDesk = useMutation({
+    mutationFn: ({
+      candidateId,
+      systemName,
+      systemPassword,
+      systemNumber,
+      deskNumber,
+    }: {
+      candidateId: string;
+      systemName: string;
+      systemPassword: string;
+      systemNumber: string;
+      deskNumber: string;
+    }) =>
+      repositories.onboarding.patch(candidateId, {
+        systemName,
+        systemPassword,
+        systemNumber,
+        deskNumber,
+        systemDeskSavedAt: nowISO(),
+      }),
+    onSuccess: invalidate,
+  });
+
+  // Sub-step 3: email the assigned buddy their responsibilities, then record
+  // who was assigned. Best-effort send, same as the other composed emails —
+  // a delivery failure still lets HR record the assignment.
+  const sendBuddyAssignment = useMutation({
+    mutationFn: async (input: {
+      candidateId: string;
+      to: string;
+      subject: string;
+      body: string;
+      employeeId: string;
+      employeeName: string;
+    }) => {
+      const res = await sendCustomEmail({ to: input.to, subject: input.subject, body: input.body }).catch(
+        () => ({ sent: false, reason: undefined }) as { sent: boolean; reason?: string },
+      );
+      await repositories.onboarding.patch(input.candidateId, {
+        buddyEmployeeId: input.employeeId,
+        buddyEmployeeName: input.employeeName,
+        buddyAssignedAt: nowISO(),
+      });
+      return res;
+    },
+    onSuccess: invalidate,
+  });
+
   // Save the HR-built offer letter (values) onto the onboarding record.
   const saveOfferLetter = useMutation({
     mutationFn: ({ candidateId, offerLetter }: { candidateId: string; offerLetter: OfferLetterData }) =>
@@ -306,6 +367,9 @@ export function useOnboardingEmails() {
     revertEmployeeConversion,
     setJoiningDate,
     markFirstDayArrived,
+    saveAllocationEmail,
+    saveSystemDesk,
+    sendBuddyAssignment,
     saveOfferLetter,
     deleteOfferLetter,
     saveAppointmentLetter,

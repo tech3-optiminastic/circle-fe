@@ -23,6 +23,10 @@ import {
   Download,
   Copy,
   RefreshCw,
+  KeyRound,
+  Laptop,
+  UserCheck,
+  Pencil,
 } from 'lucide-react';
 import { BGVRequirement, OnboardingChecklist, SentEmailLog } from '@/types';
 import { useCandidates, useBgvs, useUpdateBgv, useStartBgv } from '@/features/candidates/hooks';
@@ -56,9 +60,12 @@ import { StartBgvModal } from '@/components/StartBgvModal';
 import { VerifyBgvReportModal } from '@/components/VerifyBgvReportModal';
 import { RefreshButton } from '@/components/RefreshButton';
 import { bgvCheckByCode } from '@/lib/bgv-services';
-import { buildOnboardingEmailDraft } from '@/lib/onboarding-email-templates';
+import { buildOnboardingEmailDraft, buildBuddyEmailDraft } from '@/lib/onboarding-email-templates';
 import { fetchRenderedTemplate } from '@/features/email-templates/hooks';
 import { HR_EMAIL } from '@/lib/config';
+import { useEmployees } from '@/features/employees/hooks';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface OnboardingStepperProps {
   checklist: OnboardingChecklist;
@@ -74,6 +81,7 @@ type StageAction =
   | { kind: 'confirm-joining'; cta: string }
   | { kind: 'mark-arrived'; cta: string }
   | { kind: 'convert-employee'; cta: string }
+  | { kind: 'allocation'; cta: string }
   | { kind: 'none' };
 
 type StepState = 'done' | 'current' | 'todo';
@@ -90,6 +98,7 @@ const STAGE_ICON_COLOR: Record<string, string> = {
   'Appointment letter': 'bg-indigo-50 text-indigo-600',
   'Signed appointment letter': 'bg-violet-50 text-violet-600',
   Employee: 'bg-emerald-50 text-emerald-600',
+  'Allocation of mail, system & desk': 'bg-cyan-50 text-cyan-600',
 };
 
 // One-line subtitle under each stage name (collapsed row) — static, unlike
@@ -104,6 +113,7 @@ const STAGE_NOTES: Record<string, string> = {
   'Appointment letter': 'Confirm full terms of employment',
   'Signed appointment letter': 'Candidate returns their signed copy',
   Employee: 'Convert into the employee directory',
+  'Allocation of mail, system & desk': 'Set up email, system/desk, and an onboarding buddy',
 };
 
 // "Times emailed" badge (top corner of the step icon) — the sentEmails
@@ -137,6 +147,7 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
   const { data: requests = [] } = useDocRequests();
   const { data: bgvs = [] } = useBgvs();
   const { data: sentEmails = [] } = useSentEmails();
+  const { data: employees = [] } = useEmployees();
   const {
     sendComposed,
     markOfferSigned,
@@ -144,6 +155,9 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
     markJoiningDocsSkipped,
     setJoiningDate,
     markFirstDayArrived,
+    saveAllocationEmail,
+    saveSystemDesk,
+    sendBuddyAssignment,
   } = useOnboardingEmails();
   const { create: createDocRequest, reactivate: reactivateDocRequest } = useDocRequestMutations();
   const updateBgv = useUpdateBgv();
@@ -173,6 +187,17 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
   const [joiningInput, setJoiningInput] = useState(checklist.joiningDate ?? '');
   // Re-activation duration picker for the joining-documents upload link.
   const [docReqHours, setDocReqHours] = useState(24);
+
+  // Allocation of mail, system & desk — local UI state for the 3 sub-steps.
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [emailInput, setEmailInput] = useState(checklist.allocationEmail ?? '');
+  const [editingSystemDesk, setEditingSystemDesk] = useState(false);
+  const [systemNameInput, setSystemNameInput] = useState(checklist.systemName ?? '');
+  const [systemPasswordInput, setSystemPasswordInput] = useState(checklist.systemPassword ?? '');
+  const [systemNumberInput, setSystemNumberInput] = useState(checklist.systemNumber ?? '');
+  const [deskNumberInput, setDeskNumberInput] = useState(checklist.deskNumber ?? '');
+  const [buddyPickId, setBuddyPickId] = useState('');
+  const [buddySeed, setBuddySeed] = useState<ComposerSeed | null>(null);
 
   const candidate = candidates.find(c => c.id === checklist.candidateId);
   // Resending mints a fresh link, so pick the request that actually holds the
@@ -269,6 +294,12 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
     checklist.progressPercentage === 100 ||
     checklist.onboardingStatus === 'Joined' ||
     checklist.onboardingStatus === 'Onboarding Completed';
+
+  // Allocation of mail, system & desk — three ordered sub-steps.
+  const allocationEmailDone = Boolean(checklist.allocationEmailSavedAt);
+  const systemDeskDone = Boolean(checklist.systemDeskSavedAt);
+  const buddyDone = Boolean(checklist.buddyAssignedAt);
+  const allocationDone = allocationEmailDone && systemDeskDone && buddyDone;
 
   const stageEmailCount = useMemo(() => {
     const mine = sentEmails.filter((m: SentEmailLog) => m.relatedEntity === checklist.candidateName);
@@ -413,6 +444,17 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
           : 'The candidate has been onboarded into the employee directory.'
         : 'The final step — convert the candidate into an employee once the appointment letter is out.',
       action: { kind: 'convert-employee', cta: 'Convert to employee' },
+    },
+    {
+      Icon: KeyRound,
+      label: 'Allocation of mail, system & desk',
+      done: allocationDone,
+      desc: allocationDone
+        ? 'Done'
+        : `${[allocationEmailDone, systemDeskDone, buddyDone].filter(Boolean).length}/3 done`,
+      detail:
+        'Set up the new hire\'s company email, assign their system and desk, and assign an onboarding buddy — done in order, one at a time.',
+      action: { kind: 'allocation', cta: 'Allocate' },
     },
   ];
 
@@ -684,12 +726,102 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
     });
   };
 
+  // Allocation of mail, system & desk — sub-step 1: Add/Edit Email.
+  const startEditEmail = () => {
+    setEmailInput(checklist.allocationEmail ?? '');
+    setEditingEmail(true);
+  };
+  const submitEmail = () => {
+    const email = emailInput.trim();
+    if (!email) {
+      toast.error('Enter an email address first.');
+      return;
+    }
+    saveAllocationEmail.mutate(
+      { candidateId: checklist.candidateId, email },
+      {
+        onSuccess: () => {
+          toast.success('Email saved.');
+          setEditingEmail(false);
+        },
+        onError: () => toast.error('Could not save the email — try again.'),
+      },
+    );
+  };
+
+  // Sub-step 2: Assign system and desk.
+  const startEditSystemDesk = () => {
+    setSystemNameInput(checklist.systemName ?? '');
+    setSystemPasswordInput(checklist.systemPassword ?? '');
+    setSystemNumberInput(checklist.systemNumber ?? '');
+    setDeskNumberInput(checklist.deskNumber ?? '');
+    setEditingSystemDesk(true);
+  };
+  const submitSystemDesk = () => {
+    if (!systemNameInput.trim() || !systemNumberInput.trim() || !deskNumberInput.trim()) {
+      toast.error('System name, system number, and desk number are required.');
+      return;
+    }
+    saveSystemDesk.mutate(
+      {
+        candidateId: checklist.candidateId,
+        systemName: systemNameInput.trim(),
+        systemPassword: systemPasswordInput.trim(),
+        systemNumber: systemNumberInput.trim(),
+        deskNumber: deskNumberInput.trim(),
+      },
+      {
+        onSuccess: () => {
+          toast.success('System & desk assignment saved.');
+          setEditingSystemDesk(false);
+        },
+        onError: () => toast.error('Could not save — try again.'),
+      },
+    );
+  };
+
+  // Sub-step 3: Assign buddy — opens the composer seeded from the fixed
+  // template, addressed to the picked employee.
+  const openBuddyComposer = () => {
+    const buddy = employees.find(e => e.id === buddyPickId);
+    if (!buddy) {
+      toast.error('Pick an employee first.');
+      return;
+    }
+    const draft = buildBuddyEmailDraft(checklist, candidate, fmtDate(checklist.joiningDate));
+    setBuddySeed({ title: 'Send buddy email', to: buddy.email, subject: draft.subject, body: draft.body });
+  };
+  const submitBuddyEmail = (subject: string, body: string) => {
+    const buddy = employees.find(e => e.id === buddyPickId);
+    if (!buddy || !buddySeed) return;
+    sendBuddyAssignment.mutate(
+      {
+        candidateId: checklist.candidateId,
+        to: buddySeed.to,
+        subject,
+        body,
+        employeeId: buddy.id,
+        employeeName: buddy.fullName,
+      },
+      {
+        onSuccess: res => {
+          toast.success(res.sent ? 'Buddy email sent.' : 'Buddy assignment recorded (email not sent).');
+          setBuddySeed(null);
+        },
+        onError: () => toast.error('Could not record the buddy assignment — try again.'),
+      },
+    );
+  };
+
   // --- per-stage action helpers (each entry drives its own button) ---
-  // Background verification (stage index 3) hard-blocks every stage after it,
-  // regardless of position — not just its immediate successor — so a BGV that
-  // gets reopened (Undo verification) re-locks the rest of the checklist too.
+  // BGV realistically takes ~20 days to come back from OnGrid, so HR still
+  // needs to get joining-date/first-day/appointment-letter paperwork moving
+  // in parallel — only the actual "Employee" conversion (becoming an
+  // employee of record) is hard-blocked on BGV being verified; every other
+  // step only needs its immediate predecessor done.
+  const employeeStageIndex = stages.findIndex(s => s.label === 'Employee');
   const gateReasonFor = (i: number): string | null => {
-    if (i > 3 && !bgvVerified) return 'Complete Background Verification first';
+    if (i === employeeStageIndex && !bgvVerified) return 'Complete Background Verification first';
     if (i > 0 && !stages[i - 1].done) return 'Complete the previous step first';
     return null;
   };
@@ -810,6 +942,14 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
         sending={sendingInvalid}
         onClose={() => setInvalidEmail(null)}
         onSend={sendInvalidEmail}
+      />
+      {/* Buddy-assignment email, opened from the "Allocation" step's sub-step 3. */}
+      <OnboardingEmailComposer
+        open={!!buddySeed}
+        seed={buddySeed}
+        sending={sendBuddyAssignment.isPending}
+        onClose={() => setBuddySeed(null)}
+        onSend={submitBuddyEmail}
       />
       {sendOfferOpen && (
         <SendOfferLetterModal
@@ -1188,8 +1328,7 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
                           />
                           <button
                             onClick={confirmJoining}
-                            disabled={setJoiningDate.isPending || !joiningInput || !bgvVerified}
-                            title={!bgvVerified ? 'Complete Background Verification first' : undefined}
+                            disabled={setJoiningDate.isPending || !joiningInput}
                             className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent-600 px-3 text-[12px] font-semibold text-white transition hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {setJoiningDate.isPending ? (
@@ -1451,6 +1590,206 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
                       </div>
                     )}
 
+                    {/* Allocation of mail, system & desk — three ordered sub-steps, each
+                        locked until the previous one is done. */}
+                    {stage.action.kind === 'allocation' && (
+                      <div className="space-y-3">
+                        {/* Sub-step 1: Add Email */}
+                        <div className="rounded-lg border border-[#E4E6EA] p-3">
+                          <p className="mb-2 text-[11px] font-semibold text-gray-700">1. Add Email</p>
+                          {allocationEmailDone && !editingEmail ? (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-mono text-[12px] text-gray-800">
+                                {checklist.allocationEmail}
+                              </span>
+                              <button
+                                onClick={startEditEmail}
+                                className="inline-flex h-7 items-center gap-1 rounded-md border border-[#E4E6EA] bg-white px-2 text-[11px] font-semibold text-gray-600 transition hover:bg-[#F1F3F5]"
+                              >
+                                <Pencil size={12} /> Edit
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                type="email"
+                                value={emailInput}
+                                onChange={e => setEmailInput(e.target.value)}
+                                placeholder="name@optiminastic.com"
+                                className="h-8 w-56 text-[12px]"
+                              />
+                              <button
+                                onClick={submitEmail}
+                                disabled={saveAllocationEmail.isPending}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent-600 px-3 text-[12px] font-semibold text-white transition hover:bg-accent-700 disabled:opacity-60"
+                              >
+                                {saveAllocationEmail.isPending ? (
+                                  <Loader2 size={13} className="animate-spin" />
+                                ) : (
+                                  <Check size={13} />
+                                )}
+                                Save
+                              </button>
+                              {allocationEmailDone && (
+                                <button
+                                  onClick={() => setEditingEmail(false)}
+                                  className="inline-flex h-8 items-center rounded-lg border border-[#E4E6EA] bg-white px-3 text-[12px] font-semibold text-gray-600 transition hover:bg-[#F1F3F5]"
+                                >
+                                  Cancel
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Sub-step 2: Assign system and desk */}
+                        <div
+                          className={`rounded-lg border border-[#E4E6EA] p-3 ${
+                            !allocationEmailDone ? 'cursor-not-allowed opacity-50' : ''
+                          }`}
+                        >
+                          <p className="mb-2 text-[11px] font-semibold text-gray-700">
+                            2. Assign system and desk
+                          </p>
+                          {!allocationEmailDone ? (
+                            <p className="text-[11px] text-gray-400">Complete "Add Email" first.</p>
+                          ) : systemDeskDone && !editingSystemDesk ? (
+                            <div className="space-y-1 text-[12px] text-gray-800">
+                              <p>
+                                System: <span className="font-mono">{checklist.systemName}</span> · Number:{' '}
+                                <span className="font-mono">{checklist.systemNumber}</span>
+                              </p>
+                              <p>
+                                Password:{' '}
+                                <span className="select-all font-mono text-gray-500">••••••••••</span>
+                              </p>
+                              <p>
+                                Desk: <span className="font-mono">{checklist.deskNumber}</span>
+                              </p>
+                              <button
+                                onClick={startEditSystemDesk}
+                                className="mt-1 inline-flex h-7 items-center gap-1 rounded-md border border-[#E4E6EA] bg-white px-2 text-[11px] font-semibold text-gray-600 transition hover:bg-[#F1F3F5]"
+                              >
+                                <Pencil size={12} /> Edit
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                <div className="space-y-1">
+                                  <Label className="text-[10.5px] font-medium text-gray-600">
+                                    System name
+                                  </Label>
+                                  <Input
+                                    value={systemNameInput}
+                                    onChange={e => setSystemNameInput(e.target.value)}
+                                    className="h-8 text-[12px]"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-[10.5px] font-medium text-gray-600">
+                                    System password
+                                  </Label>
+                                  <Input
+                                    value={systemPasswordInput}
+                                    onChange={e => setSystemPasswordInput(e.target.value)}
+                                    className="h-8 font-mono text-[12px]"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-[10.5px] font-medium text-gray-600">
+                                    System number
+                                  </Label>
+                                  <Input
+                                    value={systemNumberInput}
+                                    onChange={e => setSystemNumberInput(e.target.value)}
+                                    className="h-8 font-mono text-[12px]"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-[10.5px] font-medium text-gray-600">
+                                    Desk number
+                                  </Label>
+                                  <Input
+                                    value={deskNumberInput}
+                                    onChange={e => setDeskNumberInput(e.target.value)}
+                                    className="h-8 font-mono text-[12px]"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={submitSystemDesk}
+                                  disabled={saveSystemDesk.isPending}
+                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent-600 px-3 text-[12px] font-semibold text-white transition hover:bg-accent-700 disabled:opacity-60"
+                                >
+                                  {saveSystemDesk.isPending ? (
+                                    <Loader2 size={13} className="animate-spin" />
+                                  ) : (
+                                    <Check size={13} />
+                                  )}
+                                  Save
+                                </button>
+                                {systemDeskDone && (
+                                  <button
+                                    onClick={() => setEditingSystemDesk(false)}
+                                    className="inline-flex h-8 items-center rounded-lg border border-[#E4E6EA] bg-white px-3 text-[12px] font-semibold text-gray-600 transition hover:bg-[#F1F3F5]"
+                                  >
+                                    Cancel
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Sub-step 3: Assign buddy */}
+                        <div
+                          className={`rounded-lg border border-[#E4E6EA] p-3 ${
+                            !systemDeskDone ? 'cursor-not-allowed opacity-50' : ''
+                          }`}
+                        >
+                          <p className="mb-2 text-[11px] font-semibold text-gray-700">3. Assign buddy</p>
+                          {!systemDeskDone ? (
+                            <p className="text-[11px] text-gray-400">
+                              Complete "Assign system and desk" first.
+                            </p>
+                          ) : (
+                            <div className="space-y-2">
+                              {buddyDone && (
+                                <p className="text-[12px] text-gray-800">
+                                  Buddy assigned: <span className="font-semibold">{checklist.buddyEmployeeName}</span>
+                                </p>
+                              )}
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Select
+                                  value={buddyPickId}
+                                  onChange={e => setBuddyPickId(e.target.value)}
+                                  className="h-8 w-56 rounded-md border border-[#E4E6EA] bg-white px-2 text-[12px] text-gray-700"
+                                >
+                                  <option value="">Select an employee…</option>
+                                  {employees
+                                    .filter(e => e.status !== 'Offboarded')
+                                    .map(e => (
+                                      <option key={e.id} value={e.id}>
+                                        {e.fullName} — {e.role}
+                                      </option>
+                                    ))}
+                                </Select>
+                                <button
+                                  onClick={openBuddyComposer}
+                                  disabled={!buddyPickId}
+                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent-600 px-3 text-[12px] font-semibold text-white transition hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  <Send size={13} /> {buddyDone ? 'Resend buddy email' : 'Send buddy email'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Signed offer letter the candidate uploaded — preview / download. */}
                     {stage.action.kind === 'mark-signed' && signedOfferDoc && (
                       <div className="flex flex-wrap items-center gap-2">
@@ -1542,13 +1881,9 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
                         {!checklist.appointmentSignedReceivedAt && (
                           <button
                             onClick={markAppointmentSignedNow}
-                            disabled={markAppointmentSigned.isPending || !bgvVerified}
+                            disabled={markAppointmentSigned.isPending}
                             className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-[12px] font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
-                            title={
-                              !bgvVerified
-                                ? 'Complete Background Verification first'
-                                : 'Confirm the signed appointment letter is valid'
-                            }
+                            title="Confirm the signed appointment letter is valid"
                           >
                             {markAppointmentSigned.isPending ? (
                               <Loader2 size={13} className="animate-spin" />

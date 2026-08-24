@@ -3,7 +3,7 @@
  * a composer, tweaks the subject/body, and sends — so nothing is locked to a
  * fixed backend template. The offer letter mirrors the company's PDF format.
  */
-import { Candidate } from '@/types';
+import { Candidate, OnboardingChecklist } from '@/types';
 import { OnboardingEmailKind } from '@/features/onboarding/hooks';
 import { OFFICE_LOCATION_URL } from '@/lib/config';
 
@@ -151,4 +151,47 @@ export function buildOnboardingEmailDraft(
         ].join('\n'),
       };
   }
+}
+
+/**
+ * Buddy-assignment email sent to the employee HR picks to buddy a new
+ * joinee. Fixed subject/body (not part of the OnboardingEmailKind union —
+ * this goes to a chosen employee, not the candidate), with placeholders
+ * filled from the checklist/candidate. `joiningDateLabel` is passed in
+ * already-formatted (fmtDate lives in OnboardingStepper.tsx).
+ */
+export function buildBuddyEmailDraft(
+  checklist: Pick<OnboardingChecklist, 'candidateName'>,
+  candidate: Pick<Candidate, 'department' | 'appliedRole'> | undefined,
+  joiningDateLabel: string,
+): EmailDraft {
+  const employeeName = checklist.candidateName || '[Employee Name]';
+  const department = candidate?.department || '[Department Name]';
+  const designation = candidate?.appliedRole || '[Designation]';
+
+  return {
+    subject: 'Buddy System – Your Role & Responsibilities',
+    body: [
+      `We are pleased to assign you as the Buddy for our new joinee, ${employeeName}, who will be joining the ${department} as ${designation} on ${joiningDateLabel}.`,
+      '',
+      'As a Buddy, your role is to help the new joinee settle in, feel comfortable, understand the team culture, and navigate their initial days at Optiminastic.',
+      '',
+      'We’ve attached the Buddy Interaction Process – 2-Week Framework, which outlines the interactions, key pointers, and suggested timelines to follow.',
+      '',
+      'A few key expectations:',
+      '- Be approachable and available for basic questions or guidance.',
+      '- Help the new joinee connect with the team and understand workplace practices.',
+      '- Check in with them regularly and help identify any concerns or blockers.',
+      '- Encourage them to become comfortable and independent within the team.',
+      '- Escalate any relevant concerns to HR or the Reporting Manager.',
+      '',
+      'Please use the attached framework as a guide while keeping the interactions informal, supportive, and comfortable.',
+      '',
+      'Thank you for helping us create a positive first experience for our new joinees!',
+      '',
+      'Best,',
+      'HR Team',
+      'Optiminastic',
+    ].join('\n'),
+  };
 }

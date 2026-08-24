@@ -658,6 +658,22 @@ export interface OnboardingChecklist {
   convertedToEmployeeAt?: string;
   /** The employee record this onboarding was converted into, e.g. "EMP-1362". */
   employeeId?: string;
+
+  // Allocation of mail, system & desk — three ordered sub-steps, each driven
+  // by its own *SavedAt/*AssignedAt timestamp (same convention as above).
+  /** New hire's company email address. */
+  allocationEmail?: string;
+  allocationEmailSavedAt?: string;
+  systemName?: string;
+  systemPassword?: string;
+  systemNumber?: string;
+  deskNumber?: string;
+  systemDeskSavedAt?: string;
+  /** Employee assigned as onboarding buddy. */
+  buddyEmployeeId?: string;
+  buddyEmployeeName?: string;
+  /** Set once the buddy-assignment email has been sent. */
+  buddyAssignedAt?: string;
 }
 
 export type OnboardingStatus =
