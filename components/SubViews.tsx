@@ -922,7 +922,7 @@ function onboardingProgress(
     Boolean(o.offerLetterSentAt),
     Boolean(o.offerSignedReceivedAt) || signedOffer?.status === 'Submitted' || signedOffer?.status === 'Verified',
     joiningDocs?.status === 'Verified' || Boolean(o.joiningDocsSkippedAt),
-    bgv?.overallStatus === 'Verified', // sent-but-not-yet-verified does NOT count
+    bgv?.overallStatus === 'Verified' || Boolean(o.bgvSkippedAt), // sent-but-not-yet-verified does NOT count on its own
     Boolean(o.joiningDateConfirmedAt),
     Boolean(o.firstDayArrivedAt),
     Boolean(o.appointmentLetterSentAt),

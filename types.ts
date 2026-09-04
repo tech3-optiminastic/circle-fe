@@ -632,6 +632,12 @@ export interface OnboardingChecklist {
    *  not an auto-complete. */
   joiningDocsSkippedAt?: string;
 
+  /** HR chose to proceed past Background verification before it came back
+   *  Verified from OnGrid (which can take ~20 days) — an explicit manual
+   *  override, not an auto-complete. BGV itself is still tracked separately
+   *  (pill, report upload, undo) and can still be marked Verified later. */
+  bgvSkippedAt?: string;
+
   // Post-verification email sequence (ISO timestamps; undefined = not yet done).
   /** Job-offer email (offer details) sent to the candidate. */
   jobOfferSentAt?: string;

@@ -226,6 +226,14 @@ export function useOnboardingEmails() {
     onSuccess: invalidate,
   });
 
+  // HR manually proceeds past Background verification before it came back
+  // Verified from OnGrid (~20 days) — an explicit override, not an auto-complete.
+  const markBgvSkipped = useMutation({
+    mutationFn: (candidateId: string) =>
+      repositories.onboarding.patch(candidateId, { bgvSkippedAt: nowISO() }),
+    onSuccess: invalidate,
+  });
+
   // Undo an employee conversion tag on the onboarding record — used when the
   // employee record it points to gets deleted (e.g. a mistaken conversion), so
   // the candidate reverts to "Pending" and stays visible in onboarding.
@@ -364,6 +372,7 @@ export function useOnboardingEmails() {
     markOfferSigned,
     markAppointmentSigned,
     markJoiningDocsSkipped,
+    markBgvSkipped,
     revertEmployeeConversion,
     setJoiningDate,
     markFirstDayArrived,

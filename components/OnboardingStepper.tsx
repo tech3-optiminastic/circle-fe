@@ -153,6 +153,7 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
     markOfferSigned,
     markAppointmentSigned,
     markJoiningDocsSkipped,
+    markBgvSkipped,
     setJoiningDate,
     markFirstDayArrived,
     saveAllocationEmail,
@@ -280,6 +281,9 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
   // stays below 100%), even though HR can freely continue the other steps
   // in the meantime — "sent" only affects which CTA/copy shows, not `done`.
   const bgvSent = Boolean(bgv?.ongridIndividualId);
+  // HR can explicitly proceed past this step before OnGrid comes back — the
+  // same manual-override pattern as Joining Documents above.
+  const bgvSkipped = Boolean(checklist.bgvSkippedAt);
   const joiningConfirmed = Boolean(checklist.joiningDateConfirmedAt);
   const firstDayArrived = Boolean(checklist.firstDayArrivedAt);
   // usePromoteFromOnboarding only ever sets convertedToEmployeeAt/employeeId
@@ -369,19 +373,28 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
     {
       Icon: Fingerprint,
       label: 'Background verification',
-      // Only a real "Verified" counts as done — see the bgvVerified/bgvSent
-      // comment above. HR can still work through later steps while this one
-      // is pending; it just won't show as complete (or count toward 100%
-      // progress) until confirmed.
-      done: bgvVerified,
-      desc: bgvVerified ? 'Verified' : bgvSent ? 'Sent · verifying' : bgv ? bgv.overallStatus : 'Not started',
+      // A real "Verified" completes it normally; HR can also explicitly skip
+      // ahead (see bgvSkipped above) since OnGrid can take ~20 days to come
+      // back — either way, HR can freely work through later steps regardless.
+      done: bgvVerified || bgvSkipped,
+      desc: bgvVerified
+        ? 'Verified'
+        : bgvSkipped
+          ? 'Skipped · proceeded'
+          : bgvSent
+            ? 'Sent · verifying'
+            : bgv
+              ? bgv.overallStatus
+              : 'Not started',
       detail: bgvVerified
         ? 'Background verification is cleared.'
-        : bgvSent
-          ? 'Sent to OnGrid — verification is in progress (this can take ~20 days). You can continue onboarding now, and record the outcome (Verified / Invalid) here whenever it comes back.'
-          : bgv
-            ? `Background check is "${bgv.overallStatus}". Send it to OnGrid to begin.`
-            : 'Background verification has not started yet. Start it to pick which checks to run.',
+        : bgvSkipped
+          ? 'HR proceeded without waiting for the OnGrid result. You can still come back and mark it Verified once the report is in.'
+          : bgvSent
+            ? 'Sent to OnGrid — verification is in progress (this can take ~20 days). You can continue onboarding now, and record the outcome (Verified / Invalid) here whenever it comes back.'
+            : bgv
+              ? `Background check is "${bgv.overallStatus}". Send it to OnGrid to begin.`
+              : 'Background verification has not started yet. Start it to pick which checks to run.',
       action: bgv ? { kind: 'verify-bgv', cta: 'Mark BGV verified' } : { kind: 'start-bgv', cta: 'Start BGV' },
     },
     {
@@ -1564,6 +1577,41 @@ export function OnboardingStepper({ checklist }: OnboardingStepperProps) {
                           <span className="text-[11px] text-gray-400">
                             Check the candidate on OnGrid, then confirm Verify (verified) or Invalid.
                           </span>
+                        </div>
+                      )}
+
+                    {/* BGV: HR doesn't have to wait for OnGrid (~20 days) to move on —
+                        the same manual, explicit override as Joining Documents above.
+                        BGV stays trackable/verifiable afterward; this just unblocks the
+                        rest of onboarding now. */}
+                    {(stage.action.kind === 'verify-bgv' || stage.action.kind === 'start-bgv') &&
+                      !bgvVerified &&
+                      !bgvSkipped && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            onClick={() =>
+                              toast.confirm({
+                                title: 'Proceed without BGV verified?',
+                                description:
+                                  'OnGrid verification can take ~20 days. You can still come back and mark this Verified once the report is in.',
+                                confirmLabel: 'Proceed',
+                                onConfirm: () =>
+                                  markBgvSkipped.mutate(checklist.candidateId, {
+                                    onSuccess: () => toast.success('Moved on — you can still verify BGV later.'),
+                                    onError: () => toast.error('Could not proceed — try again.'),
+                                  }),
+                              })
+                            }
+                            disabled={markBgvSkipped.isPending}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#E4E6EA] bg-white px-3 text-[12px] font-semibold text-gray-700 transition hover:bg-[#F1F3F5] disabled:opacity-60"
+                          >
+                            {markBgvSkipped.isPending ? (
+                              <Loader2 size={13} className="animate-spin" />
+                            ) : (
+                              <ChevronDown size={13} className="-rotate-90" />
+                            )}
+                            Next — proceed without BGV verified
+                          </button>
                         </div>
                       )}
 
