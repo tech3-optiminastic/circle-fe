@@ -577,8 +577,13 @@ export type BGVDocumentStatus =
 
 export type BGVOverallStatus = BGVDocumentStatus;
 
-/** HR-built offer letter values (rendered into the fixed Optiminastic format). */
+/** Which legal entity's letterhead an offer letter is issued under. */
+export type OfferLetterCompany = 'optiminastic' | 'alt_opti';
+
+/** HR-built offer letter values (rendered into the selected entity's letterhead format). */
 export interface OfferLetterData {
+  /** Defaults to 'optiminastic' when absent (letters created before this field existed). */
+  company?: OfferLetterCompany;
   candidateName: string;
   salutation: string;
   role: string;
@@ -587,6 +592,10 @@ export interface OfferLetterData {
   joiningDate: string;
   probationPeriod: string;
   medicalInsurance: number;
+  /** Whether the CTC breakdown includes a PF line at all. Off by default —
+   *  when off, PF is stripped from both the employer add-on and the LESS
+   *  deduction, and Special Allowance absorbs the difference. */
+  pfEnabled?: boolean;
   basic: number;
   hra: number;
   specialAllowance: number;

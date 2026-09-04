@@ -9,17 +9,21 @@ const HEADER_IMG =
   'https://res.cloudinary.com/dui7h1n3d/image/upload/v1782973075/Screenshot_2026-07-02_114636_vr0bqh.png';
 const FOOTER_IMG =
   'https://res.cloudinary.com/dui7h1n3d/image/upload/v1782973076/Screenshot_2026-07-02_114609_on3fm3.png';
+const ALT_OPTI_CIN = 'U62099MH2023PTC410008';
+const ALT_OPTI_ADDRESS =
+  'Regd Office : 1505,Floor-15th, Amorina Heights, Shankar Sheth Rd, Grant Road, Mumbai-400007, Maharashtra';
 
 // A4 at 96dpi. Header/footer banner heights derive from the image aspect ratios
-// (836×171, 834×229) at full page width.
+// (836×171, 834×229) at full page width for the Optiminastic letterhead; the ALT
+// OPTI letterhead is rendered as text (no letterhead image, and no footer at all).
 const PAGE_W = 794;
 const PAGE_H = 1123;
-const HEADER_H = Math.round((PAGE_W * 171) / 836); // ≈ 162
-const FOOTER_H = Math.round((PAGE_W * 229) / 834); // ≈ 218
+const OPTIMINASTIC_HEADER_H = Math.round((PAGE_W * 171) / 836); // ≈ 162
+const OPTIMINASTIC_FOOTER_H = Math.round((PAGE_W * 229) / 834); // ≈ 218
+const ALT_OPTI_HEADER_H = 150;
+const ALT_OPTI_FOOTER_H = 0;
 const PAD_X = 58;
 const PAD_Y = 18;
-// Usable content height on each page (between header and footer, minus padding).
-const CONTENT_H = PAGE_H - HEADER_H - FOOTER_H - PAD_Y * 2;
 
 const REQUIRED_DOCS = [
   'Proof of age (birth certificate / school leaving certificate / passport copy)',
@@ -52,6 +56,9 @@ function formatJoining(value?: string): string {
  *  no block is split across pages). Kept fine so pages fill with minimal gaps;
  *  headings stay attached to their first paragraph so they never orphan. */
 function letterBlocks(d: OfferLetterData): React.ReactNode[] {
+  const isAlt = (d.company ?? 'optiminastic') === 'alt_opti';
+  const brandName = isAlt ? 'ALT OPTI MEDIA PRIVATE LIMITED' : 'Optiminastic';
+  const brandLegalName = isAlt ? 'ALT OPTI MEDIA PRIVATE LIMITED' : 'Optiminastic Infomedia';
   const name = `${d.salutation} ${d.candidateName}`.trim();
   const rows = computeBreakup(d);
   return [
@@ -59,7 +66,7 @@ function letterBlocks(d: OfferLetterData): React.ReactNode[] {
     <p key="dear" className="font-bold">Dear {name},</p>,
     <p key="intro">
       With reference to your application and subsequent interview, we are pleased to offer you the position
-      of <strong>{d.role || '[role]'}</strong> at <strong>Optiminastic</strong>. You will be based out of
+      of <strong>{d.role || '[role]'}</strong> at <strong>{brandName}</strong>. You will be based out of
       our office in <strong>{d.location || 'Mumbai'}</strong>.
     </p>,
     <div key="salary">
@@ -109,7 +116,7 @@ function letterBlocks(d: OfferLetterData): React.ReactNode[] {
         provided on the day of joining, after the completion of your onboarding formalities.
       </p>
     </div>,
-    <p key="welcome">We warmly welcome you to the Optiminastic family and look forward to having you with us.</p>,
+    <p key="welcome">We warmly welcome you to the {brandName} family and look forward to having you with us.</p>,
     <div key="ctc">
       <p className="mb-2 font-bold">Breakup of the fixed CTC:</p>
       <table style={TABLE}>
@@ -163,7 +170,7 @@ function letterBlocks(d: OfferLetterData): React.ReactNode[] {
     </p>,
     <div key="sign">
       <p className="mb-0">Yours faithfully,</p>
-      <p className="mb-0 font-bold">For Optiminastic Infomedia</p>
+      <p className="mb-0 font-bold">For {brandLegalName}</p>
       <p className="mb-0 font-bold">{d.signatoryName}</p>
       <p className="mb-0 font-bold">{d.signatoryTitle}</p>
     </div>,
@@ -191,6 +198,11 @@ export function OfferLetterPaged({
   data: OfferLetterData;
   rootRef?: React.Ref<HTMLDivElement>;
 }) {
+  const isAlt = (data.company ?? 'optiminastic') === 'alt_opti';
+  const HEADER_H = isAlt ? ALT_OPTI_HEADER_H : OPTIMINASTIC_HEADER_H;
+  const FOOTER_H = isAlt ? ALT_OPTI_FOOTER_H : OPTIMINASTIC_FOOTER_H;
+  // Usable content height on each page (between header and footer, minus padding).
+  const CONTENT_H = PAGE_H - HEADER_H - FOOTER_H - PAD_Y * 2;
   const blocks = letterBlocks(data);
   const measureRef = useRef<HTMLDivElement>(null);
   const [pages, setPages] = useState<number[][]>([]);
@@ -242,8 +254,32 @@ export function OfferLetterPaged({
             className="ol-page"
             style={{ width: PAGE_W, height: PAGE_H, position: 'relative', overflow: 'hidden', background: '#fff' }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={HEADER_IMG} alt="Optiminastic" style={{ display: 'block', width: '100%' }} />
+            {isAlt ? (
+              <div
+                style={{
+                  width: '100%',
+                  height: HEADER_H,
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  padding: '0 40px',
+                  background: '#fff',
+                }}
+              >
+                <div style={{ fontFamily: '"Arial Black", Arial, sans-serif', fontWeight: 900, fontSize: 19, color: '#800080', letterSpacing: 0.3 }}>
+                  ALT OPTI MEDIA PRIVATE LIMITED
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 14, marginTop: 4, color: '#111' }}>CIN : {ALT_OPTI_CIN}</div>
+                <div style={{ width: '100%', maxWidth: 714, borderTop: '2px solid #800080', margin: '8px 0 6px' }} />
+                <div style={{ fontWeight: 700, fontSize: 11, lineHeight: 1.35, color: '#111' }}>{ALT_OPTI_ADDRESS}</div>
+              </div>
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={HEADER_IMG} alt="Optiminastic" style={{ display: 'block', width: '100%' }} />
+            )}
             <div
               className="text-[13px] leading-relaxed text-gray-900"
               style={{
@@ -262,12 +298,14 @@ export function OfferLetterPaged({
                 <div key={bi}>{blocks[bi]}</div>
               ))}
             </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={FOOTER_IMG}
-              alt=""
-              style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', display: 'block' }}
-            />
+            {!isAlt && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={FOOTER_IMG}
+                alt=""
+                style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', display: 'block' }}
+              />
+            )}
           </div>
         );
       })}

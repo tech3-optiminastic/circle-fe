@@ -2,8 +2,9 @@
 
 import React, { useRef, useState } from 'react';
 import { Select } from './Select';
-import { FileText, Eye, Pencil, Plus, X, Printer, Loader2, Trash2 } from 'lucide-react';
-import type { Candidate, OfferLetterData } from '@/types';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Building2, FileText, Eye, Pencil, Plus, X, Printer, Loader2, Trash2 } from 'lucide-react';
+import type { Candidate, OfferLetterCompany, OfferLetterData } from '@/types';
 import { blankOfferLetter, computeBreakup, formatINRNumber, offerLetterFileBaseName } from '@/lib/offer-letter';
 import { useCandidates } from '@/features/candidates/hooks';
 import { useOnboardingEmails } from '@/features/onboarding/hooks';
@@ -33,11 +34,20 @@ export function OfferLetterCard({ candidateId, candidateName, offerLetter }: Off
   const [mode, setMode] = useState<'form' | 'preview' | null>(null);
   const [draft, setDraft] = useState<OfferLetterData | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const pagesRootRef = useRef<HTMLDivElement>(null);
 
-  const openCreate = () => {
+  // "Create letter" (no offer letter yet) asks which entity's letterhead to use
+  // first. "Edit" (pencil, on an existing letter) reopens the form directly —
+  // the entity was already chosen at creation time and stays fixed on the letter.
+  const openEdit = () => {
     setDraft(offerLetter ?? blankOfferLetter(candidate, candidateName, nowISO()));
     setMode('form');
+  };
+  const startCreate = (company: OfferLetterCompany) => {
+    setDraft(blankOfferLetter(candidate, candidateName, nowISO(), company));
+    setMode('form');
+    setPickerOpen(false);
   };
   const openPreview = () => {
     setDraft(offerLetter ?? blankOfferLetter(candidate, candidateName, nowISO()));
@@ -152,7 +162,7 @@ export function OfferLetterCard({ candidateId, candidateName, offerLetter }: Off
               <button onClick={openPreview} title="Preview" aria-label="Preview" className={iconBtnCls}>
                 <Eye size={13} />
               </button>
-              <button onClick={openCreate} title="Edit" aria-label="Edit" className={iconBtnCls}>
+              <button onClick={openEdit} title="Edit" aria-label="Edit" className={iconBtnCls}>
                 <Pencil size={13} />
               </button>
               <button
@@ -167,7 +177,7 @@ export function OfferLetterCard({ candidateId, candidateName, offerLetter }: Off
             </>
           ) : (
             <button
-              onClick={openCreate}
+              onClick={() => setPickerOpen(true)}
               className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent-600 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-accent-700"
             >
               <Plus size={13} /> Create letter
@@ -175,6 +185,52 @@ export function OfferLetterCard({ candidateId, candidateName, offerLetter }: Off
           )}
         </div>
       </div>
+
+      {/* Entity picker — which company's letterhead to issue the letter under */}
+      {pickerOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setPickerOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-base font-bold text-gray-900">Issue letter under which company?</h3>
+              <button
+                onClick={() => setPickerOpen(false)}
+                aria-label="Close"
+                className="rounded p-1 text-gray-400 hover:bg-gray-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-2.5">
+              <button
+                onClick={() => startCreate('optiminastic')}
+                className="flex w-full items-center gap-3 rounded-xl border border-[#E4E6EA] p-3.5 text-left transition hover:border-accent-400 hover:bg-accent-50"
+              >
+                <Building2 size={18} className="shrink-0 text-accent-600" />
+                <div className="min-w-0">
+                  <p className="text-[13px] font-bold text-gray-900">Optiminastic Infomedia</p>
+                  <p className="text-[11px] text-gray-500">The standard letterhead used today.</p>
+                </div>
+              </button>
+              <button
+                onClick={() => startCreate('alt_opti')}
+                className="flex w-full items-center gap-3 rounded-xl border border-[#E4E6EA] p-3.5 text-left transition hover:border-accent-400 hover:bg-accent-50"
+              >
+                <Building2 size={18} className="shrink-0 text-accent-600" />
+                <div className="min-w-0">
+                  <p className="text-[13px] font-bold text-gray-900">ALT OPTI MEDIA PRIVATE LIMITED</p>
+                  <p className="text-[11px] text-gray-500">CIN U62099MH2023PTC410008 — Mumbai.</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Form modal */}
       {mode === 'form' && draft && (
@@ -234,6 +290,16 @@ export function OfferLetterCard({ candidateId, candidateName, offerLetter }: Off
               </div>
 
               <div>
+                <label className="mb-2.5 flex items-center gap-2 text-[12px] font-medium text-gray-700">
+                  <Checkbox
+                    checked={Boolean(draft.pfEnabled)}
+                    onCheckedChange={checked => set('pfEnabled', checked === true)}
+                  />
+                  Add PF
+                  <span className="font-normal text-gray-400">
+                    (off by default — leaves PF out of the breakdown entirely)
+                  </span>
+                </label>
                 <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-500">
                   CTC breakdown{' '}
                   <span className="font-normal normal-case text-gray-400">

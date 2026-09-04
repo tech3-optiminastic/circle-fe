@@ -93,20 +93,21 @@ export interface BreakupRow {
  * CTC breakup derived entirely from the Annual CTC, using Finance's
  * "Salary Breakdown" sheet formula (permanent employees):
  *   Basic   = CTC × 30% / 12          HRA = Basic / 2
- *   PF      = min(1800, Basic × 12%)
+ *   PF      = min(1800, Basic × 12%)  — only when `d.pfEnabled` (HR opt-in, off by default)
  *   Special = CTC/12 − Basic − HRA − PF   (balances the monthly CTC)
  *   Gross   = Basic + HRA + Special       CTC (A) = Gross + PF
- *   LESS: PF (= employer PF) + Professional Tax (₹200/mo, ₹2,500/yr)
+ *   LESS: PF (= employer PF, when enabled) + Professional Tax (₹200/mo, ₹2,500/yr)
  *   Net (monthly) = Gross − Total Deduction;  Net (annual) = CTC − Total Deduction
  */
 export function computeBreakup(d: OfferLetterData): BreakupRow[] {
   const annual = Math.max(0, Math.round(Number(d.ctcAnnual) || 0));
   const y = (m: number) => m * 12;
+  const pfEnabled = Boolean(d.pfEnabled);
 
   const ctcM = Math.round(annual / 12);
   const basicM = Math.round((annual * 0.3) / 12);
   const hraM = Math.round(basicM / 2);
-  const pfM = Math.min(1800, Math.round(basicM * 0.12));
+  const pfM = pfEnabled ? Math.min(1800, Math.round(basicM * 0.12)) : 0;
   const specialM = Math.max(0, ctcM - basicM - hraM - pfM);
   const grossM = basicM + hraM + specialM;
 
@@ -121,16 +122,20 @@ export function computeBreakup(d: OfferLetterData): BreakupRow[] {
   const netM = grossM - totalDedM;
   const netY = ctcY - totalDedY;
 
-  return [
+  const rows: BreakupRow[] = [
     { label: 'Basic', monthly: basicM, annual: y(basicM) },
     { label: 'HRA', monthly: hraM, annual: y(hraM) },
     { label: 'Special Allowance', monthly: specialM, annual: y(specialM) },
     { label: 'Gross Salary', monthly: grossM, annual: grossY, strong: true },
-    { label: 'PF', monthly: pfM, annual: pfY },
+  ];
+  if (pfEnabled) rows.push({ label: 'PF', monthly: pfM, annual: pfY });
+  rows.push(
     { label: '', monthly: 0, annual: 0, spacer: true },
     { label: 'CTC (Cost to the Company) A', monthly: ctcM, annual: ctcY, strong: true },
     { label: 'LESS', monthly: 0, annual: 0, section: true },
-    { label: 'PF', monthly: pfM, annual: pfY },
+  );
+  if (pfEnabled) rows.push({ label: 'PF', monthly: pfM, annual: pfY });
+  rows.push(
     { label: 'Professional Tax', monthly: ptM, annual: ptY },
     { label: 'Total Deduction', monthly: totalDedM, annual: totalDedY, strong: true },
     {
@@ -139,7 +144,8 @@ export function computeBreakup(d: OfferLetterData): BreakupRow[] {
       annual: netY,
       highlight: true,
     },
-  ];
+  );
+  return rows;
 }
 
 /** Defaults for a fresh offer letter, auto-filled from the candidate where possible. */
@@ -147,8 +153,10 @@ export function blankOfferLetter(
   candidate: Pick<Candidate, 'fullName' | 'appliedRole' | 'location'> | undefined,
   candidateName: string,
   nowIso: string,
+  company: OfferLetterData['company'] = 'optiminastic',
 ): OfferLetterData {
   return {
+    company,
     candidateName: candidate?.fullName || candidateName || '',
     salutation: 'Mr.',
     role: candidate?.appliedRole || '',
@@ -157,6 +165,7 @@ export function blankOfferLetter(
     joiningDate: '',
     probationPeriod: 'six months',
     medicalInsurance: 300000,
+    pfEnabled: false,
     basic: 0,
     hra: 0,
     specialAllowance: 0,
