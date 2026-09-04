@@ -9,6 +9,7 @@ export interface Candidate {
   email: string;
   phone: string;
   location: string;
+  age?: number;
   /** Captured on the application form; needed to onboard to OnGrid (BGV). */
   gender?: 'Male' | 'Female' | 'Other';
   currentCompany: string;
@@ -26,6 +27,9 @@ export interface Candidate {
   sourceOfApplication: string;
   referralDetails?: string;
   hrRemarks?: string;
+  /** Candidate's own cover note (from a public application, or entered
+   *  directly by HR when adding a candidate straight into onboarding). */
+  coverNote?: string;
   status: CandidateStatus;
   appliedDate: string;
   // Full ISO timestamp of when the candidate was added/applied — used to sort

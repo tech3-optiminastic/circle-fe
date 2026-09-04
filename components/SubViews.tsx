@@ -9,16 +9,21 @@ import { EmailTemplatesManager } from './EmailTemplatesManager';
 import { useToast } from './Toaster';
 import { useUiStore } from '@/store/ui-store';
 import { useSchedules } from '@/features/schedule/hooks';
-import { useCandidates, useBgvs } from '@/features/candidates/hooks';
+import { useCandidates, useBgvs, useCandidateMutations } from '@/features/candidates/hooks';
 import { useDocRequests } from '@/features/doc-requests/hooks';
 import { useEmployees } from '@/features/employees/hooks';
+import { useJobs } from '@/features/jobs/hooks';
 import {
   useInitiateOffboarding,
   useUpdateOffboardingCase,
   useDeleteOffboarding,
 } from '@/features/offboarding/hooks';
+import { useEnsureOnboarding } from '@/features/onboarding/hooks';
 import { AddExitCaseModal } from '@/components/AddExitCaseModal';
 import { EditExitCaseDialog } from '@/components/EditExitCaseDialog';
+import { AddOnboardingCandidateModal } from '@/components/AddOnboardingCandidateModal';
+import { uploadDocument, importDriveDocument } from '@/lib/api/documents';
+import { PickedFile } from '@/components/ui/file-dropzone';
 import { useScheduler } from '@/store/schedule-store';
 import {
   getCalendarStatus,
@@ -935,19 +940,67 @@ function onboardingProgress(
 
 export function OnboardingChecklistView({ onboarding }: OnboardingViewProps) {
   const router = useRouter();
+  const toast = useToast();
   const { data: bgvs = [] } = useBgvs();
   const { data: docRequests = [] } = useDocRequests();
+  const { data: jobs = [] } = useJobs();
+  const { create } = useCandidateMutations();
+  const ensureOnboarding = useEnsureOnboarding();
   const pg = usePagination(onboarding.length);
+
+  const [addCandidateOpen, setAddCandidateOpen] = useState(false);
+  const openJobs = jobs.filter(j => j.status === 'Open');
+
+  // Straight-to-onboarding add: create the candidate, spin up their checklist
+  // immediately (no pipeline stages), attach the resume, then jump to their
+  // onboarding workspace.
+  const addCandidateDirect = (candidate: Candidate, resume: PickedFile) => {
+    create.mutate(candidate, {
+      onSuccess: () => {
+        ensureOnboarding.mutate(candidate);
+        const upload =
+          resume.kind === 'local'
+            ? uploadDocument({
+                entityType: 'candidate',
+                entityId: candidate.id,
+                category: 'resume',
+                file: resume.file,
+              })
+            : importDriveDocument({
+                entityType: 'candidate',
+                entityId: candidate.id,
+                category: 'resume',
+                fileId: resume.ref.id,
+                fileName: resume.ref.name,
+                mimeType: resume.ref.mimeType,
+                accessToken: resume.ref.accessToken,
+              });
+        upload.catch(() => toast.error('Added to onboarding, but the resume failed to upload.'));
+        toast.success(`${candidate.fullName} added straight to onboarding.`);
+        setAddCandidateOpen(false);
+        router.push(`/onboarding/${candidate.id}`);
+      },
+      onError: () => toast.error('Could not add the candidate — try again.'),
+    });
+  };
 
   return (
     <div className="space-y-4 text-xs select-none">
-      <div>
-        <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
-          Onboarding Progress Tracker
-        </h2>
-        <p className="text-gray-500 text-[11px]">
-          Checklist-driven joiner actions. Open a joiner to manage their checklist and journey.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-bold text-gray-900 tracking-tight font-display">
+            Onboarding Progress Tracker
+          </h2>
+          <p className="text-gray-500 text-[11px]">
+            Checklist-driven joiner actions. Open a joiner to manage their checklist and journey.
+          </p>
+        </div>
+        <button
+          onClick={() => setAddCandidateOpen(true)}
+          className="bg-accent-600 hover:bg-accent-700 text-white px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition font-medium shrink-0 shadow-2xs"
+        >
+          <Plus size={15} /> Add to onboarding
+        </button>
       </div>
 
       {/* Joiners table — click a row to open their full onboarding page */}
@@ -1017,6 +1070,14 @@ export function OnboardingChecklistView({ onboarding }: OnboardingViewProps) {
         onPageSizeChange={pg.setPageSize}
         itemLabel="joiners"
       />
+      {addCandidateOpen && (
+        <AddOnboardingCandidateModal
+          jobs={openJobs}
+          pending={create.isPending}
+          onSubmit={addCandidateDirect}
+          onClose={() => setAddCandidateOpen(false)}
+        />
+      )}
     </div>
   );
 }
