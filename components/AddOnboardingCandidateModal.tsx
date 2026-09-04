@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Select } from '@/components/Select';
+import { EditableSelect } from '@/components/ui/editable-select';
 import { FileDropzone, PickedFile } from '@/components/ui/file-dropzone';
 import { useToast } from '@/components/Toaster';
 import { Candidate, Job } from '@/types';
@@ -67,21 +68,13 @@ export function AddOnboardingCandidateModal({ jobs, pending, onSubmit, onClose }
     if (!form.age.trim()) missing.push('Age');
     if (!form.gender) missing.push('Gender');
     if (!form.location.trim()) missing.push('Location');
-    if (!form.appliedRole) missing.push('Role');
-    if (!form.currentCompany.trim()) missing.push('Current company');
-    if (!form.currentDesignation.trim()) missing.push('Current title');
-    if (!form.currentCtc.trim()) missing.push('Current/Previous CTC');
-    if (!form.expectedCtc.trim()) missing.push('Expected CTC');
-    if (!String(form.totalExperienceYears).trim()) missing.push('Experience');
-    if (!String(form.noticePeriodDays).trim()) missing.push('Notice period');
-    if (!form.linkedInUrl.trim()) missing.push('LinkedIn URL');
     if (!resume) missing.push('Resume');
     if (missing.length > 0) {
       toast.error(`Please fill all fields before saving: ${missing.join(', ')}.`);
       return;
     }
 
-    const job = jobs.find(j => j.id === form.appliedRole);
+    const job = jobs.find(j => j.title === form.appliedRole);
     const candidate: Candidate = {
       id: `CAN-${Math.floor(100 + Math.random() * 900)}`,
       fullName: form.fullName.trim(),
@@ -99,7 +92,7 @@ export function AddOnboardingCandidateModal({ jobs, pending, onSubmit, onClose }
       noticePeriodDays: Number(form.noticePeriodDays),
       linkedInUrl: form.linkedInUrl.trim(),
       coverNote: form.coverNote.trim() || undefined,
-      appliedRole: job?.title ?? '',
+      appliedRole: form.appliedRole.trim(),
       department: job?.department ?? '',
       jobId: job?.id,
       sourceOfApplication: 'Direct add (Onboarding)',
@@ -214,25 +207,18 @@ export function AddOnboardingCandidateModal({ jobs, pending, onSubmit, onClose }
               <div className="md:col-span-2">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <Label className={labelCls}>Role *</Label>
-                    <Select
+                    <Label className={labelCls}>Role</Label>
+                    <EditableSelect
                       value={form.appliedRole}
-                      onChange={e => set('appliedRole', e.target.value)}
-                      placeholder="Select an open role"
-                      className="mt-2 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-                    >
-                      <option value="" disabled>
-                        {jobs.length ? 'Select an open role' : 'No open job postings'}
-                      </option>
-                      {jobs.map(j => (
-                        <option key={j.id} value={j.id}>
-                          {j.title}
-                        </option>
-                      ))}
-                    </Select>
+                      onChange={v => set('appliedRole', v)}
+                      options={jobs.map(j => j.title)}
+                      onAdd={() => {}}
+                      placeholder={jobs.length ? 'Select or add a role' : 'Add a role'}
+                      className="mt-2"
+                    />
                   </div>
                   <div>
-                    <Label className={labelCls}>Current company *</Label>
+                    <Label className={labelCls}>Current company</Label>
                     <Input
                       value={form.currentCompany}
                       onChange={e => set('currentCompany', e.target.value)}
@@ -240,7 +226,7 @@ export function AddOnboardingCandidateModal({ jobs, pending, onSubmit, onClose }
                     />
                   </div>
                   <div>
-                    <Label className={labelCls}>Current title *</Label>
+                    <Label className={labelCls}>Current title</Label>
                     <Input
                       value={form.currentDesignation}
                       onChange={e => set('currentDesignation', e.target.value)}
@@ -248,7 +234,7 @@ export function AddOnboardingCandidateModal({ jobs, pending, onSubmit, onClose }
                     />
                   </div>
                   <div>
-                    <Label className={labelCls}>Experience (years) *</Label>
+                    <Label className={labelCls}>Experience (years)</Label>
                     <Input
                       type="number"
                       min={0}
@@ -258,7 +244,7 @@ export function AddOnboardingCandidateModal({ jobs, pending, onSubmit, onClose }
                     />
                   </div>
                   <div>
-                    <Label className={labelCls}>Current / Previous CTC *</Label>
+                    <Label className={labelCls}>Current / Previous CTC</Label>
                     <Input
                       placeholder="e.g. 8 LPA"
                       value={form.currentCtc}
@@ -267,7 +253,7 @@ export function AddOnboardingCandidateModal({ jobs, pending, onSubmit, onClose }
                     />
                   </div>
                   <div>
-                    <Label className={labelCls}>Expected CTC *</Label>
+                    <Label className={labelCls}>Expected CTC</Label>
                     <Input
                       placeholder="e.g. 15 LPA"
                       value={form.expectedCtc}
@@ -276,7 +262,7 @@ export function AddOnboardingCandidateModal({ jobs, pending, onSubmit, onClose }
                     />
                   </div>
                   <div>
-                    <Label className={labelCls}>Notice period (days) *</Label>
+                    <Label className={labelCls}>Notice period (days)</Label>
                     <Input
                       type="number"
                       min={0}
@@ -286,7 +272,7 @@ export function AddOnboardingCandidateModal({ jobs, pending, onSubmit, onClose }
                     />
                   </div>
                   <div>
-                    <Label className={labelCls}>LinkedIn URL *</Label>
+                    <Label className={labelCls}>LinkedIn URL</Label>
                     <Input
                       value={form.linkedInUrl}
                       onChange={e => set('linkedInUrl', e.target.value)}
