@@ -605,6 +605,10 @@ export interface OfferLetterData {
   signatoryName: string;
   signatoryTitle: string;
   hrEmail: string;
+  /** HR's freely-edited letter wording (everything except the CTC table —
+   *  see `renderOfferLetterBody`/`CTC_TABLE_MARKER` in lib/offer-letter.ts).
+   *  Empty/absent = use the auto-generated wording from the fields above. */
+  customBody?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -617,6 +621,11 @@ export interface AppointmentLetterData {
   location: string;
   ctcAnnual: number;
   joiningDate: string;
+  /** HR's freely-edited letter wording (everything except the final
+   *  signature/acknowledgment block, which stays fixed — see
+   *  `renderAppointmentLetterBody` in lib/appointment-letter.ts). Empty/absent
+   *  = use the auto-generated wording from the fields above. */
+  customBody?: string;
   createdAt: string;
   updatedAt?: string;
 }

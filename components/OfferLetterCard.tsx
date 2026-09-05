@@ -3,9 +3,17 @@
 import React, { useRef, useState } from 'react';
 import { Select } from './Select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Building2, FileText, Eye, Pencil, Plus, X, Printer, Loader2, Trash2 } from 'lucide-react';
 import type { Candidate, OfferLetterCompany, OfferLetterData } from '@/types';
-import { blankOfferLetter, computeBreakup, formatINRNumber, offerLetterFileBaseName } from '@/lib/offer-letter';
+import {
+  blankOfferLetter,
+  computeBreakup,
+  formatINRNumber,
+  offerLetterFileBaseName,
+  renderOfferLetterBody,
+} from '@/lib/offer-letter';
 import { useCandidates } from '@/features/candidates/hooks';
 import { useOnboardingEmails } from '@/features/onboarding/hooks';
 import { nowISO } from '@/lib/utils';
@@ -360,6 +368,33 @@ export function OfferLetterCard({ candidateId, candidateName, offerLetter }: Off
                   </p>
                 )}
               </div>
+
+              <Accordion type="single" collapsible>
+                <AccordionItem value="wording">
+                  <AccordionTrigger>Letter wording (advanced)</AccordionTrigger>
+                  <AccordionContent>
+                    <p className="mb-2 text-[11px] text-gray-500">
+                      The exact wording of the letter — everything except the CTC breakdown above, which
+                      always stays a computed table. Edit freely and save; once edited, it won&apos;t
+                      auto-update if you change the fields above (use &quot;Reset&quot; to regenerate it).
+                    </p>
+                    <Textarea
+                      value={draft.customBody || renderOfferLetterBody(draft)}
+                      onChange={e => set('customBody', e.target.value)}
+                      className="h-64 resize-none overflow-y-auto font-mono text-[11px] leading-relaxed"
+                    />
+                    <div className="mt-2 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => set('customBody', '')}
+                        className="text-[11px] font-semibold text-gray-500 hover:text-gray-700"
+                      >
+                        Reset to default wording
+                      </button>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </div>
 
             <div className="mt-5 flex items-center justify-end gap-2">

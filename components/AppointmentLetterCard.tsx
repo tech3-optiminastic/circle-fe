@@ -3,8 +3,13 @@
 import React, { useRef, useState } from 'react';
 import { FileText, Eye, Pencil, Plus, X, Printer, Loader2, Trash2 } from 'lucide-react';
 import type { AppointmentLetterData, Candidate, OfferLetterData } from '@/types';
-import { appointmentLetterFileBaseName, blankAppointmentLetter } from '@/lib/appointment-letter';
-import { formatINRNumber } from '@/lib/offer-letter';
+import {
+  appointmentLetterFileBaseName,
+  blankAppointmentLetter,
+  renderAppointmentLetterBody,
+} from '@/lib/appointment-letter';
+import { Textarea } from '@/components/ui/textarea';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useCandidates } from '@/features/candidates/hooks';
 import { useOnboardingEmails } from '@/features/onboarding/hooks';
 import { nowISO } from '@/lib/utils';
@@ -244,6 +249,34 @@ export function AppointmentLetterCard({
                 </Field>
               </div>
               <p className="text-[11px] text-gray-400">* All fields are required.</p>
+
+              <Accordion type="single" collapsible>
+                <AccordionItem value="wording">
+                  <AccordionTrigger>Letter wording (advanced)</AccordionTrigger>
+                  <AccordionContent>
+                    <p className="mb-2 text-[11px] text-gray-500">
+                      The exact wording of the letter — every clause, from the opening through the
+                      acceptance paragraphs (the signature block below always stays as-is). Edit freely
+                      and save; once edited, it won&apos;t auto-update if you change the fields above
+                      (use &quot;Reset&quot; to regenerate it).
+                    </p>
+                    <Textarea
+                      value={draft.customBody || renderAppointmentLetterBody(draft)}
+                      onChange={e => set('customBody', e.target.value)}
+                      className="h-64 resize-none overflow-y-auto font-mono text-[11px] leading-relaxed"
+                    />
+                    <div className="mt-2 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => set('customBody', '')}
+                        className="text-[11px] font-semibold text-gray-500 hover:text-gray-700"
+                      >
+                        Reset to default wording
+                      </button>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </div>
 
             <div className="mt-5 flex items-center justify-end gap-2">
